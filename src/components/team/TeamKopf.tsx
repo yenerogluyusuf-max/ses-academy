@@ -22,6 +22,7 @@ export function TeamKopf({ staff, aktiv, breit }: { staff: Staff; aktiv?: "einla
           {darf.orga(staff.role) && <Link href="/team/hausaufgaben/" className={link("hausaufgaben")}>Hausaufgaben</Link>}
           {darf.alles(staff.role) && <Link href="/team/import/" className={link("import")}>Import</Link>}
           {darf.alles(staff.role) && <Link href="/team/module/" className={link("module")}>Module</Link>}
+          {darf.orga(staff.role) && <Link href="/mein-bereich/verzeichnis/" className={link(undefined)}>Mitglieder</Link>}
           {darf.alles(staff.role) && <Link href="/team/auswertung/" className={link("auswertung")}>Auswertung</Link>}
           {darf.admin(staff.role) && <Link href="/team/team/" className={link("team")}>Team</Link>}
           <form action={abmelden}>

@@ -47,3 +47,12 @@ export async function portalAbmelden() {
   await supabase.auth.signOut();
   redirect("/mein-bereich/login/");
 }
+
+/** Neue E-Mail-Adresse anfordern. Supabase schickt an die alte und die neue Adresse je einen Bestätigungslink. */
+export async function emailAendern(formData: FormData) {
+  const neu = String(formData.get("email") ?? "").trim().toLowerCase();
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(neu)) redirect("/mein-bereich/?profil=email-ungueltig#profil");
+  const supabase = await createClient();
+  const { error } = await supabase.auth.updateUser({ email: neu });
+  redirect(`/mein-bereich/?profil=${error ? (error.code === "email_exists" ? "email-vergeben" : "fehler") : "email-gesendet"}#profil`);
+}

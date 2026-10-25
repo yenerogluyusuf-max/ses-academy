@@ -327,6 +327,38 @@ isOneToOne: false
       referencedColumns: ["id"]
     }
                   ]
+                },"memberships": {
+                  Row: {
+                    "cohort_id": string | null,"commission": string | null,"created_at": string,"id": string,"module_id": string | null,"participant_id": string,"role": Database["public"]['Enums']["membership_role"],"valid_from": string,"valid_until": string | null,"membership_badge": string | null
+                  }
+                  ComputedFields: "membership_badge"
+                  Insert: {
+                    "cohort_id"?: string | null,"commission"?: string | null,"created_at"?: string,"id"?: string,"module_id"?: string | null,"participant_id": string,"role": Database["public"]['Enums']["membership_role"],"valid_from"?: string,"valid_until"?: string | null
+                  }
+                  Update: {
+                    "cohort_id"?: string | null,"commission"?: string | null,"created_at"?: string,"id"?: string,"module_id"?: string | null,"participant_id"?: string,"role"?: Database["public"]['Enums']["membership_role"],"valid_from"?: string,"valid_until"?: string | null
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "memberships_cohort_id_fkey"
+      columns: ["cohort_id"]
+isOneToOne: false
+      referencedRelation: "cohorts"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "memberships_module_id_fkey"
+      columns: ["module_id"]
+isOneToOne: false
+      referencedRelation: "modules"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "memberships_participant_id_fkey"
+      columns: ["participant_id"]
+isOneToOne: false
+      referencedRelation: "participants"
+      referencedColumns: ["id"]
+    }
+                  ]
                 },"mentors": {
                   Row: {
                     "access_token": string,"created_at": string,"email": string | null,"id": string,"name": string,"phone": string | null,"user_id": string | null
@@ -429,14 +461,14 @@ isOneToOne: true
                   ]
                 },"participants": {
                   Row: {
-                    "active": boolean,"affiliation_status": Database["public"]['Enums']["affiliation_status"],"branch": string | null,"checkin_token": string,"cohort_id": string | null,"country": string | null,"created_at": string,"email": string | null,"first_name": string,"id": string,"last_name": string,"mentor_id": string | null,"phone": string | null,"preferred_language": string,"privacy_consent_at": string | null,"region_id": number | null,"short_code": string | null,"updated_at": string,"user_id": string | null,"display_name": string | null
+                    "active": boolean,"affiliation_status": Database["public"]['Enums']["affiliation_status"],"branch": string | null,"checkin_token": string,"cohort_id": string | null,"country": string | null,"created_at": string,"email": string | null,"first_name": string,"id": string,"last_name": string,"mentor_id": string | null,"phone": string | null,"photo_consent_at": string | null,"photo_path": string | null,"preferred_language": string,"privacy_consent_at": string | null,"region_id": number | null,"share_contact": boolean,"short_code": string | null,"updated_at": string,"user_id": string | null,"display_name": string | null
                   }
                   ComputedFields: "display_name"
                   Insert: {
-                    "active"?: boolean,"affiliation_status"?: Database["public"]['Enums']["affiliation_status"],"branch"?: string | null,"checkin_token"?: string,"cohort_id"?: string | null,"country"?: string | null,"created_at"?: string,"email"?: string | null,"first_name": string,"id"?: string,"last_name"?: string,"mentor_id"?: string | null,"phone"?: string | null,"preferred_language"?: string,"privacy_consent_at"?: string | null,"region_id"?: number | null,"short_code"?: never,"updated_at"?: string,"user_id"?: string | null
+                    "active"?: boolean,"affiliation_status"?: Database["public"]['Enums']["affiliation_status"],"branch"?: string | null,"checkin_token"?: string,"cohort_id"?: string | null,"country"?: string | null,"created_at"?: string,"email"?: string | null,"first_name": string,"id"?: string,"last_name"?: string,"mentor_id"?: string | null,"phone"?: string | null,"photo_consent_at"?: string | null,"photo_path"?: string | null,"preferred_language"?: string,"privacy_consent_at"?: string | null,"region_id"?: number | null,"share_contact"?: boolean,"short_code"?: never,"updated_at"?: string,"user_id"?: string | null
                   }
                   Update: {
-                    "active"?: boolean,"affiliation_status"?: Database["public"]['Enums']["affiliation_status"],"branch"?: string | null,"checkin_token"?: string,"cohort_id"?: string | null,"country"?: string | null,"created_at"?: string,"email"?: string | null,"first_name"?: string,"id"?: string,"last_name"?: string,"mentor_id"?: string | null,"phone"?: string | null,"preferred_language"?: string,"privacy_consent_at"?: string | null,"region_id"?: number | null,"short_code"?: never,"updated_at"?: string,"user_id"?: string | null
+                    "active"?: boolean,"affiliation_status"?: Database["public"]['Enums']["affiliation_status"],"branch"?: string | null,"checkin_token"?: string,"cohort_id"?: string | null,"country"?: string | null,"created_at"?: string,"email"?: string | null,"first_name"?: string,"id"?: string,"last_name"?: string,"mentor_id"?: string | null,"phone"?: string | null,"photo_consent_at"?: string | null,"photo_path"?: string | null,"preferred_language"?: string,"privacy_consent_at"?: string | null,"region_id"?: number | null,"share_contact"?: boolean,"short_code"?: never,"updated_at"?: string,"user_id"?: string | null
                   }
                   Relationships: [
                     {
@@ -593,14 +625,14 @@ isOneToOne: false
                   ]
                 },"staff_members": {
                   Row: {
-                    "created_at": string,"display_name": string,"role": Database["public"]['Enums']["staff_role"],"user_id": string
+                    "created_at": string,"display_name": string,"label": string | null,"role": Database["public"]['Enums']["staff_role"],"user_id": string,"valid_from": string | null,"valid_until": string | null
                   }
                   ComputedFields: never
                   Insert: {
-                    "created_at"?: string,"display_name": string,"role": Database["public"]['Enums']["staff_role"],"user_id": string
+                    "created_at"?: string,"display_name": string,"label"?: string | null,"role": Database["public"]['Enums']["staff_role"],"user_id": string,"valid_from"?: string | null,"valid_until"?: string | null
                   }
                   Update: {
-                    "created_at"?: string,"display_name"?: string,"role"?: Database["public"]['Enums']["staff_role"],"user_id"?: string
+                    "created_at"?: string,"display_name"?: string,"label"?: string | null,"role"?: Database["public"]['Enums']["staff_role"],"user_id"?: string,"valid_from"?: string | null,"valid_until"?: string | null
                   }
                   Relationships: [
                     
@@ -734,6 +766,11 @@ isOneToOne: false
               "checked_in_at": string,"mentor_name": string,"name": string,"participant_id": string,"phone": string,"registration_status": Database["public"]['Enums']["registration_status"]
             }[]
                            },
+"get_member_directory":
+{ Args: Record<PropertyKey, never>; Returns: {
+              "badges": (string)[],"branch": string,"email": string,"has_photo": boolean,"name": string,"participant_id": string,"phone": string,"region": string
+            }[]
+                           },
 "get_module_stats":
 { Args: { "timeframe_end"?: string,"timeframe_start"?: string }; Returns: {
               "attendance_rate": number,"attended_people": number,"cancelled_or_excused": number,"days_past": number,"days_total": number,"first_day": string,"module_id": string,"no_shows": number,"person_days_attended": number,"person_days_possible": number,"registered": number,"title": string
@@ -781,6 +818,9 @@ isOneToOne: false
 "link_my_account":
 { Args: Record<PropertyKey, never>; Returns: string
                            },
+"membership_badge":
+{ Args: { "m": Omit<Database["public"]['Tables']["memberships"]['Row'], Database["public"]['Tables']["memberships"]['ComputedFields']> }; Returns: string
+                           },
 "my_participant_id":
 { Args: Record<PropertyKey, never>; Returns: string
                            },
@@ -808,6 +848,9 @@ isOneToOne: false
 "undo_check_in":
 { Args: { "p_attendance_id": string }; Returns: Json
                            },
+"update_my_profile":
+{ Args: { "p_language": string,"p_phone": string,"p_photo_consent": boolean,"p_photo_path"?: string,"p_share_contact": boolean }; Returns: string
+                           },
 "upsert_participant":
 { Args: { "p_affiliation"?: Database["public"]['Enums']["affiliation_status"],"p_email": string,"p_first_name": string,"p_language"?: string,"p_last_name": string,"p_phone"?: string,"p_privacy_consent"?: boolean,"p_user_id"?: string }; Returns: string
                            },
@@ -816,7 +859,7 @@ isOneToOne: false
                            }
           }
           Enums: {
-            "affiliation_status": "member"|"academy_student"|"guest"|"alumni","application_status": "eingegangen"|"in_pruefung"|"angenommen"|"warteliste"|"abgelehnt"|"zurueckgezogen","checkin_method": "qr"|"short_code"|"manual"|"walk_in"|"offline_sync","engagement_kind": "kommunalpolitik"|"partei"|"jugendrat"|"verein"|"projekt"|"sonstiges","module_kind": "auftakt"|"seminar"|"workshop"|"winterschool"|"sonstiges","module_status": "draft"|"published"|"archived","program_item_status": "geplant"|"laeuft"|"erledigt"|"verschoben"|"entfaellt","registration_source": "cohort"|"public"|"staff"|"walk_in","registration_status": "pending"|"confirmed"|"waitlist"|"cancelled"|"excused"|"rejected","staff_role": "admin"|"vorstand"|"orga_team"|"checkin_helper"
+            "affiliation_status": "member"|"academy_student"|"guest"|"alumni","application_status": "eingegangen"|"in_pruefung"|"angenommen"|"warteliste"|"abgelehnt"|"zurueckgezogen","checkin_method": "qr"|"short_code"|"manual"|"walk_in"|"offline_sync","engagement_kind": "kommunalpolitik"|"partei"|"jugendrat"|"verein"|"projekt"|"sonstiges","membership_role": "teilnehmende"|"sorumlu"|"team"|"helfer"|"referent"|"alumni","module_kind": "auftakt"|"seminar"|"workshop"|"winterschool"|"sonstiges","module_status": "draft"|"published"|"archived","program_item_status": "geplant"|"laeuft"|"erledigt"|"verschoben"|"entfaellt","registration_source": "cohort"|"public"|"staff"|"walk_in","registration_status": "pending"|"confirmed"|"waitlist"|"cancelled"|"excused"|"rejected","staff_role": "admin"|"vorstand"|"orga_team"|"checkin_helper"
           }
           CompositeTypes: {
             [_ in never]: never
@@ -936,7 +979,7 @@ export const Constants = {
           }
         },"public": {
           Enums: {
-            "affiliation_status": ["member", "academy_student", "guest", "alumni"],"application_status": ["eingegangen", "in_pruefung", "angenommen", "warteliste", "abgelehnt", "zurueckgezogen"],"checkin_method": ["qr", "short_code", "manual", "walk_in", "offline_sync"],"engagement_kind": ["kommunalpolitik", "partei", "jugendrat", "verein", "projekt", "sonstiges"],"module_kind": ["auftakt", "seminar", "workshop", "winterschool", "sonstiges"],"module_status": ["draft", "published", "archived"],"program_item_status": ["geplant", "laeuft", "erledigt", "verschoben", "entfaellt"],"registration_source": ["cohort", "public", "staff", "walk_in"],"registration_status": ["pending", "confirmed", "waitlist", "cancelled", "excused", "rejected"],"staff_role": ["admin", "vorstand", "orga_team", "checkin_helper"]
+            "affiliation_status": ["member", "academy_student", "guest", "alumni"],"application_status": ["eingegangen", "in_pruefung", "angenommen", "warteliste", "abgelehnt", "zurueckgezogen"],"checkin_method": ["qr", "short_code", "manual", "walk_in", "offline_sync"],"engagement_kind": ["kommunalpolitik", "partei", "jugendrat", "verein", "projekt", "sonstiges"],"membership_role": ["teilnehmende", "sorumlu", "team", "helfer", "referent", "alumni"],"module_kind": ["auftakt", "seminar", "workshop", "winterschool", "sonstiges"],"module_status": ["draft", "published", "archived"],"program_item_status": ["geplant", "laeuft", "erledigt", "verschoben", "entfaellt"],"registration_source": ["cohort", "public", "staff", "walk_in"],"registration_status": ["pending", "confirmed", "waitlist", "cancelled", "excused", "rejected"],"staff_role": ["admin", "vorstand", "orga_team", "checkin_helper"]
           }
         }
 } as const

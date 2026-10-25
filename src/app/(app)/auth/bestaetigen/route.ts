@@ -12,6 +12,7 @@ export async function GET(request: NextRequest) {
   if (token_hash) {
     const { error } = await supabase.auth.verifyOtp({ token_hash, type });
     if (!error) {
+      if (type === "email_change") return weiterleiten("/mein-bereich/?profil=email-bestaetigt#profil");
       await supabase.rpc("link_my_account");
       return weiterleiten("/mein-bereich/");
     }

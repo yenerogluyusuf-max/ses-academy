@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { uebernachtungSpeichern } from "@/lib/aktionen/hotel";
-import { portalAbmelden } from "@/lib/aktionen/portal";
+import { emailAendern, portalAbmelden } from "@/lib/aktionen/portal";
 import { naechte, nachtName } from "@/lib/uebernachtung";
 import { kurzcodeAnzeige, qrSvg } from "@/lib/tickets";
 import { createClient } from "@/lib/supabase/server";
@@ -33,15 +33,29 @@ const uebernachtungHinweise: Record<string, { text: string; gut: boolean }> = {
   fehler: { text: "Das hat nicht geklappt. Bitte die Angaben prüfen.", gut: false },
 };
 
+const profilHinweise: Record<string, { text: string; gut: boolean }> = {
+  gespeichert: { text: "Profil gespeichert.", gut: true },
+  "foto-art": { text: "Bitte ein Foto als JPG, PNG oder WebP hochladen.", gut: false },
+  "foto-gross": { text: "Das Foto ist größer als 5 MB.", gut: false },
+  "email-gesendet": { text: "Wir haben an deine alte und deine neue Adresse je einen Bestätigungslink geschickt. Erst wenn beide bestätigt sind, gilt die neue Adresse.", gut: true },
+  "email-bestaetigt": { text: "Bestätigt. Falls noch nicht geschehen, bestätige auch den Link in der anderen Mail.", gut: true },
+  "email-ungueltig": { text: "Bitte eine gültige E-Mail-Adresse eingeben.", gut: false },
+  "email-vergeben": { text: "Diese E-Mail-Adresse gehört schon zu einem anderen Konto.", gut: false },
+  fehler: { text: "Das hat nicht geklappt.", gut: false },
+};
+
+const sprachen: Record<string, string> = { de: "Deutsch", tr: "Türkçe", en: "English", fr: "Français", nl: "Nederlands" };
+
 export default async function MeinBereich({ searchParams }: PageProps<"/mein-bereich">) {
-  const { abgabe, uebernachtung } = await searchParams;
+  const { abgabe, uebernachtung, profil } = await searchParams;
+  const profilHinweis = typeof profil === "string" ? profilHinweise[profil] : undefined;
   const uebernachtungHinweis = typeof uebernachtung === "string" ? uebernachtungHinweise[uebernachtung] : undefined;
   const abgabeHinweis = typeof abgabe === "string" ? abgabeHinweise[abgabe] : undefined;
   const supabase = await createClient();
   const { data: auth } = await supabase.auth.getUser();
   if (!auth.user) redirect("/mein-bereich/login/");
   // Zugriffsregeln: jede Abfrage liefert nur die eigenen Daten
-  const { data: ich } = await supabase.from("participants").select("id,first_name,checkin_token,short_code,cohort_id").eq("user_id", auth.user.id).maybeSingle();
+  const { data: ich } = await supabase.from("participants").select("id,first_name,last_name,email,phone,preferred_language,share_contact,photo_consent_at,photo_path,checkin_token,short_code,cohort_id").eq("user_id", auth.user.id).maybeSingle();
   if (!ich)
     return (
       <main className="mx-auto max-w-xl px-4 py-16">
@@ -66,9 +80,10 @@ export default async function MeinBereich({ searchParams }: PageProps<"/mein-ber
   const vorbei = meineModule.filter((m) => m.tage.length && m.tage.every((t) => t.ends_at < jetzt)).reverse();
   const abgaben = (subs ?? []) as unknown as Sub[];
   const mitAbfrage = meineModule.filter((m) => m.modules.stay_form_open && (m.status === "confirmed" || m.status === "waitlist") && m.tage.some((t) => t.ends_at >= jetzt));
-  const [{ data: angaben }, { data: zimmer }] = await Promise.all([
+  const [{ data: angaben }, { data: zimmer }, { data: mitgliedschaften }] = await Promise.all([
     mitAbfrage.length ? supabase.from("stay_requests").select("*") : Promise.resolve({ data: [] }),
     supabase.rpc("get_my_rooms"),
+    supabase.from("memberships").select("id, membership_badge").order("valid_from", { ascending: false }),
   ]);
   const svg = await qrSvg(ich.checkin_token);
 
@@ -209,6 +224,41 @@ export default async function MeinBereich({ searchParams }: PageProps<"/mein-ber
               );
             })}
             {!aufgaben?.length && <p className="karte text-ink-soft">Noch keine Hausaufgaben.</p>}
+          </div>
+        </section>
+
+
+        <section id="profil" className="mt-12">
+          <div className="mb-4 flex flex-wrap items-end justify-between gap-3">
+            <h2 className="font-display text-2xl font-bold">Mein Profil</h2>
+            <Link href="/mein-bereich/verzeichnis/" className="knopf-hell">Mitgliederverzeichnis</Link>
+          </div>
+          {profilHinweis && <p role="status" className={`mb-4 rounded-2xl p-4 font-semibold ${profilHinweis.gut ? "bg-gruen-hell" : "bg-gelb-hell"}`}>{profilHinweis.text}</p>}
+          <div className="grid gap-6 md:grid-cols-[auto_1fr]">
+            <div className="text-center">
+              {ich.photo_path
+                ? <img src={`/portal/foto/${ich.id}/`} alt="Dein Profilfoto" className="mx-auto h-32 w-32 rounded-full object-cover ring-1 ring-line" />
+                : <div className="mx-auto flex h-32 w-32 items-center justify-center rounded-full bg-paper-deep font-display text-4xl font-bold" aria-hidden>{ich.first_name[0]}</div>}
+              <ul className="mt-3 flex max-w-48 flex-wrap justify-center gap-1">
+                {(mitgliedschaften ?? []).map((m) => <li key={m.id} className="chip bg-gruen-hell">{m.membership_badge}</li>)}
+              </ul>
+            </div>
+            <div className="space-y-4">
+              <form action="/mein-bereich/profil/" method="post" encType="multipart/form-data" className="karte grid gap-3 sm:grid-cols-2">
+                <p className="sm:col-span-2 font-semibold">{ich.first_name} {ich.last_name}<span className="block text-sm font-normal text-ink-soft">Name, Region und Generation pflegt das Team. Fehler bitte an ses@islamrat.de.</span></p>
+                <div><label className="etikett" htmlFor="phone">Telefon</label><input id="phone" name="phone" type="tel" maxLength={40} defaultValue={ich.phone ?? ""} className="feld" /></div>
+                <div><label className="etikett" htmlFor="sprache">Sprache für Mails</label>
+                  <select id="sprache" name="sprache" defaultValue={ich.preferred_language} className="feld">{Object.entries(sprachen).map(([k, v]) => <option key={k} value={k}>{v}</option>)}</select></div>
+                <div className="sm:col-span-2"><label className="etikett" htmlFor="foto">Profilfoto (JPG, PNG oder WebP, bis 5 MB)</label><input id="foto" name="foto" type="file" accept="image/jpeg,image/png,image/webp" className="feld" /></div>
+                <label className="flex gap-3 sm:col-span-2"><input type="checkbox" name="share_contact" defaultChecked={ich.share_contact} className="mt-1 h-5 w-5 shrink-0" /><span><span className="font-semibold">E-Mail und Telefon für andere Mitglieder sichtbar</span><span className="block text-sm text-ink-soft">Ohne Häkchen sehen andere Mitglieder nur Name, Foto, Region und Abzeichen.</span></span></label>
+                <label className="flex gap-3 sm:col-span-2"><input type="checkbox" name="photo_consent" defaultChecked={!!ich.photo_consent_at} className="mt-1 h-5 w-5 shrink-0" /><span><span className="font-semibold">Fotos von mir bei Modulen dürfen auf der Website und bei Instagram erscheinen</span><span className="block text-sm text-ink-soft">Du kannst die Einwilligung jederzeit hier zurücknehmen.</span></span></label>
+                <div className="sm:col-span-2"><button type="submit" className="knopf">Profil speichern</button></div>
+              </form>
+              <form action={emailAendern} className="karte flex flex-wrap items-end gap-2">
+                <div className="min-w-60 flex-1"><label className="etikett" htmlFor="email">E-Mail-Adresse</label><input id="email" name="email" type="email" required defaultValue={ich.email ?? ""} className="feld" /></div>
+                <button type="submit" className="knopf-hell">Adresse ändern</button>
+              </form>
+            </div>
           </div>
         </section>
 

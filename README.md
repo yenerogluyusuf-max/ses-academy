@@ -17,7 +17,7 @@ Fünfsprachige Website der SES Academy, dazu Bewerbung, Teilnahme und Einlass (C
 | `/team/teilnehmende/` | Admin, Vorstand | Teilnehmende mit Region, GT/KGT, Verantwortlichen; Anwesenheit je Modul und Tag (nachtragen/zurücknehmen), QR-Code per Mail, Stimmen-Beiträge verknüpfen. Ansicht „Verantwortliche“ (Sorumlu) mit E-Mail. |
 | `/team/hausaufgaben/` | ab Orga-Team | Hausaufgaben, wer abgegeben hat und wer nicht, Bewertung nach dem Rhetorik-Bogen (9 Kriterien × 1–5 Punkte, Feedback), Gruppenvideos. Namen ohne Kontaktdaten. |
 | `/team/import/` | Admin, Vorstand | Excel/CSV einlesen: Teilnehmerliste, Hausaufgabenliste, Bewertungsbogen, E-Mail-Adressen (z. B. Google-Formular). Immer erst Vorschau, dann übernehmen. |
-| `/mein-bereich/` | Teilnehmende (Login per E-Mail-Code) | Eigener QR-Code, kommende Module, Anwesenheit, Hausaufgaben selbst abgeben (Datei bis 100 MB oder Link, mit Bestätigungsmail), eigene Beiträge. Bewertungen bleiben intern (Entscheidung 25.10.2026): angezeigt wird nur, ob die Abgabe eingegangen ist. |
+| `/mein-bereich/` | Teilnehmende (Login per E-Mail-Code) | Profil mit Abzeichen (Generation, Team, Referent …), Telefon, Sprache, Foto, Kontaktfreigabe, Foto-Einwilligung, E-Mail ändern (Bestätigung über alte und neue Adresse). Eigener QR-Code, kommende Module, Anwesenheit, Hausaufgaben selbst abgeben (Datei bis 100 MB oder Link, mit Bestätigungsmail), eigene Beiträge. Bewertungen bleiben intern (Entscheidung 25.10.2026): angezeigt wird nur, ob die Abgabe eingegangen ist. |
 | `/team/module/` | Admin, Vorstand | Module anlegen und bearbeiten, Termine, mit/ohne Ticket, zählt für Serien, offen für Gäste, Plätze, absagen. Beim Veröffentlichen wird der Jahrgang angemeldet. „Tickets an alle“ schickt jedem Angemeldeten ohne Ticket in dieser Runde (ab 30 Tage vor Beginn) die Ticket-Mail, mit Protokoll und erneutem Versuch bei Fehlern. |
 | `/team/gruppen/` | ab Orga-Team | „Fehlt noch“ je Sorumlu am Eventtag: wer noch nicht eingecheckt ist, mit Anruf-Knopf; Admin/Vorstand pflegen dort Telefon und persönlichen Link der Sorumlu. |
 | `/sorumlu/<link>/` | Sorumlu (geheimer Link, ohne Konto) | Die eigene Gruppe am aktuellen Modultag, wer fehlt, mit Anruf-Knopf. |
@@ -25,7 +25,8 @@ Fünfsprachige Website der SES Academy, dazu Bewerbung, Teilnahme und Einlass (C
 | `/feedback/<ticket-token>/<umfrage>/` | Teilnehmende (Link aus der Mail) | Feedback-Umfrage zum Modul; antworten kann nur, wer eingecheckt war. Das Team sieht auf der Modulseite nur zusammengefasste Ergebnisse. |
 | `/team/module/<id>/hotel/` | ab Orga-Team (Abfrage öffnen: Admin/Vorstand) | Übernachtung: Abfrage in „Mein Bereich“ (Nächte, Anreise, Zimmerwunsch, Hinweise), Hotel mit Kontingent, Preis und Stornofrist, Zimmer anlegen („101-110“), Zimmer zuteilen, Zimmerliste fürs Hotel zum Drucken. |
 | `/team/module/<id>/notfall/` | ab Orga-Team | Notfall-Liste zum Drucken: alle Angemeldeten mit Kurzcode und Kästchen je Tag, Leitung vor Ort. Am Vorabend legt `scripts/notfall-pdf.mts` sie automatisch als PDF ab. |
-| `/team/team/` | Admin | Team-Konten anlegen (mit Startpasswort), Rollen ändern, entfernen. |
+| `/team/team/` | Admin | Team-Konten anlegen (mit Startpasswort), Rollen ändern, entfernen. Zugang auf ein Modul begrenzen („nur Demokratie in Europa“): gilt vom Einlassbeginn am ersten bis 6 Stunden nach dem letzten Tag, danach automatisch gesperrt. |
+| `/mein-bereich/verzeichnis/` | Mitglieder und Team ab Orga | Mitgliederverzeichnis mit Foto, Region, Abzeichen; E-Mail/Telefon nur mit Freigabe der Person (Team ab Vorstand immer). |
 | `/team/passwort/` | alle Team-Rollen | Eigenes Passwort ändern. |
 
 Rollen: `admin`, `vorstand` (alles), `orga_team` (Einlass mit Liste), `checkin_helper` (nur Scanner und Kurzcode, keine Kontaktdaten).
@@ -48,7 +49,7 @@ npm run dev
 ## Tests
 
 ```bash
-npm run test:db                # 163 Datenbanktests (Check-in; Hausaufgaben/Portal; Kennzahlen; Step 2; Eventtag; Feedback/Sorumlu; Abgabe; Übernachtung), setzt die lokale DB zurück
+npm run test:db                # 184 Datenbanktests (Check-in; Hausaufgaben/Portal; Kennzahlen; Step 2; Eventtag; Feedback/Sorumlu; Abgabe; Übernachtung; Community), setzt die lokale DB zurück
 npm run build && npx next start -p 3100 &
 supabase db reset && node scripts/e2e-phase1.mjs   # Ende-zu-Ende, headless
 supabase db reset && node scripts/e2e-phase2.mjs

@@ -7,7 +7,7 @@ import { createClient } from "@/lib/supabase/server";
 
 export type StaffRole = Database["public"]["Enums"]["staff_role"];
 
-export type Staff = { userId: string; email: string; role: StaffRole; name: string };
+export type Staff = { userId: string; email: string; role: StaffRole; name: string; gueltigBis: string | null };
 
 /** Wer darf was. Spiegelt has_full_access / has_orga_access / has_checkin_access in der Datenbank. */
 export const darf = {
@@ -31,11 +31,14 @@ export const getStaff = cache(async (): Promise<Staff | null> => {
   if (!auth.user) return null;
   const { data } = await supabase
     .from("staff_members")
-    .select("role, display_name")
+    .select("role, display_name, valid_from, valid_until")
     .eq("user_id", auth.user.id)
     .maybeSingle();
   if (!data) return null;
-  return { userId: auth.user.id, email: auth.user.email ?? "", role: data.role, name: data.display_name };
+  // Zugang auf Zeit (z. B. Helfer nur an den Modultagen), wie current_staff_role() in der Datenbank
+  const jetzt = Date.now();
+  if ((data.valid_from && Date.parse(data.valid_from) > jetzt) || (data.valid_until && Date.parse(data.valid_until) <= jetzt)) return null;
+  return { userId: auth.user.id, email: auth.user.email ?? "", role: data.role, name: data.display_name, gueltigBis: data.valid_until };
 });
 
 /** Für Seiten und Server Actions: ohne passende Rolle geht es zum Login bzw. zur Übersicht. */

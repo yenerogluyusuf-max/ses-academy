@@ -14,6 +14,36 @@ function zurueck(hinweis: string): never {
   redirect(`/team/team/?hinweis=${hinweis}`);
 }
 
+/** Zeitraum eines Moduls für einen Zugang auf Zeit: 4 Stunden vor dem ersten Tag bis 6 Stunden nach dem letzten (wie der Einlass). */
+async function modulZeitraum(modulId: string) {
+  const supabase = await createClient();
+  const { data } = await supabase.from("modules").select("title, module_days(starts_at, ends_at)").eq("id", modulId).maybeSingle();
+  if (!data || data.module_days.length === 0) return null;
+  const beginn = Math.min(...data.module_days.map((d) => Date.parse(d.starts_at))) - 4 * 3600_000;
+  const ende = Math.max(...data.module_days.map((d) => Date.parse(d.ends_at))) + 6 * 3600_000;
+  return { valid_from: new Date(beginn).toISOString(), valid_until: new Date(ende).toISOString(), titel: data.title };
+}
+
+/** Zugang auf ein Modul begrenzen oder wieder unbefristet machen. */
+export async function zugangZeitraum(formData: FormData) {
+  const staff = await requireStaff("admin");
+  const userId = String(formData.get("user_id"));
+  const modul = String(formData.get("modul") ?? "");
+  if (userId === staff.userId) zurueck("selbst");
+  const supabase = await createClient();
+  if (!modul) {
+    const { error } = await supabase.from("staff_members").update({ valid_from: null, valid_until: null, label: null }).eq("user_id", userId);
+    zurueck(error ? "fehler" : "gespeichert");
+  }
+  const z = await modulZeitraum(modul);
+  if (!z) zurueck("modul-ohne-termin");
+  const { data: m } = await supabase.from("staff_members").select("role").eq("user_id", userId).maybeSingle();
+  const { error } = await supabase.from("staff_members").update({
+    valid_from: z.valid_from, valid_until: z.valid_until, label: `${m?.role === "checkin_helper" ? "Helfer" : "Team"} · ${z.titel}`,
+  }).eq("user_id", userId);
+  zurueck(error ? "fehler" : "gespeichert");
+}
+
 /** Neues Team-Konto mit Startpasswort. Das Passwort gibt der Admin persönlich weiter; ändern unter „Passwort“. */
 export async function mitgliedAnlegen(formData: FormData) {
   await requireStaff("admin");
@@ -22,7 +52,7 @@ export async function mitgliedAnlegen(formData: FormData) {
     name: z.string().trim().min(1).max(80),
     rolle,
     passwort: z.string().min(10).max(72),
-  }).safeParse(Object.fromEntries(formData.entries()));
+  }).safeParse({ email: formData.get("email"), name: formData.get("name"), rolle: formData.get("rolle"), passwort: formData.get("passwort") });
   if (!d.success) zurueck("eingabe");
 
   const admin = createAdminClient();
@@ -31,7 +61,12 @@ export async function mitgliedAnlegen(formData: FormData) {
   if (error || !data.user) zurueck("fehler");
 
   const supabase = await createClient();
-  const { error: fehler } = await supabase.from("staff_members").insert({ user_id: data.user.id, role: d.data.rolle, display_name: d.data.name });
+  const modul = String(formData.get("modul") ?? "");
+  const zeitraum = modul ? await modulZeitraum(modul) : null;
+  const { error: fehler } = await supabase.from("staff_members").insert({
+    user_id: data.user.id, role: d.data.rolle, display_name: d.data.name,
+    ...(zeitraum ? { valid_from: zeitraum.valid_from, valid_until: zeitraum.valid_until, label: `${d.data.rolle === "checkin_helper" ? "Helfer" : "Team"} · ${zeitraum.titel}` } : {}),
+  });
   if (fehler) {
     await admin.auth.admin.deleteUser(data.user.id);
     zurueck("fehler");

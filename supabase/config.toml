@@ -258,6 +258,10 @@ otp_expiry = 3600
 subject = "Dein Zugang zu „Mein Bereich“ – SES Academy"
 content_path = "./supabase/templates/anmeldung.html"
 
+[auth.email.template.email_change]
+subject = "Neue E-Mail-Adresse bestätigen – SES Academy"
+content_path = "./supabase/templates/email-aendern.html"
+
 [auth.email.template.confirmation]
 subject = "Dein Zugang zu „Mein Bereich“ – SES Academy"
 content_path = "./supabase/templates/anmeldung.html"

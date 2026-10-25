@@ -76,6 +76,8 @@ services:
       GOTRUE_MAILER_SUBJECTS_CONFIRMATION: "Dein Zugang zu „Mein Bereich“ – SES Academy"
       GOTRUE_MAILER_TEMPLATES_MAGIC_LINK: http://kong:8088/email/anmeldung.html
       GOTRUE_MAILER_TEMPLATES_CONFIRMATION: http://kong:8088/email/anmeldung.html
+      GOTRUE_MAILER_SUBJECTS_EMAIL_CHANGE: "Neue E-Mail-Adresse bestätigen – SES Academy"
+      GOTRUE_MAILER_TEMPLATES_EMAIL_CHANGE: http://kong:8088/email/email-aendern.html
 
   rest:
     image: public.ecr.aws/supabase/postgrest:v16.5
