@@ -35,7 +35,7 @@ Dann bauen, starten und das erste Admin-Konto anlegen:
 ./betrieb/ses.sh admin yusuf@… "Yusuf Yeneroğlu"
 ```
 
-Das Startpasswort erscheint einmal im Terminal. Nach dem ersten Login unter „Passwort“ ändern. Weitere Teamkonten, zum Beispiel für die anderen beiden Admins, legt ein Admin im Team-Bereich unter „Team“ an.
+Das Startpasswort erscheint einmal im Terminal. Nach dem ersten Login unter „Passwort“ ändern. `./ses.sh admin` ist nur für die Einrichtung gedacht und umgeht das Vier-Augen-Prinzip; am besten so die drei Admins anlegen (Yusuf, Bünyamin Kalem, Murat Gümüş). Alle weiteren Teamkonten beantragt ein Admin im Team-Bereich unter „Team“, ein zweiter Admin gibt sie frei.
 
 Zum Schluss den Autostart einrichten. Damit startet die Plattform beim Anmelden am Rechner, die Sicherung läuft täglich um 02:30 und die Notfall-Liste entsteht täglich um 20:00 für Module mit Termin am nächsten Tag:
 

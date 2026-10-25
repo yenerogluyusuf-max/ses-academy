@@ -1,11 +1,22 @@
 import { requireStaff } from "@/lib/auth";
+import { istToken } from "@/lib/codes";
+import { createClient } from "@/lib/supabase/server";
 import { ladeAuswertung, leseFilter } from "@/lib/auswertung";
 import { zugehoerigkeit } from "@/lib/einlass";
 
-/** CSV für Excel (Semikolon, UTF-8 mit BOM). Nur admin/vorstand; enthält E-Mail-Adressen. */
+/**
+ * CSV für Excel (Semikolon, UTF-8 mit BOM). Nur admin/vorstand; enthält E-Mail-Adressen.
+ * Vier-Augen-Prinzip: nur mit freigegebenem Antrag (?freigabe=<id>), einmal, innerhalb von 24 Stunden.
+ */
 export async function GET(request: Request) {
   await requireStaff("alles");
-  const sp = Object.fromEntries(new URL(request.url).searchParams.entries());
+  const freigabe = new URL(request.url).searchParams.get("freigabe") ?? "";
+  if (!istToken(freigabe)) return new Response("Export nur nach Freigabe durch eine zweite Person (Team → Freigaben).", { status: 403 });
+  const supabase = await createClient();
+  const { data: antwort } = await supabase.rpc("claim_approval", { p_id: freigabe, p_action: "export" });
+  const a = antwort as { result: string; payload?: { filter?: Record<string, string> } } | null;
+  if (a?.result !== "ok") return new Response(`Kein gültiger Export-Antrag (${a?.result ?? "Fehler"}).`, { status: 403 });
+  const sp = a.payload?.filter ?? {};
   const { personen } = await ladeAuswertung(leseFilter(sp));
   const zelle = (v: unknown) => {
     const s = v === null || v === undefined ? "" : String(v);

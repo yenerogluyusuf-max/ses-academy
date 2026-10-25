@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { z } from "zod";
-import { requireStaff } from "@/lib/auth";
+import { requireStaff, rollenName } from "@/lib/auth";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
 
@@ -44,28 +44,51 @@ export async function zugangZeitraum(formData: FormData) {
   zurueck(error ? "fehler" : "gespeichert");
 }
 
-/** Neues Team-Konto mit Startpasswort. Das Passwort gibt der Admin persönlich weiter; ändern unter „Passwort“. */
+/**
+ * Neuen Team-Zugang beantragen (Vier-Augen-Prinzip, Entscheidung 25.10.2026): ein zweiter Admin gibt frei, danach legt
+ * die anfragende Person das Konto an. Ein Passwort gibt es nicht mehr; die Person meldet sich per E-Mail-Code an.
+ */
 export async function mitgliedAnlegen(formData: FormData) {
   await requireStaff("admin");
   const d = z.object({
     email: z.string().trim().toLowerCase().pipe(z.email()),
     name: z.string().trim().min(1).max(80),
     rolle,
-    passwort: z.string().min(10).max(72),
-  }).safeParse({ email: formData.get("email"), name: formData.get("name"), rolle: formData.get("rolle"), passwort: formData.get("passwort") });
+  }).safeParse({ email: formData.get("email"), name: formData.get("name"), rolle: formData.get("rolle") });
   if (!d.success) zurueck("eingabe");
+  const modul = String(formData.get("modul") ?? "");
+  const supabase = await createClient();
+  const { error } = await supabase.from("approvals").insert({
+    action: "team_zugang",
+    summary: `Team-Zugang für ${d.data.name} <${d.data.email}> als ${rollenName[d.data.rolle]}${modul ? " (befristet auf ein Modul)" : ""}`,
+    payload: { art: "neu", email: d.data.email, name: d.data.name, rolle: d.data.rolle, modul: modul || null },
+  });
+  zurueck(error ? "fehler" : "beantragt");
+}
 
+const rang: Record<z.infer<typeof rolle>, number> = { checkin_helper: 0, orga_team: 1, vorstand: 2, admin: 3 };
+
+/** Freigegebenen Antrag ausführen: Konto anlegen bzw. Rolle hochstufen. */
+export async function teamZugangAusfuehren(formData: FormData) {
+  await requireStaff("admin");
+  const id = String(formData.get("id"));
+  const supabase = await createClient();
+  const { data: antwort } = await supabase.rpc("claim_approval", { p_id: id, p_action: "team_zugang" });
+  const a = antwort as { result: string; payload?: { art: "neu" | "rolle"; email?: string; name?: string; rolle: z.infer<typeof rolle>; modul?: string | null; user_id?: string } } | null;
+  if (a?.result !== "ok" || !a.payload) zurueck(a?.result === "expired" ? "abgelaufen" : "fehler");
+  const p = a.payload;
+  if (p.art === "rolle" && p.user_id) {
+    const { error } = await supabase.from("staff_members").update({ role: p.rolle }).eq("user_id", p.user_id);
+    zurueck(error ? "fehler" : "gespeichert");
+  }
   const admin = createAdminClient();
-  const { data, error } = await admin.auth.admin.createUser({ email: d.data.email, password: d.data.passwort, email_confirm: true });
+  const { data, error } = await admin.auth.admin.createUser({ email: p.email!, email_confirm: true });
   if (error?.code === "email_exists") zurueck("existiert");
   if (error || !data.user) zurueck("fehler");
-
-  const supabase = await createClient();
-  const modul = String(formData.get("modul") ?? "");
-  const zeitraum = modul ? await modulZeitraum(modul) : null;
+  const zeitraum = p.modul ? await modulZeitraum(p.modul) : null;
   const { error: fehler } = await supabase.from("staff_members").insert({
-    user_id: data.user.id, role: d.data.rolle, display_name: d.data.name,
-    ...(zeitraum ? { valid_from: zeitraum.valid_from, valid_until: zeitraum.valid_until, label: `${d.data.rolle === "checkin_helper" ? "Helfer" : "Team"} · ${zeitraum.titel}` } : {}),
+    user_id: data.user.id, role: p.rolle, display_name: p.name!,
+    ...(zeitraum ? { valid_from: zeitraum.valid_from, valid_until: zeitraum.valid_until, label: `${p.rolle === "checkin_helper" ? "Helfer" : "Team"} · ${zeitraum.titel}` } : {}),
   });
   if (fehler) {
     await admin.auth.admin.deleteUser(data.user.id);
@@ -80,6 +103,7 @@ async function anzahlAdmins() {
   return count ?? 0;
 }
 
+/** Rolle ändern. Herabstufen geht sofort; Hochstufen (mehr Rechte) braucht die Freigabe eines zweiten Admins. */
 export async function rolleAendern(formData: FormData) {
   const staff = await requireStaff("admin");
   const userId = String(formData.get("user_id"));
@@ -87,6 +111,15 @@ export async function rolleAendern(formData: FormData) {
   if (!neu.success) zurueck("eingabe");
   if (userId === staff.userId && neu.data !== "admin" && (await anzahlAdmins()) <= 1) zurueck("letzter-admin");
   const supabase = await createClient();
+  const { data: bisher } = await supabase.from("staff_members").select("role, display_name").eq("user_id", userId).maybeSingle();
+  if (bisher && rang[neu.data] > rang[bisher.role]) {
+    const { error } = await supabase.from("approvals").insert({
+      action: "team_zugang",
+      summary: `${bisher.display_name}: Rolle von ${rollenName[bisher.role]} auf ${rollenName[neu.data]} hochstufen`,
+      payload: { art: "rolle", user_id: userId, rolle: neu.data },
+    });
+    zurueck(error ? "fehler" : "beantragt");
+  }
   const { error } = await supabase.from("staff_members").update({ role: neu.data }).eq("user_id", userId);
   zurueck(error ? "fehler" : "gespeichert");
 }

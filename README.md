@@ -27,7 +27,9 @@ Fünfsprachige Website der SES Academy, dazu Bewerbung, Teilnahme und Einlass (C
 | `/team/` | Team | Startseite: nächstes Modul, meine Aufgaben (abhaken), Fristen der nächsten zwei Wochen (Checkliste, Stornofrist Hotel, Hausaufgaben). |
 | `/team/module/<id>/hotel/` | ab Orga-Team (Abfrage öffnen: Admin/Vorstand) | Übernachtung: Abfrage in „Mein Bereich“ (Nächte, Anreise, Zimmerwunsch, Hinweise), Hotel mit Kontingent, Preis und Stornofrist, Zimmer anlegen („101-110“), Zimmer zuteilen, Zimmerliste fürs Hotel zum Drucken. |
 | `/team/module/<id>/notfall/` | ab Orga-Team | Notfall-Liste zum Drucken: alle Angemeldeten mit Kurzcode und Kästchen je Tag, Leitung vor Ort. Am Vorabend legt `scripts/notfall-pdf.mts` sie automatisch als PDF ab. |
-| `/team/team/` | Admin | Team-Konten anlegen (mit Startpasswort), Rollen ändern, entfernen. Zugang auf ein Modul begrenzen („nur Demokratie in Europa“): gilt vom Einlassbeginn am ersten bis 6 Stunden nach dem letzten Tag, danach automatisch gesperrt. |
+| `/team/nachrichten/` | Admin, Vorstand | Nachricht an alle (Generation, Region, Sorumlu-Gruppe, Angemeldete eines Moduls, Gruppe) per Mail nach Freigabe durch eine zweite Person; Text für die WhatsApp-Gruppe zum Kopieren. |
+| `/team/freigaben/` | Admin, Vorstand | Vier-Augen-Prinzip (Entscheidung 25.10.2026): Nachrichten an alle, Exporte aller Daten und Team-Zugänge gibt eine zweite Person frei; ausführen innerhalb von 24 Stunden, einmal. Team-Zugänge gibt nur ein Admin frei. |
+| `/team/team/` | Admin | Team-Zugang beantragen (ohne Passwort, Anmeldung per E-Mail-Code) und nach Freigabe anlegen; Rollen herabstufen sofort, hochstufen nach Freigabe; entfernen. Zugang auf ein Modul begrenzen („nur Demokratie in Europa“): gilt vom Einlassbeginn am ersten bis 6 Stunden nach dem letzten Tag, danach automatisch gesperrt. |
 | `/mein-bereich/verzeichnis/` | Mitglieder und Team ab Orga | Mitgliederverzeichnis mit Foto, Region, Abzeichen; E-Mail/Telefon nur mit Freigabe der Person (Team ab Vorstand immer). |
 | `/team/passwort/` | alle Team-Rollen | Eigenes Passwort ändern. |
 | `/mein-bereich/login/` | alle | Ein Login für alle per E-Mail-Code: Teilnehmende landen in „Mein Bereich“, Teamkonten im Team-Bereich. Der Passwort-Login unter `/team/login/` bleibt vorerst. |
@@ -53,7 +55,7 @@ npm run dev
 ## Tests
 
 ```bash
-npm run test:db                # 214 Datenbanktests (Check-in; Hausaufgaben/Portal; Kennzahlen; Step 2; Eventtag; Feedback/Sorumlu; Abgabe; Übernachtung; Community; zweiter Faktor; Modulwerkzeuge), setzt die lokale DB zurück
+npm run test:db                # 235 Datenbanktests (Check-in; Hausaufgaben/Portal; Kennzahlen; Step 2; Eventtag; Feedback/Sorumlu; Abgabe; Übernachtung; Community; zweiter Faktor; Modulwerkzeuge; Vier-Augen), setzt die lokale DB zurück
 npm run build && npx next start -p 3100 &
 supabase db reset && node scripts/e2e-phase1.mjs   # Ende-zu-Ende, headless
 supabase db reset && node scripts/e2e-phase2.mjs

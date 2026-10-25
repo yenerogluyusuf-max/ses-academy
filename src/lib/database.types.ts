@@ -49,6 +49,20 @@ isOneToOne: false
       referencedColumns: ["id"]
     }
                   ]
+                },"approvals": {
+                  Row: {
+                    "action": string,"decided_at": string | null,"decided_by": string | null,"decision_note": string | null,"executed_at": string | null,"id": string,"payload": NonNullable<Json>,"requested_at": string,"requested_by": string,"result": Json | null,"status": string,"summary": string
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "action": string,"decided_at"?: string | null,"decided_by"?: string | null,"decision_note"?: string | null,"executed_at"?: string | null,"id"?: string,"payload"?: NonNullable<Json>,"requested_at"?: string,"requested_by"?: string,"result"?: Json | null,"status"?: string,"summary": string
+                  }
+                  Update: {
+                    "action"?: string,"decided_at"?: string | null,"decided_by"?: string | null,"decision_note"?: string | null,"executed_at"?: string | null,"id"?: string,"payload"?: NonNullable<Json>,"requested_at"?: string,"requested_by"?: string,"result"?: Json | null,"status"?: string,"summary"?: string
+                  }
+                  Relationships: [
+                    
+                  ]
                 },"assignment_excusals": {
                   Row: {
                     "assignment_id": string,"created_at": string,"created_by": string | null,"id": string,"note": string,"participant_id": string
@@ -864,6 +878,11 @@ isOneToOne: false
             "accept_application":
 { Args: { "p_application_id": string,"p_note"?: string }; Returns: Json
                            },
+"broadcast_recipients":
+{ Args: { "p_filter": Json }; Returns: {
+              "email": string,"first_name": string,"participant_id": string,"preferred_language": string
+            }[]
+                           },
 "check_in_by_code":
 { Args: { "p_allow_off_window"?: boolean,"p_code": string,"p_method"?: Database["public"]['Enums']["checkin_method"],"p_module_day_id": string,"p_scanned_at"?: string }; Returns: Json
                            },
@@ -872,6 +891,9 @@ isOneToOne: false
                            },
 "checkin_core":
 { Args: { "p_allow_off_window": boolean,"p_day": Omit<Database["public"]['Tables']["module_days"]['Row'], Database["public"]['Tables']["module_days"]['ComputedFields']>,"p_method": Database["public"]['Enums']["checkin_method"],"p_participant": Omit<Database["public"]['Tables']["participants"]['Row'], Database["public"]['Tables']["participants"]['ComputedFields']>,"p_scanned_at": string }; Returns: Json
+                           },
+"claim_approval":
+{ Args: { "p_action": string,"p_id": string }; Returns: Json
                            },
 "create_feedback_survey":
 { Args: { "p_closes_at": string,"p_module_id": string,"p_opens_at": string }; Returns: string
@@ -884,6 +906,9 @@ isOneToOne: false
                            },
 "current_staff_role":
 { Args: Record<PropertyKey, never>; Returns: Database["public"]['Enums']["staff_role"]
+                           },
+"decide_approval":
+{ Args: { "p_approve": boolean,"p_id": string,"p_note"?: string }; Returns: string
                            },
 "display_name":
 { Args: { "p": Omit<Database["public"]['Tables']["participants"]['Row'], Database["public"]['Tables']["participants"]['ComputedFields']> }; Returns: string
@@ -1008,6 +1033,9 @@ isOneToOne: false
                            },
 "normalize_email":
 { Args: { "value": string }; Returns: string
+                           },
+"record_approval_result":
+{ Args: { "p_id": string,"p_result": Json }; Returns: undefined
                            },
 "register_cohort_for_module":
 { Args: { "p_module_id": string }; Returns: number

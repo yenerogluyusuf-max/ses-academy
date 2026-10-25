@@ -218,3 +218,16 @@ export async function sendeHausaufgabenErinnerung(participantId: string, assignm
   await protokolliere({ participantId: p.id, art: `erinnerung_hausaufgabe_${a.number}`, an: p.email, ergebnis });
   return ergebnis;
 }
+
+/** Nachricht an alle (nach Vier-Augen-Freigabe): persönliche Anrede, Text, Link zu „Mein Bereich“. */
+export async function sendeNachricht(an: { participant_id: string; email: string; first_name: string }, betreff: string, text: string, antragId: string, von?: string): Promise<Ergebnis> {
+  const voll = [`Hallo ${an.first_name},`, "", text, "", `Mein Bereich: ${seitenUrl("/mein-bereich/")}`, "", "Herzliche Grüße", "Dein SES-Academy-Team"].join("\n");
+  const ergebnis = await senden({
+    to: an.email,
+    subject: betreff,
+    text: voll,
+    html: `<div style="font-family:Arial,Helvetica,sans-serif;color:#13201a;max-width:560px;line-height:1.6;white-space:pre-line">${html(voll)}</div>`,
+  });
+  await protokolliere({ participantId: an.participant_id, art: `nachricht:${antragId}`, an: an.email, ergebnis, von });
+  return ergebnis;
+}

@@ -186,7 +186,7 @@ LANGUAGE sql STABLE SECURITY DEFINER SET search_path = '' AS $$
     JOIN public.participants p ON p.id = gm.participant_id
     LEFT JOIN public.registrations r ON r.module_id = d.module_id AND r.participant_id = p.id
     LEFT JOIN public.attendances a ON a.registration_id = r.id AND a.module_day_id = d.id
-   WHERE d.id = p_module_day_id AND public.has_checkin_access()
+   WHERE d.id = p_module_day_id AND public.has_orga_access()   -- Helfer sehen Gruppen und Räume, aber nicht wer drin ist
    ORDER BY g.position, g.name, p.last_name, p.first_name
 $$;
 

@@ -76,6 +76,7 @@ SELECT pg_temp.ok('Anwesenheit je Gruppe (beide waren am Skills-Workshop da)',
 SELECT pg_temp.login('helfer@ses.test');
 SELECT pg_temp.ok('Helfer sieht Gruppen und Räume', (SELECT count(*)::text FROM public.module_groups), '2');
 SELECT pg_temp.ok('Helfer sieht keine Gruppenmitglieder', (SELECT count(*)::text FROM public.group_members), '0');
+SELECT pg_temp.ok('Helfer bekommt keine Anwesenheit je Gruppe (Land, GT/KGT)', (SELECT count(*)::text FROM public.get_group_attendance((SELECT skills_tag FROM t))), '0');
 SELECT pg_temp.login('amina@example.test');
 SELECT pg_temp.ok('Amina sieht nur ihre Gruppe', (SELECT string_agg(name || ' ' || room, ',') FROM public.module_groups), 'Deutschland Raum 1');
 

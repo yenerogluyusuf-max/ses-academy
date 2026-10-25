@@ -1,9 +1,11 @@
 import type { Metadata } from "next";
+import { exportBeantragen } from "@/lib/aktionen/freigaben";
 import Link from "next/link";
 import { TeamKopf } from "@/components/team/TeamKopf";
 import { Leer, Titel, Zahl } from "@/components/team/Ui";
 import { Verlauf, type VerlaufPunkt } from "@/components/team/Verlauf";
 import { requireStaff } from "@/lib/auth";
+import { createClient } from "@/lib/supabase/server";
 import { istGefaehrdet, ladeAuswertung, leseFilter, type PersonZeile } from "@/lib/auswertung";
 import { zugehoerigkeit } from "@/lib/einlass";
 import { jetztMs } from "@/lib/zeit";
@@ -57,13 +59,26 @@ export default async function Auswertung({ searchParams }: PageProps<"/team/ausw
     .slice(0, 10);
   const gefaehrdet = mitHistorie.filter(istGefaehrdet)
     .sort((a, b) => b.trailing_misses - a.trailing_misses || (a.attendance_rate ?? 0) - (b.attendance_rate ?? 0));
+  // Vier-Augen-Prinzip: eigener, freigegebener und noch nicht genutzter Export-Antrag der letzten 24 Stunden
+  const { data: freigaben } = await (await createClient()).from("approvals").select("id, decided_at").eq("action", "export").eq("status", "freigegeben").eq("requested_by", staff.userId).order("decided_at", { ascending: false }).limit(1);
+  const freigabe = freigaben?.find((f) => f.decided_at && Date.parse(f.decided_at) > jetztMs() - 86_400_000);
   const exportParams = new URLSearchParams(Object.entries({ von: filter.von, bis: filter.bis, gruppe: filter.gruppe }).filter(([, v]) => v));
 
   return (
     <>
       <TeamKopf staff={staff} aktiv="auswertung" breit />
       <main className="mx-auto max-w-7xl px-4 py-10">
-        <Titel kicker="Teilnahme über alle Module" aktion={<a href={`/team/auswertung/export/?${exportParams}`} className="knopf-hell">CSV exportieren</a>}>Auswertung</Titel>
+        <Titel kicker="Teilnahme über alle Module" aktion={
+          freigabe
+            ? <a href={`/team/auswertung/export/?freigabe=${freigabe.id}`} className="knopf">Freigegebenen Export herunterladen</a>
+            : (
+              <form action={exportBeantragen}>
+                {[...exportParams.entries()].map(([k, v]) => <input key={k} type="hidden" name={k} value={v} />)}
+                <button type="submit" className="knopf-hell">CSV-Export beantragen</button>
+              </form>
+            )
+        }>Auswertung</Titel>
+        {sp.hinweis === "export-beantragt" && <p role="status" className="mb-6 rounded-2xl bg-gruen-hell p-4 text-sm font-semibold">Export beantragt. Eine zweite Person gibt ihn unter „Freigaben“ frei, danach erscheint hier der Download (24 Stunden, einmal).</p>}
 
         <form className="mb-8 flex flex-wrap items-end gap-3" action="/team/auswertung/">
           <div><label htmlFor="von" className="etikett">Von</label><input id="von" name="von" type="date" defaultValue={filter.von} className="feld" /></div>

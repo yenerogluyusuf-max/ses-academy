@@ -3,7 +3,7 @@ import Link from "next/link";
 import { Hinweis } from "@/components/team/Hinweis";
 import { TeamKopf } from "@/components/team/TeamKopf";
 import { zweiterFaktorPflicht } from "@/lib/aktionen/team";
-import { faktorZuruecksetzen, mitgliedAnlegen, mitgliedEntfernen, rolleAendern, zugangZeitraum } from "@/lib/aktionen/teamverwaltung";
+import { faktorZuruecksetzen, mitgliedAnlegen, mitgliedEntfernen, rolleAendern, teamZugangAusfuehren, zugangZeitraum } from "@/lib/aktionen/teamverwaltung";
 import { requireStaff, rollenName } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 import { jetztMs } from "@/lib/zeit";
@@ -11,11 +11,13 @@ import { jetztMs } from "@/lib/zeit";
 export const metadata: Metadata = { title: "Team | SES Academy" };
 
 const hinweise = {
-  angelegt: { text: "Konto angelegt. Gib E-Mail und Startpasswort persönlich weiter.", gut: true },
+  angelegt: { text: "Konto angelegt. Die Person meldet sich unter /mein-bereich/login/ mit ihrer E-Mail-Adresse und einem Code an.", gut: true },
+  beantragt: { text: "Beantragt. Ein zweiter Admin gibt unter „Freigaben“ frei, danach hier ausführen.", gut: true },
+  abgelaufen: { text: "Die Freigabe ist älter als 24 Stunden. Bitte neu beantragen.", gut: false },
   gespeichert: { text: "Rolle gespeichert.", gut: true },
   entfernt: { text: "Konto entfernt.", gut: true },
   existiert: { text: "Zu dieser E-Mail gibt es schon ein Konto.", gut: false },
-  eingabe: { text: "Bitte E-Mail, Name, Rolle und ein Passwort mit mindestens 10 Zeichen angeben.", gut: false },
+  eingabe: { text: "Bitte E-Mail, Name und Rolle angeben.", gut: false },
   "letzter-admin": { text: "Du bist der letzte Admin. Mach zuerst jemand anderen zum Admin.", gut: false },
   selbst: { text: "Das eigene Konto kann man nicht entfernen.", gut: false },
   "modul-ohne-termin": { text: "Das Modul hat noch keine Termine.", gut: false },
@@ -51,7 +53,11 @@ export default async function TeamVerwaltung({ searchParams }: PageProps<"/team/
     </select>
   );
   const jetzt = jetztMs();
-  const [{ data: pflicht }, { data: aal }] = await Promise.all([supabase.rpc("mfa_required"), supabase.auth.mfa.getAuthenticatorAssuranceLevel()]);
+  const [{ data: pflicht }, { data: aal }, { data: freigegeben }] = await Promise.all([
+    supabase.rpc("mfa_required"), supabase.auth.mfa.getAuthenticatorAssuranceLevel(),
+    supabase.from("approvals").select("id, summary, decided_at").eq("action", "team_zugang").eq("status", "freigegeben").eq("requested_by", staff.userId),
+  ]);
+  const ausfuehrbar = (freigegeben ?? []).filter((f) => f.decided_at && Date.parse(f.decided_at) > jetzt - 86_400_000);
   const feld = "rounded-2xl bg-white px-4 py-3 ring-1 ring-line";
   const rollenAuswahl = (name: string, wert?: string) => (
     <select name={name} defaultValue={wert ?? "checkin_helper"} className={feld}>
@@ -70,6 +76,13 @@ export default async function TeamVerwaltung({ searchParams }: PageProps<"/team/
             <div key={r}><dt className="inline font-semibold">{rollenName[r as keyof typeof rollenName]}: </dt><dd className="inline text-ink-soft">{text}</dd></div>
           ))}
         </dl>
+        {ausfuehrbar.map((f) => (
+          <form key={f.id} action={teamZugangAusfuehren} className="mt-4 flex flex-wrap items-center gap-3 rounded-2xl bg-gruen-hell p-4">
+            <input type="hidden" name="id" value={f.id} />
+            <p className="mr-auto text-sm font-semibold">Freigegeben: {f.summary}</p>
+            <button type="submit" className="rounded-full bg-ink px-5 py-2.5 font-semibold text-paper">Jetzt ausführen</button>
+          </form>
+        ))}
         <ul className="mt-6 divide-y divide-line rounded-3xl bg-white/80 px-5 ring-1 ring-line">
           {(mitglieder ?? []).map((m) => (
             <li key={m.user_id} className="flex flex-wrap items-center gap-3 py-4">
@@ -123,14 +136,14 @@ export default async function TeamVerwaltung({ searchParams }: PageProps<"/team/
           </div>
         </section>
         <section className="mt-8 rounded-3xl bg-white/60 p-6 ring-1 ring-line">
-          <h2 className="font-display text-xl font-bold">Konto anlegen</h2>
+          <h2 className="font-display text-xl font-bold">Team-Zugang beantragen</h2>
           <form action={mitgliedAnlegen} className="mt-4 grid gap-3 sm:grid-cols-2">
             <input name="name" required placeholder="Name" className={feld} />
             <input name="email" type="email" required placeholder="E-Mail" className={feld} />
             {rollenAuswahl("rolle")}
-            <input name="passwort" type="text" required minLength={10} placeholder="Startpasswort (mind. 10 Zeichen)" autoComplete="off" className={feld} />
             {modulAuswahl("modul")}
-            <button type="submit" className="justify-self-start rounded-full bg-ink px-6 py-3 font-semibold text-paper">Anlegen</button>
+            <button type="submit" className="justify-self-start rounded-full bg-ink px-6 py-3 font-semibold text-paper">Zur Freigabe vorlegen</button>
+            <p className="text-sm text-ink-soft sm:col-span-2">Ein zweiter Admin gibt den Zugang frei. Ein Passwort ist nicht nötig: Anmeldung mit E-Mail und Code.</p>
           </form>
         </section>
       </main>
