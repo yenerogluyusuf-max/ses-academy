@@ -125,8 +125,12 @@ export async function faktorZuruecksetzen(formData: FormData) {
   if (userId === staff.userId) zurueck("selbst");
   const admin = createAdminClient();
   const { data } = await admin.auth.admin.mfa.listFactors({ userId });
-  for (const f of data?.factors ?? []) await admin.auth.admin.mfa.deleteFactor({ userId, id: f.id });
-  // laufende Sitzungen beenden, damit niemand mit dem alten Handy weiterarbeitet
-  await admin.auth.admin.signOut(userId, "global").catch(() => {});
-  zurueck("faktor-zurueckgesetzt");
+  for (const f of data?.factors ?? []) {
+    const { error } = await admin.auth.admin.mfa.deleteFactor({ userId, id: f.id });
+    if (error) zurueck("fehler");
+  }
+  // Laufende Sitzungen beenden (samt Refresh-Tokens), damit niemand mit dem alten Handy weiterarbeitet.
+  // Bereits ausgestellte Zugriffstoken laufen spätestens nach einer Stunde ab.
+  const { error } = await admin.rpc("end_user_sessions", { p_user_id: userId });
+  zurueck(error ? "fehler" : "faktor-zurueckgesetzt");
 }

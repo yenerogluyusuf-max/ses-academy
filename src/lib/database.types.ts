@@ -147,6 +147,20 @@ isOneToOne: false
       referencedColumns: ["id"]
     }
                   ]
+                },"checklist_templates": {
+                  Row: {
+                    "active": boolean,"anchor": string,"commission": string | null,"days_offset": number,"id": string,"position": number,"title": string
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "active"?: boolean,"anchor"?: string,"commission"?: string | null,"days_offset": number,"id"?: string,"position"?: number,"title": string
+                  }
+                  Update: {
+                    "active"?: boolean,"anchor"?: string,"commission"?: string | null,"days_offset"?: number,"id"?: string,"position"?: number,"title"?: string
+                  }
+                  Relationships: [
+                    
+                  ]
                 },"cohorts": {
                   Row: {
                     "created_at": string,"id": string,"is_current": boolean,"name": string,"year": number
@@ -307,6 +321,38 @@ isOneToOne: true
       referencedColumns: ["id"]
     }
                   ]
+                },"group_members": {
+                  Row: {
+                    "group_id": string,"module_id": string,"participant_id": string
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "group_id": string,"module_id": string,"participant_id": string
+                  }
+                  Update: {
+                    "group_id"?: string,"module_id"?: string,"participant_id"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "group_members_group_id_fkey"
+      columns: ["group_id"]
+isOneToOne: false
+      referencedRelation: "module_groups"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "group_members_module_id_fkey"
+      columns: ["module_id"]
+isOneToOne: false
+      referencedRelation: "modules"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "group_members_participant_id_fkey"
+      columns: ["participant_id"]
+isOneToOne: false
+      referencedRelation: "participants"
+      referencedColumns: ["id"]
+    }
+                  ]
                 },"hotels": {
                   Row: {
                     "address": string | null,"cancellation_deadline": string | null,"contact": string | null,"created_at": string,"id": string,"module_id": string,"name": string,"notes": string,"price_per_night": number | null,"quota_rooms": number | null
@@ -416,6 +462,58 @@ isOneToOne: false
       columns: ["module_id"]
 isOneToOne: false
       referencedRelation: "modules"
+      referencedColumns: ["id"]
+    }
+                  ]
+                },"module_groups": {
+                  Row: {
+                    "id": string,"leader": string | null,"module_id": string,"name": string,"position": number,"room": string | null
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "id"?: string,"leader"?: string | null,"module_id": string,"name": string,"position"?: number,"room"?: string | null
+                  }
+                  Update: {
+                    "id"?: string,"leader"?: string | null,"module_id"?: string,"name"?: string,"position"?: number,"room"?: string | null
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "module_groups_module_id_fkey"
+      columns: ["module_id"]
+isOneToOne: false
+      referencedRelation: "modules"
+      referencedColumns: ["id"]
+    }
+                  ]
+                },"module_speakers": {
+                  Row: {
+                    "arrival_at": string | null,"arrival_info": string,"bio_received": boolean,"created_at": string,"departure_at": string | null,"fee": number | null,"host_name": string | null,"hotel_info": string,"id": string,"module_id": string,"notes": string,"program_item_id": string | null,"role": string,"slides_received": boolean,"speaker_id": string,"status": Database["public"]['Enums']["speaker_status"],"status_at": string,"tech_needs": string,"topic": string,"travel_costs": number | null
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "arrival_at"?: string | null,"arrival_info"?: string,"bio_received"?: boolean,"created_at"?: string,"departure_at"?: string | null,"fee"?: number | null,"host_name"?: string | null,"hotel_info"?: string,"id"?: string,"module_id": string,"notes"?: string,"program_item_id"?: string | null,"role"?: string,"slides_received"?: boolean,"speaker_id": string,"status"?: Database["public"]['Enums']["speaker_status"],"status_at"?: string,"tech_needs"?: string,"topic"?: string,"travel_costs"?: number | null
+                  }
+                  Update: {
+                    "arrival_at"?: string | null,"arrival_info"?: string,"bio_received"?: boolean,"created_at"?: string,"departure_at"?: string | null,"fee"?: number | null,"host_name"?: string | null,"hotel_info"?: string,"id"?: string,"module_id"?: string,"notes"?: string,"program_item_id"?: string | null,"role"?: string,"slides_received"?: boolean,"speaker_id"?: string,"status"?: Database["public"]['Enums']["speaker_status"],"status_at"?: string,"tech_needs"?: string,"topic"?: string,"travel_costs"?: number | null
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "module_speakers_module_id_fkey"
+      columns: ["module_id"]
+isOneToOne: false
+      referencedRelation: "modules"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "module_speakers_program_item_id_fkey"
+      columns: ["program_item_id"]
+isOneToOne: false
+      referencedRelation: "program_items"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "module_speakers_speaker_id_fkey"
+      columns: ["speaker_id"]
+isOneToOne: false
+      referencedRelation: "speakers"
       referencedColumns: ["id"]
     }
                   ]
@@ -637,6 +735,20 @@ isOneToOne: false
                   Relationships: [
                     
                   ]
+                },"speakers": {
+                  Row: {
+                    "affiliation": string,"bio": string,"created_at": string,"email": string | null,"id": string,"languages": (string)[],"name": string,"notes": string,"phone": string | null,"topics": (string)[],"updated_at": string,"website": string | null
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "affiliation"?: string,"bio"?: string,"created_at"?: string,"email"?: string | null,"id"?: string,"languages"?: (string)[],"name": string,"notes"?: string,"phone"?: string | null,"topics"?: (string)[],"updated_at"?: string,"website"?: string | null
+                  }
+                  Update: {
+                    "affiliation"?: string,"bio"?: string,"created_at"?: string,"email"?: string | null,"id"?: string,"languages"?: (string)[],"name"?: string,"notes"?: string,"phone"?: string | null,"topics"?: (string)[],"updated_at"?: string,"website"?: string | null
+                  }
+                  Relationships: [
+                    
+                  ]
                 },"staff_members": {
                   Row: {
                     "created_at": string,"display_name": string,"label": string | null,"role": Database["public"]['Enums']["staff_role"],"user_id": string,"valid_from": string | null,"valid_until": string | null
@@ -717,6 +829,32 @@ isOneToOne: false
       referencedColumns: ["id"]
     }
                   ]
+                },"tasks": {
+                  Row: {
+                    "assignee_name": string | null,"assignee_user": string | null,"commission": string | null,"created_at": string,"created_by": string | null,"done_at": string | null,"done_by": string | null,"due_date": string | null,"id": string,"module_id": string | null,"notes": string,"template_id": string | null,"title": string
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "assignee_name"?: string | null,"assignee_user"?: string | null,"commission"?: string | null,"created_at"?: string,"created_by"?: string | null,"done_at"?: string | null,"done_by"?: string | null,"due_date"?: string | null,"id"?: string,"module_id"?: string | null,"notes"?: string,"template_id"?: string | null,"title": string
+                  }
+                  Update: {
+                    "assignee_name"?: string | null,"assignee_user"?: string | null,"commission"?: string | null,"created_at"?: string,"created_by"?: string | null,"done_at"?: string | null,"done_by"?: string | null,"due_date"?: string | null,"id"?: string,"module_id"?: string | null,"notes"?: string,"template_id"?: string | null,"title"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "tasks_module_id_fkey"
+      columns: ["module_id"]
+isOneToOne: false
+      referencedRelation: "modules"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "tasks_template_id_fkey"
+      columns: ["template_id"]
+isOneToOne: false
+      referencedRelation: "checklist_templates"
+      referencedColumns: ["id"]
+    }
+                  ]
                 }
           }
           Views: {
@@ -738,6 +876,9 @@ isOneToOne: false
 "create_feedback_survey":
 { Args: { "p_closes_at": string,"p_module_id": string,"p_opens_at": string }; Returns: string
                            },
+"create_module_checklist":
+{ Args: { "p_module_id": string }; Returns: number
+                           },
 "create_walk_in":
 { Args: { "p_affiliation"?: Database["public"]['Enums']["affiliation_status"],"p_email"?: string,"p_first_name": string,"p_last_name": string,"p_module_day_id": string,"p_privacy_consent"?: boolean }; Returns: Json
                            },
@@ -746,6 +887,9 @@ isOneToOne: false
                            },
 "display_name":
 { Args: { "p": Omit<Database["public"]['Tables']["participants"]['Row'], Database["public"]['Tables']["participants"]['ComputedFields']> }; Returns: string
+                           },
+"end_user_sessions":
+{ Args: { "p_user_id": string }; Returns: number
                            },
 "get_assignment_status":
 { Args: { "p_assignment_id": string }; Returns: {
@@ -770,6 +914,11 @@ isOneToOne: false
               "answers": number,"average": number,"distribution": (number)[],"kind": string,"nr": number,"prompt": string,"question_id": string,"texts": (string)[]
             }[]
                            },
+"get_group_attendance":
+{ Args: { "p_module_day_id": string }; Returns: {
+              "branch": string,"checked_in": boolean,"country": string,"group_id": string,"group_name": string,"leader": string,"name": string,"participant_id": string,"room": string
+            }[]
+                           },
 "get_group_status":
 { Args: { "p_module_day_id": string }; Returns: {
               "checked_in_at": string,"mentor_id": string,"mentor_name": string,"mentor_phone": string,"name": string,"participant_id": string,"phone": string,"registration_status": Database["public"]['Enums']["registration_status"]
@@ -778,6 +927,11 @@ isOneToOne: false
 "get_group_status_by_token":
 { Args: { "p_module_day_id": string,"p_token": string }; Returns: {
               "checked_in_at": string,"mentor_name": string,"name": string,"participant_id": string,"phone": string,"registration_status": Database["public"]['Enums']["registration_status"]
+            }[]
+                           },
+"get_grouping_candidates":
+{ Args: { "p_module_id": string }; Returns: {
+              "branch": string,"country": string,"group_id": string,"name": string,"participant_id": string
             }[]
                            },
 "get_member_directory":
@@ -813,6 +967,11 @@ isOneToOne: false
 "get_stay_overview":
 { Args: { "p_module_id": string }; Returns: {
               "answered": boolean,"arrival_at": string,"arrival_by": string,"departure_at": string,"name": string,"nights": (string)[],"notes": string,"participant_id": string,"registration_status": Database["public"]['Enums']["registration_status"],"room_id": string,"room_label": string,"room_wish": string
+            }[]
+                           },
+"get_team_members":
+{ Args: Record<PropertyKey, never>; Returns: {
+              "display_name": string,"role": Database["public"]['Enums']["staff_role"],"user_id": string
             }[]
                            },
 "get_ticket_status":
@@ -879,7 +1038,7 @@ isOneToOne: false
                            }
           }
           Enums: {
-            "affiliation_status": "member"|"academy_student"|"guest"|"alumni","application_status": "eingegangen"|"in_pruefung"|"angenommen"|"warteliste"|"abgelehnt"|"zurueckgezogen","checkin_method": "qr"|"short_code"|"manual"|"walk_in"|"offline_sync","engagement_kind": "kommunalpolitik"|"partei"|"jugendrat"|"verein"|"projekt"|"sonstiges","membership_role": "teilnehmende"|"sorumlu"|"team"|"helfer"|"referent"|"alumni","module_kind": "auftakt"|"seminar"|"workshop"|"winterschool"|"sonstiges","module_status": "draft"|"published"|"archived","program_item_status": "geplant"|"laeuft"|"erledigt"|"verschoben"|"entfaellt","registration_source": "cohort"|"public"|"staff"|"walk_in","registration_status": "pending"|"confirmed"|"waitlist"|"cancelled"|"excused"|"rejected","staff_role": "admin"|"vorstand"|"orga_team"|"checkin_helper"
+            "affiliation_status": "member"|"academy_student"|"guest"|"alumni","application_status": "eingegangen"|"in_pruefung"|"angenommen"|"warteliste"|"abgelehnt"|"zurueckgezogen","checkin_method": "qr"|"short_code"|"manual"|"walk_in"|"offline_sync","engagement_kind": "kommunalpolitik"|"partei"|"jugendrat"|"verein"|"projekt"|"sonstiges","membership_role": "teilnehmende"|"sorumlu"|"team"|"helfer"|"referent"|"alumni","module_kind": "auftakt"|"seminar"|"workshop"|"winterschool"|"sonstiges","module_status": "draft"|"published"|"archived","program_item_status": "geplant"|"laeuft"|"erledigt"|"verschoben"|"entfaellt","registration_source": "cohort"|"public"|"staff"|"walk_in","registration_status": "pending"|"confirmed"|"waitlist"|"cancelled"|"excused"|"rejected","speaker_status": "idee"|"angefragt"|"zugesagt"|"abgesagt"|"bestaetigt","staff_role": "admin"|"vorstand"|"orga_team"|"checkin_helper"
           }
           CompositeTypes: {
             [_ in never]: never
@@ -999,7 +1158,7 @@ export const Constants = {
           }
         },"public": {
           Enums: {
-            "affiliation_status": ["member", "academy_student", "guest", "alumni"],"application_status": ["eingegangen", "in_pruefung", "angenommen", "warteliste", "abgelehnt", "zurueckgezogen"],"checkin_method": ["qr", "short_code", "manual", "walk_in", "offline_sync"],"engagement_kind": ["kommunalpolitik", "partei", "jugendrat", "verein", "projekt", "sonstiges"],"membership_role": ["teilnehmende", "sorumlu", "team", "helfer", "referent", "alumni"],"module_kind": ["auftakt", "seminar", "workshop", "winterschool", "sonstiges"],"module_status": ["draft", "published", "archived"],"program_item_status": ["geplant", "laeuft", "erledigt", "verschoben", "entfaellt"],"registration_source": ["cohort", "public", "staff", "walk_in"],"registration_status": ["pending", "confirmed", "waitlist", "cancelled", "excused", "rejected"],"staff_role": ["admin", "vorstand", "orga_team", "checkin_helper"]
+            "affiliation_status": ["member", "academy_student", "guest", "alumni"],"application_status": ["eingegangen", "in_pruefung", "angenommen", "warteliste", "abgelehnt", "zurueckgezogen"],"checkin_method": ["qr", "short_code", "manual", "walk_in", "offline_sync"],"engagement_kind": ["kommunalpolitik", "partei", "jugendrat", "verein", "projekt", "sonstiges"],"membership_role": ["teilnehmende", "sorumlu", "team", "helfer", "referent", "alumni"],"module_kind": ["auftakt", "seminar", "workshop", "winterschool", "sonstiges"],"module_status": ["draft", "published", "archived"],"program_item_status": ["geplant", "laeuft", "erledigt", "verschoben", "entfaellt"],"registration_source": ["cohort", "public", "staff", "walk_in"],"registration_status": ["pending", "confirmed", "waitlist", "cancelled", "excused", "rejected"],"speaker_status": ["idee", "angefragt", "zugesagt", "abgesagt", "bestaetigt"],"staff_role": ["admin", "vorstand", "orga_team", "checkin_helper"]
           }
         }
 } as const

@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Hinweis } from "@/components/team/Hinweis";
+import { ModulReiter } from "@/components/team/ModulReiter";
 import { TeamKopf } from "@/components/team/TeamKopf";
 import { abfrageUmschalten, hotelSpeichern, zimmerAnlegen, zimmerEntfernen, zimmerZuteilen } from "@/lib/aktionen/hotel";
 import { darf, requireStaff } from "@/lib/auth";
@@ -50,8 +51,7 @@ export default async function HotelSeite({ params, searchParams }: PageProps<"/t
     <>
       <TeamKopf staff={staff} aktiv="module" breit />
       <main className="mx-auto max-w-7xl px-4 py-8">
-        <Link href={`/team/module/${id}/`} className="text-sm font-semibold text-ink-soft hover:text-ink">← {modul.title}</Link>
-        <h1 className="font-display mt-2 text-3xl font-bold">Übernachtung und Hotel</h1>
+        <ModulReiter id={id} titel={modul.title} aktiv="hotel/" />
         <Hinweis code={hinweis} texte={hinweise} />
 
         <section className="karte mt-6">

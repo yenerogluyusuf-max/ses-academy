@@ -3,6 +3,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Hinweis } from "@/components/team/Hinweis";
 import { ModulFormular } from "@/components/team/ModulFormular";
+import { ModulReiter } from "@/components/team/ModulReiter";
 import { TeamKopf } from "@/components/team/TeamKopf";
 import { ticketsAnAlle } from "@/lib/aktionen/eventtag";
 import { feedbackEinladen, frageEntfernen, frageHinzufuegen, umfrageAnlegen } from "@/lib/aktionen/feedback";
@@ -76,8 +77,7 @@ export default async function ModulDetail({ params, searchParams }: PageProps<"/
     <>
       <TeamKopf staff={staff} aktiv="module" />
       <main className="mx-auto max-w-5xl px-4 py-8">
-        <Link href="/team/module/" className="text-sm font-semibold text-ink-soft hover:text-ink">← Alle Module</Link>
-        <h1 className="mt-2 font-display text-3xl font-bold">{m.title}</h1>
+        <ModulReiter id={m.id} titel={m.title} aktiv="" />
         {m.cancelled_at && <p className="mt-2 font-semibold text-red-900">Abgesagt{m.cancellation_reason ? `: ${m.cancellation_reason}` : ""}</p>}
         <Hinweis code={code} texte={hinweise} />
         {neuAngemeldet > 0 && <p role="status" className="mt-2 rounded-2xl bg-emerald-100 p-4 text-emerald-950">{neuAngemeldet} angenommene Teilnehmende wurden automatisch angemeldet.</p>}
