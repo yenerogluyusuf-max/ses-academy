@@ -307,6 +307,26 @@ isOneToOne: true
       referencedColumns: ["id"]
     }
                   ]
+                },"hotels": {
+                  Row: {
+                    "address": string | null,"cancellation_deadline": string | null,"contact": string | null,"created_at": string,"id": string,"module_id": string,"name": string,"notes": string,"price_per_night": number | null,"quota_rooms": number | null
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "address"?: string | null,"cancellation_deadline"?: string | null,"contact"?: string | null,"created_at"?: string,"id"?: string,"module_id": string,"name": string,"notes"?: string,"price_per_night"?: number | null,"quota_rooms"?: number | null
+                  }
+                  Update: {
+                    "address"?: string | null,"cancellation_deadline"?: string | null,"contact"?: string | null,"created_at"?: string,"id"?: string,"module_id"?: string,"name"?: string,"notes"?: string,"price_per_night"?: number | null,"quota_rooms"?: number | null
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "hotels_module_id_fkey"
+      columns: ["module_id"]
+isOneToOne: false
+      referencedRelation: "modules"
+      referencedColumns: ["id"]
+    }
+                  ]
                 },"mentors": {
                   Row: {
                     "access_token": string,"created_at": string,"email": string | null,"id": string,"name": string,"phone": string | null,"user_id": string | null
@@ -369,14 +389,14 @@ isOneToOne: false
                   ]
                 },"modules": {
                   Row: {
-                    "cancellation_reason": string | null,"cancelled_at": string | null,"capacity": number | null,"cohort_id": string | null,"counts_for_streak": boolean,"created_at": string,"description": string,"id": string,"kind": Database["public"]['Enums']["module_kind"],"location": string | null,"open_registration": boolean,"slug": string,"status": Database["public"]['Enums']["module_status"],"ticket_required": boolean,"title": string,"updated_at": string
+                    "cancellation_reason": string | null,"cancelled_at": string | null,"capacity": number | null,"cohort_id": string | null,"counts_for_streak": boolean,"created_at": string,"description": string,"id": string,"kind": Database["public"]['Enums']["module_kind"],"location": string | null,"open_registration": boolean,"slug": string,"status": Database["public"]['Enums']["module_status"],"stay_form_open": boolean,"ticket_required": boolean,"title": string,"updated_at": string
                   }
                   ComputedFields: never
                   Insert: {
-                    "cancellation_reason"?: string | null,"cancelled_at"?: string | null,"capacity"?: number | null,"cohort_id"?: string | null,"counts_for_streak"?: boolean,"created_at"?: string,"description"?: string,"id"?: string,"kind"?: Database["public"]['Enums']["module_kind"],"location"?: string | null,"open_registration"?: boolean,"slug": string,"status"?: Database["public"]['Enums']["module_status"],"ticket_required"?: boolean,"title": string,"updated_at"?: string
+                    "cancellation_reason"?: string | null,"cancelled_at"?: string | null,"capacity"?: number | null,"cohort_id"?: string | null,"counts_for_streak"?: boolean,"created_at"?: string,"description"?: string,"id"?: string,"kind"?: Database["public"]['Enums']["module_kind"],"location"?: string | null,"open_registration"?: boolean,"slug": string,"status"?: Database["public"]['Enums']["module_status"],"stay_form_open"?: boolean,"ticket_required"?: boolean,"title": string,"updated_at"?: string
                   }
                   Update: {
-                    "cancellation_reason"?: string | null,"cancelled_at"?: string | null,"capacity"?: number | null,"cohort_id"?: string | null,"counts_for_streak"?: boolean,"created_at"?: string,"description"?: string,"id"?: string,"kind"?: Database["public"]['Enums']["module_kind"],"location"?: string | null,"open_registration"?: boolean,"slug"?: string,"status"?: Database["public"]['Enums']["module_status"],"ticket_required"?: boolean,"title"?: string,"updated_at"?: string
+                    "cancellation_reason"?: string | null,"cancelled_at"?: string | null,"capacity"?: number | null,"cohort_id"?: string | null,"counts_for_streak"?: boolean,"created_at"?: string,"description"?: string,"id"?: string,"kind"?: Database["public"]['Enums']["module_kind"],"location"?: string | null,"open_registration"?: boolean,"slug"?: string,"status"?: Database["public"]['Enums']["module_status"],"stay_form_open"?: boolean,"ticket_required"?: boolean,"title"?: string,"updated_at"?: string
                   }
                   Relationships: [
                     {
@@ -519,6 +539,58 @@ isOneToOne: false
       referencedColumns: ["id"]
     }
                   ]
+                },"room_assignments": {
+                  Row: {
+                    "hotel_id": string,"participant_id": string,"room_id": string
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "hotel_id": string,"participant_id": string,"room_id": string
+                  }
+                  Update: {
+                    "hotel_id"?: string,"participant_id"?: string,"room_id"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "room_assignments_hotel_id_fkey"
+      columns: ["hotel_id"]
+isOneToOne: false
+      referencedRelation: "hotels"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "room_assignments_participant_id_fkey"
+      columns: ["participant_id"]
+isOneToOne: false
+      referencedRelation: "participants"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "room_assignments_room_id_fkey"
+      columns: ["room_id"]
+isOneToOne: false
+      referencedRelation: "rooms"
+      referencedColumns: ["id"]
+    }
+                  ]
+                },"rooms": {
+                  Row: {
+                    "capacity": number,"hotel_id": string,"id": string,"label": string,"section": string | null
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "capacity": number,"hotel_id": string,"id"?: string,"label": string,"section"?: string | null
+                  }
+                  Update: {
+                    "capacity"?: number,"hotel_id"?: string,"id"?: string,"label"?: string,"section"?: string | null
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "rooms_hotel_id_fkey"
+      columns: ["hotel_id"]
+isOneToOne: false
+      referencedRelation: "hotels"
+      referencedColumns: ["id"]
+    }
+                  ]
                 },"staff_members": {
                   Row: {
                     "created_at": string,"display_name": string,"role": Database["public"]['Enums']["staff_role"],"user_id": string
@@ -532,6 +604,26 @@ isOneToOne: false
                   }
                   Relationships: [
                     
+                  ]
+                },"stay_requests": {
+                  Row: {
+                    "arrival_at": string | null,"arrival_by": string | null,"departure_at": string | null,"nights": (string)[],"notes": string,"registration_id": string,"room_wish": string,"updated_at": string
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "arrival_at"?: string | null,"arrival_by"?: string | null,"departure_at"?: string | null,"nights"?: (string)[],"notes"?: string,"registration_id": string,"room_wish"?: string,"updated_at"?: string
+                  }
+                  Update: {
+                    "arrival_at"?: string | null,"arrival_by"?: string | null,"departure_at"?: string | null,"nights"?: (string)[],"notes"?: string,"registration_id"?: string,"room_wish"?: string,"updated_at"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "stay_requests_registration_id_fkey"
+      columns: ["registration_id"]
+isOneToOne: true
+      referencedRelation: "registrations"
+      referencedColumns: ["id"]
+    }
                   ]
                 },"submission_participants": {
                   Row: {
@@ -647,6 +739,11 @@ isOneToOne: false
               "attendance_rate": number,"attended_people": number,"cancelled_or_excused": number,"days_past": number,"days_total": number,"first_day": string,"module_id": string,"no_shows": number,"person_days_attended": number,"person_days_possible": number,"registered": number,"title": string
             }[]
                            },
+"get_my_rooms":
+{ Args: Record<PropertyKey, never>; Returns: {
+              "hotel_address": string,"hotel_name": string,"module_id": string,"room_label": string
+            }[]
+                           },
 "get_participant_analytics":
 { Args: { "timeframe_end"?: string,"timeframe_start"?: string }; Returns: {
               "attendance_rate": number,"current_streak": number,"last_attended_at": string,"last_attended_title": string,"longest_streak": number,"participant_id": string,"total_attended": number,"total_cancelled_or_excused": number,"total_no_shows": number,"total_registered": number,"trailing_misses": number
@@ -660,6 +757,11 @@ isOneToOne: false
 "get_participant_homework_analytics":
 { Args: { "p_participant_id": string }; Returns: {
               "engagement_count": number,"grade_avg": number,"homework_rate": number,"hw_excused": number,"hw_expected": number,"hw_late": number,"hw_missing": number,"hw_on_time": number,"hw_open": number
+            }[]
+                           },
+"get_stay_overview":
+{ Args: { "p_module_id": string }; Returns: {
+              "answered": boolean,"arrival_at": string,"arrival_by": string,"departure_at": string,"name": string,"nights": (string)[],"notes": string,"participant_id": string,"registration_status": Database["public"]['Enums']["registration_status"],"room_id": string,"room_label": string,"room_wish": string
             }[]
                            },
 "get_ticket_status":
@@ -693,6 +795,9 @@ isOneToOne: false
                            },
 "register_public":
 { Args: { "p_email": string,"p_first_name": string,"p_language"?: string,"p_last_name": string,"p_module_slug": string,"p_phone"?: string }; Returns: Json
+                           },
+"save_my_stay":
+{ Args: { "p_arrival_at": string,"p_arrival_by": string,"p_departure_at": string,"p_module_id": string,"p_nights": (string)[],"p_notes": string,"p_room_wish": string }; Returns: string
                            },
 "submit_feedback":
 { Args: { "p_answers": Json,"p_survey_id": string,"p_token": string }; Returns: string

@@ -1,14 +1,16 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { redirect } from "next/navigation";
+import { uebernachtungSpeichern } from "@/lib/aktionen/hotel";
 import { portalAbmelden } from "@/lib/aktionen/portal";
+import { naechte, nachtName } from "@/lib/uebernachtung";
 import { kurzcodeAnzeige, qrSvg } from "@/lib/tickets";
 import { createClient } from "@/lib/supabase/server";
 import { jetztMs } from "@/lib/zeit";
 
 export const metadata: Metadata = { title: "Mein Bereich | SES Academy", robots: { index: false, follow: false } };
 
-type Reg = { status: string; modules: { id: string; title: string; location: string | null; module_days: { id: string; starts_at: string; ends_at: string }[] }; attendances: { module_day_id: string }[] };
+type Reg = { id: string; status: string; modules: { id: string; title: string; location: string | null; stay_form_open: boolean; module_days: { id: string; day: string; starts_at: string; ends_at: string }[] }; attendances: { module_day_id: string }[] };
 type Sub = { id: string; label: string; assignment_id: string; file_name: string | null; link: string | null; submitted_on: string | null; submitted_at: string | null };
 
 const typen: Record<string, string> = { kommentar: "Kommentar", video: "Video", grafik: "Grafik", podcast: "Podcast", rede: "Rede", artikel: "Artikel" };
@@ -24,8 +26,16 @@ const abgabeHinweise: Record<string, { text: string; gut: boolean }> = {
   fehler: { text: "Die Abgabe hat nicht geklappt. Bitte noch einmal versuchen oder an ses@islamrat.de schreiben.", gut: false },
 };
 
+const uebernachtungHinweise: Record<string, { text: string; gut: boolean }> = {
+  saved: { text: "Danke! Deine Angaben zur Übernachtung sind gespeichert. Du kannst sie ändern, solange die Abfrage offen ist.", gut: true },
+  closed: { text: "Die Abfrage zur Übernachtung ist geschlossen. Bitte melde dich bei ses@islamrat.de.", gut: false },
+  not_registered: { text: "Für dieses Modul bist du nicht angemeldet.", gut: false },
+  fehler: { text: "Das hat nicht geklappt. Bitte die Angaben prüfen.", gut: false },
+};
+
 export default async function MeinBereich({ searchParams }: PageProps<"/mein-bereich">) {
-  const { abgabe } = await searchParams;
+  const { abgabe, uebernachtung } = await searchParams;
+  const uebernachtungHinweis = typeof uebernachtung === "string" ? uebernachtungHinweise[uebernachtung] : undefined;
   const abgabeHinweis = typeof abgabe === "string" ? abgabeHinweise[abgabe] : undefined;
   const supabase = await createClient();
   const { data: auth } = await supabase.auth.getUser();
@@ -42,7 +52,7 @@ export default async function MeinBereich({ searchParams }: PageProps<"/mein-ber
     );
 
   const [{ data: regs }, { data: aufgaben }, { data: subs }, { data: beitraege }] = await Promise.all([
-    supabase.from("registrations").select("status,modules(id,title,location,module_days(id,starts_at,ends_at)),attendances(module_day_id)"),
+    supabase.from("registrations").select("id,status,modules(id,title,location,stay_form_open,module_days(id,day,starts_at,ends_at)),attendances(module_day_id)"),
     supabase.from("assignments").select("id,number,title,description,due_date,due_at").order("number"),
     supabase.from("submissions").select("id,label,assignment_id,file_name,link,submitted_on,submitted_at"),
     supabase.from("contributions").select("*").order("published_on", { ascending: false }),
@@ -55,6 +65,11 @@ export default async function MeinBereich({ searchParams }: PageProps<"/mein-ber
   const kommend = meineModule.filter((m) => m.tage.some((t) => t.ends_at >= jetzt) && m.status === "confirmed");
   const vorbei = meineModule.filter((m) => m.tage.length && m.tage.every((t) => t.ends_at < jetzt)).reverse();
   const abgaben = (subs ?? []) as unknown as Sub[];
+  const mitAbfrage = meineModule.filter((m) => m.modules.stay_form_open && (m.status === "confirmed" || m.status === "waitlist") && m.tage.some((t) => t.ends_at >= jetzt));
+  const [{ data: angaben }, { data: zimmer }] = await Promise.all([
+    mitAbfrage.length ? supabase.from("stay_requests").select("*") : Promise.resolve({ data: [] }),
+    supabase.rpc("get_my_rooms"),
+  ]);
   const svg = await qrSvg(ich.checkin_token);
 
   return (
@@ -93,6 +108,67 @@ export default async function MeinBereich({ searchParams }: PageProps<"/mein-ber
             ) : <p className="karte text-ink-soft">Gerade bist du für kein kommendes Modul angemeldet.</p>}
           </div>
         </section>
+
+        {(mitAbfrage.length > 0 || (zimmer ?? []).length > 0 || uebernachtungHinweis) && (
+          <section id="uebernachtung" className="mt-12">
+            <h2 className="font-display mb-4 text-2xl font-bold">Übernachtung</h2>
+            {uebernachtungHinweis && <p role="status" className={`mb-4 rounded-2xl p-4 font-semibold ${uebernachtungHinweis.gut ? "bg-gruen-hell" : "bg-gelb-hell"}`}>{uebernachtungHinweis.text}</p>}
+            <div className="space-y-4">
+              {(zimmer ?? []).map((z) => {
+                const m = meineModule.find((x) => x.modules.id === z.module_id);
+                return (
+                  <div key={z.module_id} className="karte bg-gruen-hell">
+                    <p className="font-semibold">{m?.modules.title ?? "Modul"}: Zimmer {z.room_label}</p>
+                    <p className="text-sm text-ink-soft">{z.hotel_name}{z.hotel_address ? ` · ${z.hotel_address}` : ""}</p>
+                  </div>
+                );
+              })}
+              {mitAbfrage.map((m) => {
+                const a = (angaben ?? []).find((x) => x.registration_id === m.id);
+                const tagVon = (iso: string | null) => (iso ? new Intl.DateTimeFormat("sv-SE", { timeZone: "Europe/Berlin" }).format(new Date(iso)) : "");
+                const uhrVon = (iso: string | null) => (iso ? new Intl.DateTimeFormat("de-DE", { hour: "2-digit", minute: "2-digit", timeZone: "Europe/Berlin" }).format(new Date(iso)) : "");
+                return (
+                  <form key={m.modules.id} action={uebernachtungSpeichern} className="karte grid gap-4 sm:grid-cols-2">
+                    <input type="hidden" name="module_id" value={m.modules.id} />
+                    <div className="sm:col-span-2">
+                      <p className="font-display text-xl font-bold">{m.modules.title}</p>
+                      <p className="text-sm text-ink-soft">{zeitraum(m.tage)}{a ? " · Angaben gespeichert" : " · bitte ausfüllen"}</p>
+                    </div>
+                    <fieldset className="sm:col-span-2">
+                      <legend className="etikett">In welchen Nächten brauchst du ein Bett?</legend>
+                      <div className="flex flex-wrap gap-2">
+                        {naechte(m.tage.map((t) => t.day)).map((n) => (
+                          <label key={n} className="flex cursor-pointer items-center gap-2 rounded-full bg-white px-4 py-2 text-sm font-semibold ring-1 ring-line has-[:checked]:bg-ink has-[:checked]:text-paper">
+                            <input type="checkbox" name="nights" value={n} defaultChecked={a ? a.nights.includes(n) : false} className="sr-only" />
+                            {nachtName(n)}
+                          </label>
+                        ))}
+                      </div>
+                      <p className="mt-1 text-xs text-ink-soft">Keine Nacht ausgewählt = keine Übernachtung.</p>
+                    </fieldset>
+                    <div className="grid grid-cols-2 gap-2">
+                      <div><label className="etikett" htmlFor={`an-${m.id}`}>Ankunft</label><input id={`an-${m.id}`} name="ankunft_tag" type="date" defaultValue={tagVon(a?.arrival_at ?? null)} className="feld" /></div>
+                      <div><label className="etikett" htmlFor={`anz-${m.id}`}>Uhrzeit</label><input id={`anz-${m.id}`} name="ankunft_zeit" type="time" defaultValue={uhrVon(a?.arrival_at ?? null)} className="feld" /></div>
+                    </div>
+                    <div className="grid grid-cols-2 gap-2">
+                      <div><label className="etikett" htmlFor={`ab-${m.id}`}>Abreise</label><input id={`ab-${m.id}`} name="abreise_tag" type="date" defaultValue={tagVon(a?.departure_at ?? null)} className="feld" /></div>
+                      <div><label className="etikett" htmlFor={`abz-${m.id}`}>Uhrzeit</label><input id={`abz-${m.id}`} name="abreise_zeit" type="time" defaultValue={uhrVon(a?.departure_at ?? null)} className="feld" /></div>
+                    </div>
+                    <div>
+                      <label className="etikett" htmlFor={`mit-${m.id}`}>Anreise mit</label>
+                      <select id={`mit-${m.id}`} name="arrival_by" defaultValue={a?.arrival_by ?? ""} className="feld">
+                        <option value="">bitte wählen</option><option value="bahn">Bahn</option><option value="auto">Auto</option><option value="flug">Flugzeug</option><option value="bus">Fernbus</option><option value="andere">anders</option>
+                      </select>
+                    </div>
+                    <div><label className="etikett" htmlFor={`wunsch-${m.id}`}>Zimmerwunsch (mit wem?)</label><input id={`wunsch-${m.id}`} name="room_wish" maxLength={300} defaultValue={a?.room_wish ?? ""} className="feld" /></div>
+                    <div className="sm:col-span-2"><label className="etikett" htmlFor={`hinweis-${m.id}`}>Hinweise fürs Team (z. B. Ernährung, Gesundheit)</label><textarea id={`hinweis-${m.id}`} name="notes" rows={2} maxLength={1000} defaultValue={a?.notes ?? ""} className="feld" /></div>
+                    <div className="sm:col-span-2"><button type="submit" className="knopf">Speichern</button></div>
+                  </form>
+                );
+              })}
+            </div>
+          </section>
+        )}
 
         <section id="hausaufgaben" className="mt-12">
           <h2 className="font-display mb-4 text-2xl font-bold">Hausaufgaben</h2>

@@ -34,6 +34,8 @@ CREATE TEMP TABLE t AS SELECT
   (SELECT id FROM public.assignments WHERE title = 'Fremd') AS fremd,
   (SELECT id FROM public.participants WHERE email = 'amina@example.test') AS amina;
 GRANT SELECT ON t TO authenticated;
+INSERT INTO storage.objects (bucket_id, name, metadata)
+SELECT 'abgaben', vorbei || '/' || amina || '/' || n || '-rede.mp4', jsonb_build_object('size', 1000 * n) FROM t, generate_series(1, 2) n;
 
 SELECT pg_temp.login('amina@example.test');
 SELECT pg_temp.ok('Link-Abgabe vor der Frist: pünktlich',
@@ -42,6 +44,12 @@ SELECT pg_temp.ok('Datei-Abgabe nach der Frist: verspätet',
   public.submit_own_assignment((SELECT vorbei FROM t), NULL, (SELECT vorbei || '/' || amina || '/1-rede.mp4' FROM t), 'rede.mp4', 1234) ->> 'status', 'verspaetet');
 SELECT pg_temp.ok('Neue Version mit gleichem Dateinamen',
   public.submit_own_assignment((SELECT vorbei FROM t), NULL, (SELECT vorbei || '/' || amina || '/2-rede.mp4' FROM t), 'rede.mp4', 2345) ->> 'result', 'saved');
+SELECT pg_temp.ok('Größe kommt aus dem Speicher, nicht vom Aufrufer',
+  (SELECT size_bytes::text FROM public.submissions WHERE storage_path LIKE '%/1-rede.mp4'), '1000');
+SELECT pg_temp.ok('Pfad ohne Datei im Speicher wird abgelehnt',
+  public.submit_own_assignment((SELECT vorbei FROM t), NULL, (SELECT vorbei || '/' || amina || '/9-gibtsnicht.mp4' FROM t), 'x.mp4', 1) ->> 'result', 'invalid_path');
+SELECT pg_temp.ok('Pfad mit Unterordner wird abgelehnt',
+  public.submit_own_assignment((SELECT vorbei FROM t), NULL, (SELECT vorbei || '/' || amina || '/1-a/../../x.mp4' FROM t), 'x.mp4', 1) ->> 'result', 'invalid_path');
 SELECT pg_temp.ok('Fremder Speicherpfad wird abgelehnt',
   public.submit_own_assignment((SELECT offen FROM t), NULL, (SELECT offen || '/' || gen_random_uuid() || '/x.mp4' FROM t), 'x.mp4', 1) ->> 'result', 'invalid_path');
 SELECT pg_temp.ok('Aufgabe eines anderen Jahrgangs: nicht gefunden',

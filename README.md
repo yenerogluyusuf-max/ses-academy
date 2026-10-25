@@ -23,6 +23,7 @@ Fünfsprachige Website der SES Academy, dazu Bewerbung, Teilnahme und Einlass (C
 | `/sorumlu/<link>/` | Sorumlu (geheimer Link, ohne Konto) | Die eigene Gruppe am aktuellen Modultag, wer fehlt, mit Anruf-Knopf. |
 | `/team/module/<id>/namensschilder/` | ab Orga-Team | Namensschilder zum Drucken: acht je A4-Seite mit Name, Region, Generation und QR-Code für den Einlass, vier leere für Walk-ins. |
 | `/feedback/<ticket-token>/<umfrage>/` | Teilnehmende (Link aus der Mail) | Feedback-Umfrage zum Modul; antworten kann nur, wer eingecheckt war. Das Team sieht auf der Modulseite nur zusammengefasste Ergebnisse. |
+| `/team/module/<id>/hotel/` | ab Orga-Team (Abfrage öffnen: Admin/Vorstand) | Übernachtung: Abfrage in „Mein Bereich“ (Nächte, Anreise, Zimmerwunsch, Hinweise), Hotel mit Kontingent, Preis und Stornofrist, Zimmer anlegen („101-110“), Zimmer zuteilen, Zimmerliste fürs Hotel zum Drucken. |
 | `/team/module/<id>/notfall/` | ab Orga-Team | Notfall-Liste zum Drucken: alle Angemeldeten mit Kurzcode und Kästchen je Tag, Leitung vor Ort. Am Vorabend legt `scripts/notfall-pdf.mts` sie automatisch als PDF ab. |
 | `/team/team/` | Admin | Team-Konten anlegen (mit Startpasswort), Rollen ändern, entfernen. |
 | `/team/passwort/` | alle Team-Rollen | Eigenes Passwort ändern. |
@@ -47,7 +48,7 @@ npm run dev
 ## Tests
 
 ```bash
-npm run test:db                # 144 Datenbanktests (Check-in; Hausaufgaben/Portal; Kennzahlen; Step 2; Eventtag; Feedback/Sorumlu; Abgabe), setzt die lokale DB zurück
+npm run test:db                # 163 Datenbanktests (Check-in; Hausaufgaben/Portal; Kennzahlen; Step 2; Eventtag; Feedback/Sorumlu; Abgabe; Übernachtung), setzt die lokale DB zurück
 npm run build && npx next start -p 3100 &
 supabase db reset && node scripts/e2e-phase1.mjs   # Ende-zu-Ende, headless
 supabase db reset && node scripts/e2e-phase2.mjs

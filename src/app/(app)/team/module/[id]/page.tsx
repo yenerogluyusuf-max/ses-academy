@@ -149,6 +149,7 @@ export default async function ModulDetail({ params, searchParams }: PageProps<"/
             )}
             <Link href={`/team/module/${m.id}/notfall/`} className="rounded-full bg-white px-5 py-3 font-semibold ring-1 ring-line">Notfall-Liste drucken</Link>
             <Link href={`/team/module/${m.id}/namensschilder/`} className="rounded-full bg-white px-5 py-3 font-semibold ring-1 ring-line">Namensschilder drucken</Link>
+            <Link href={`/team/module/${m.id}/hotel/`} className="rounded-full bg-white px-5 py-3 font-semibold ring-1 ring-line">Übernachtung und Hotel{m.stay_form_open ? " (Abfrage offen)" : ""}</Link>
           </div>
           {ohneTicket.length > 0 && (
             <details className="mt-4">

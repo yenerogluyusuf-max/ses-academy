@@ -21,6 +21,9 @@ export async function POST(request: NextRequest) {
   const { data: auth } = await supabase.auth.getUser();
   if (!auth.user) return weiterleiten("/mein-bereich/login/", 303);
 
+  // Größe vor dem Einlesen prüfen: formData() liest den ganzen Upload in den Speicher
+  const laenge = Number(request.headers.get("content-length") ?? NaN);
+  if (!Number.isFinite(laenge) || laenge > GRENZE + 1024 * 1024) return zurueck(request, "zu_gross");
   const form = await request.formData().catch(() => null);
   if (!form) return zurueck(request, "zu_gross");
   const aufgabe = String(form.get("assignment_id") ?? "");
