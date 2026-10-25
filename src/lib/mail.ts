@@ -48,8 +48,11 @@ async function senden(nachricht: SendMailOptions): Promise<Ergebnis> {
   }
 }
 
-/** Ticket-Mail mit QR-Code, Kurzcode, Modulen und Link zur Ticket-Seite. */
-export async function sendeTicketMail(participantId: string, ausgeloestVon?: string): Promise<Ergebnis> {
+/**
+ * Ticket-Mail mit QR-Code, Kurzcode, Modulen und Link zur Ticket-Seite.
+ * art "willkommen": „Dein SES-Konto ist bereit“ mit Hinweis auf „Mein Bereich“ und den Login per Code.
+ */
+export async function sendeTicketMail(participantId: string, ausgeloestVon?: string, art: "ticket" | "willkommen" = "ticket"): Promise<Ergebnis> {
   const daten = await ladeTicket({ participantId });
   const email = daten?.participant.email;
   if (!daten || !email) return { ok: false, fehler: "Keine E-Mail-Adresse hinterlegt." };
@@ -66,21 +69,25 @@ export async function sendeTicketMail(participantId: string, ausgeloestVon?: str
     return { text: `• ${m.titel}: ${datum}, ${ort} (${t.status[m.status]})`, html: `<li><strong>${html(m.titel)}</strong><br>${html(datum)} · ${html(ort)} · ${html(t.status[m.status])}</li>` };
   });
 
+  const willkommen = art === "willkommen";
+  const einleitung = willkommen ? t.mailWillkommenText : t.mailTicketText;
+  const login = seitenUrl("/mein-bereich/login/");
   const text = [
-    t.mailAnrede(p.first_name), "", t.mailTicketText, "", `${t.kurzcode}: ${code}`, `${t.mailTicketLink}: ${link}`, "",
+    t.mailAnrede(p.first_name), "", einleitung, "", `${t.kurzcode}: ${code}`, `${t.mailTicketLink}: ${link}`,
+    ...(willkommen ? [`${t.mailWillkommenLogin}: ${login}`] : []), "",
     t.moduleTitel + ":", ...modulZeilen.map((z) => z.text), "", t.mailAbmeldeHinweis, "", t.mailGruss,
   ].join("\n");
 
   const inhalt = `<!doctype html><html lang="${l}"><body style="margin:0;background:#f3efe4;font-family:Arial,Helvetica,sans-serif;color:#13201a">
 <div style="max-width:560px;margin:0 auto;padding:32px 20px">
   <p style="font-size:13px;letter-spacing:.08em;text-transform:uppercase;color:#3c4a42;margin:0 0 16px">SES Academy</p>
-  <p style="font-size:16px;line-height:1.6">${html(t.mailAnrede(p.first_name))}<br>${html(t.mailTicketText)}</p>
+  <p style="font-size:16px;line-height:1.6">${html(t.mailAnrede(p.first_name))}<br>${html(einleitung)}</p>
   <div style="background:#ffffff;border-radius:20px;padding:24px;text-align:center;margin:24px 0">
     <img src="cid:ticket-qr" width="240" height="240" alt="QR-Code" style="display:block;margin:0 auto">
     <p style="margin:16px 0 4px;font-size:13px;color:#3c4a42">${html(t.kurzcode)}</p>
     <p style="margin:0;font-family:Menlo,Consolas,monospace;font-size:26px;font-weight:bold;letter-spacing:.12em">${html(code)}</p>
   </div>
-  <p style="text-align:center;margin:0 0 28px"><a href="${html(link)}" style="display:inline-block;background:#13201a;color:#f3efe4;text-decoration:none;padding:14px 28px;border-radius:999px;font-weight:bold">${html(t.mailTicketLink)}</a></p>
+  <p style="text-align:center;margin:0 0 28px"><a href="${html(link)}" style="display:inline-block;background:#13201a;color:#f3efe4;text-decoration:none;padding:14px 28px;border-radius:999px;font-weight:bold">${html(t.mailTicketLink)}</a>${willkommen ? `<br><a href="${html(login)}" style="display:inline-block;margin-top:12px;color:#13201a;font-weight:bold">${html(t.mailWillkommenLogin)}</a>` : ""}</p>
   <p style="font-weight:bold;margin:0 0 8px">${html(t.moduleTitel)}</p>
   <ul style="padding-left:18px;line-height:1.6;margin:0 0 24px">${modulZeilen.map((z) => z.html).join("")}</ul>
   <p style="font-size:14px;line-height:1.6;color:#3c4a42">${html(t.mailAbmeldeHinweis)}</p>
@@ -89,12 +96,14 @@ export async function sendeTicketMail(participantId: string, ausgeloestVon?: str
 
   const ergebnis = await senden({
     to: email,
-    subject: t.mailTicketBetreff,
+    subject: willkommen ? t.mailWillkommenBetreff : t.mailTicketBetreff,
     text,
     html: inhalt,
     attachments: [{ filename: "ticket-qr.png", content: await qrPng(p.checkin_token), cid: "ticket-qr" }],
   });
-  await protokolliere({ participantId: p.id, art: "ticket", an: email, ergebnis, von: ausgeloestVon });
+  // Auch die Willkommensmail enthält das Ticket; sie zählt deshalb zusätzlich als Ticket-Versand
+  await protokolliere({ participantId: p.id, art: willkommen ? "willkommen" : "ticket", an: email, ergebnis, von: ausgeloestVon });
+  if (willkommen) await protokolliere({ participantId: p.id, art: "ticket", an: email, ergebnis, von: ausgeloestVon });
   return ergebnis;
 }
 

@@ -41,10 +41,23 @@ export const getStaff = cache(async (): Promise<Staff | null> => {
   return { userId: auth.user.id, email: auth.user.email ?? "", role: data.role, name: data.display_name, gueltigBis: data.valid_until };
 });
 
+/**
+ * Ist der zweite Faktor Pflicht (Admin-Einstellung) und hat diese Sitzung ihn noch nicht? Dann gelten in der Datenbank
+ * keine Teamrechte (current_staff_role), und die Seite schickt zur Einrichtung bzw. Eingabe des Codes.
+ */
+export const fehltZweiterFaktor = cache(async (): Promise<boolean> => {
+  const supabase = await createClient();
+  const { data: pflicht } = await supabase.rpc("mfa_required");
+  if (!pflicht) return false;
+  const { data } = await supabase.auth.mfa.getAuthenticatorAssuranceLevel();
+  return data?.currentLevel !== "aal2";
+});
+
 /** Für Seiten und Server Actions: ohne passende Rolle geht es zum Login bzw. zur Übersicht. */
 export async function requireStaff(recht: keyof typeof darf = "einlass"): Promise<Staff> {
   const staff = await getStaff();
   if (!staff) redirect("/team/login/");
+  if (await fehltZweiterFaktor()) redirect("/team/zweiter-faktor/");
   if (!darf[recht](staff.role)) redirect("/team/?fehler=rechte");
   return staff;
 }

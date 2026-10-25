@@ -5,7 +5,8 @@ import { z } from "zod";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
 
-// Login für Teilnehmende („Mein Bereich“): ohne Passwort, per Link oder 6-stelligem Code aus der E-Mail.
+// Ein Login für alle (Entscheidung 25.10.2026): ohne Passwort, per Link oder 6-stelligem Code aus der E-Mail.
+// Teilnehmende landen in „Mein Bereich“, Teamkonten im Team-Bereich (dort ggf. zusätzlich der zweite Faktor).
 
 export type PortalLogin = { schritt: "mail" | "code"; email?: string; fehler?: string };
 
@@ -14,12 +15,13 @@ export async function codeAnfordern(_: PortalLogin, formData: FormData): Promise
   if (!z.email().safeParse(email).success) return { schritt: "mail", fehler: "Bitte gib eine gültige E-Mail-Adresse ein." };
   // Nur hinterlegte Adressen bekommen eine Mail. Die Antwort ist immer gleich, damit niemand
   // herausfinden kann, welche Adressen im System stehen.
-  const { data } = await createAdminClient().from("participants").select("id").eq("email", email).eq("active", true).maybeSingle();
-  if (data) {
+  const { data: art } = await createAdminClient().rpc("login_allowed", { p_email: email });
+  if (art) {
     const supabase = await createClient();
     const { error } = await supabase.auth.signInWithOtp({
       email,
-      options: { shouldCreateUser: true, emailRedirectTo: `${process.env.NEXT_PUBLIC_SITE_URL}/auth/bestaetigen/` },
+      // Teilnehmende bekommen beim ersten Login ein Konto; Teamkonten gibt es schon
+      options: { shouldCreateUser: art === "participant", emailRedirectTo: `${process.env.NEXT_PUBLIC_SITE_URL}/auth/bestaetigen/` },
     });
     if (error?.status === 429) return { schritt: "mail", email, fehler: "Zu viele Versuche. Bitte warte eine Minute." };
     if (error) console.error("Portal-Login:", error.message);
@@ -35,7 +37,9 @@ export async function codePruefen(_: PortalLogin, formData: FormData): Promise<P
   const { error } = await supabase.auth.verifyOtp({ email, token, type: "email" });
   if (error) return { schritt: "code", email, fehler: "Der Code stimmt nicht oder ist abgelaufen." };
   await supabase.rpc("link_my_account");
-  redirect("/mein-bereich/");
+  const { data: auth } = await supabase.auth.getUser();
+  const { data: team } = await supabase.from("staff_members").select("role").eq("user_id", auth.user?.id ?? "").maybeSingle();
+  redirect(team ? "/team/" : "/mein-bereich/");
 }
 
 export async function portalWeiter(z: PortalLogin, formData: FormData): Promise<PortalLogin> {

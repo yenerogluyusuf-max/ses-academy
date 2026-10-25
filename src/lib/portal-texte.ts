@@ -24,6 +24,9 @@ export type PortalTexte = {
   mailTicketBetreff: string;
   mailAnrede: (name: string) => string;
   mailTicketText: string;
+  mailWillkommenBetreff: string;
+  mailWillkommenText: string;
+  mailWillkommenLogin: string;
   mailTicketLink: string;
   mailAbmeldeHinweis: string;
   mailBewerbungBetreff: string;
@@ -67,6 +70,9 @@ export const portalTexte: Record<Sprache, PortalTexte> = {
     mailTicketBetreff: "Dein Ticket für die SES Academy",
     mailAnrede: (n) => `Hallo ${n},`,
     mailTicketText: "deine Teilnahme an der SES Academy ist bestätigt. Mit diesem QR-Code checkst du an jedem Modultag ein:",
+    mailWillkommenBetreff: "Dein SES-Konto ist bereit",
+    mailWillkommenText: "dein Konto für die SES Academy ist bereit. In „Mein Bereich“ findest du dein Ticket, die Termine, deine Hausaufgaben und dein Profil. Anmelden kannst du dich ohne Passwort mit deiner E-Mail-Adresse und einem Code, den wir dir dann schicken. Mit diesem QR-Code checkst du an jedem Modultag ein:",
+    mailWillkommenLogin: "Zu „Mein Bereich“",
     mailTicketLink: "Ticket online öffnen",
     mailAbmeldeHinweis: "Falls du an einem Modul nicht teilnehmen kannst, melde dich bitte vorher über dein Ticket ab.",
     mailBewerbungBetreff: "Deine Bewerbung ist eingegangen",
@@ -108,6 +114,9 @@ export const portalTexte: Record<Sprache, PortalTexte> = {
     mailTicketBetreff: "SES Academy biletin",
     mailAnrede: (n) => `Merhaba ${n},`,
     mailTicketText: "SES Academy'ye katılımın onaylandı. Her modül günü girişte bu QR kodu ile giriş yaparsın:",
+    mailWillkommenBetreff: "SES hesabın hazır",
+    mailWillkommenText: "SES Academy hesabın hazır. „Mein Bereich“ sayfasında biletini, tarihleri, ödevlerini ve profilini bulursun. Şifresiz giriş yaparsın: e-posta adresini yaz, sana bir kod gönderiyoruz. Her modül günü girişte bu QR kodu ile giriş yaparsın:",
+    mailWillkommenLogin: "„Mein Bereich“e git",
     mailTicketLink: "Bileti çevrimiçi aç",
     mailAbmeldeHinweis: "Bir modüle katılamayacaksan lütfen önceden biletin üzerinden kaydını iptal et.",
     mailBewerbungBetreff: "Başvurun bize ulaştı",
@@ -149,6 +158,9 @@ export const portalTexte: Record<Sprache, PortalTexte> = {
     mailTicketBetreff: "Your ticket for the SES Academy",
     mailAnrede: (n) => `Hello ${n},`,
     mailTicketText: "your participation in the SES Academy is confirmed. Use this QR code to check in on every module day:",
+    mailWillkommenBetreff: "Your SES account is ready",
+    mailWillkommenText: "your SES Academy account is ready. In “Mein Bereich” you will find your ticket, the dates, your assignments and your profile. You sign in without a password: enter your email address and we send you a code. Use this QR code to check in on every module day:",
+    mailWillkommenLogin: "Go to “Mein Bereich”",
     mailTicketLink: "Open ticket online",
     mailAbmeldeHinweis: "If you can’t attend a module, please cancel in advance via your ticket.",
     mailBewerbungBetreff: "We have received your application",
@@ -190,6 +202,9 @@ export const portalTexte: Record<Sprache, PortalTexte> = {
     mailTicketBetreff: "Ton billet pour la SES Academy",
     mailAnrede: (n) => `Bonjour ${n},`,
     mailTicketText: "ta participation à la SES Academy est confirmée. Avec ce QR code, tu t’enregistres à chaque journée de module :",
+    mailWillkommenBetreff: "Ton compte SES est prêt",
+    mailWillkommenText: "ton compte SES Academy est prêt. Dans « Mein Bereich », tu trouves ton billet, les dates, tes devoirs et ton profil. Tu te connectes sans mot de passe : saisis ton adresse e-mail et nous t’envoyons un code. Avec ce QR code, tu t’enregistres à chaque journée de module :",
+    mailWillkommenLogin: "Vers « Mein Bereich »",
     mailTicketLink: "Ouvrir le billet en ligne",
     mailAbmeldeHinweis: "Si tu ne peux pas participer à un module, désinscris-toi à l’avance via ton billet.",
     mailBewerbungBetreff: "Nous avons bien reçu ta candidature",
@@ -231,6 +246,9 @@ export const portalTexte: Record<Sprache, PortalTexte> = {
     mailTicketBetreff: "Je ticket voor de SES Academy",
     mailAnrede: (n) => `Hoi ${n},`,
     mailTicketText: "je deelname aan de SES Academy is bevestigd. Met deze QR-code check je op elke moduledag in:",
+    mailWillkommenBetreff: "Je SES-account is klaar",
+    mailWillkommenText: "je account voor de SES Academy is klaar. In „Mein Bereich” vind je je ticket, de data, je opdrachten en je profiel. Inloggen gaat zonder wachtwoord: vul je e-mailadres in en we sturen je een code. Met deze QR-code check je op elke moduledag in:",
+    mailWillkommenLogin: "Naar „Mein Bereich”",
     mailTicketLink: "Ticket online openen",
     mailAbmeldeHinweis: "Kun je niet bij een module zijn? Meld je dan vooraf af via je ticket.",
     mailBewerbungBetreff: "We hebben je aanmelding ontvangen",

@@ -5,6 +5,7 @@ import { redirect } from "next/navigation";
 import { z } from "zod";
 import { requireStaff } from "@/lib/auth";
 import { sendeTicketMail } from "@/lib/mail";
+import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
 
 const leer = (v: FormDataEntryValue | null) => String(v ?? "").trim() || null;
@@ -120,4 +121,31 @@ export async function anwesenheitSetzen(formData: FormData) {
   revalidatePath(`/team/teilnehmende/${participant}/`);
   if (error || !["checked_in", "already_checked_in", "undone"].includes(ergebnis ?? ""))
     redirect(`/team/teilnehmende/${participant}/?fehler=${encodeURIComponent(error?.message ?? `Nicht gespeichert (${ergebnis}).`)}`);
+}
+
+/**
+ * Willkommensmail „Dein SES-Konto ist bereit“ (mit Ticket und Login-Hinweis) an alle Teilnehmenden mit E-Mail-Adresse,
+ * die sich noch nie angemeldet und noch keine Willkommensmail bekommen haben.
+ */
+export async function willkommenAnAlle() {
+  const staff = await requireStaff("alles");
+  const db = createAdminClient();
+  const [{ data: personen }, { data: schon }] = await Promise.all([
+    db.from("participants").select("id").eq("affiliation_status", "academy_student").eq("active", true).not("email", "is", null).is("user_id", null),
+    db.from("email_log").select("participant_id").eq("kind", "willkommen").eq("status", "sent"),
+  ]);
+  const fertig = new Set((schon ?? []).map((z) => z.participant_id));
+  const offen = (personen ?? []).filter((p) => !fertig.has(p.id));
+  let gesendet = 0;
+  let fehler = 0;
+  const warteschlange = offen.map((p) => p.id);
+  async function arbeiter() {
+    for (let id = warteschlange.shift(); id; id = warteschlange.shift()) {
+      if ((await sendeTicketMail(id, staff.userId, "willkommen")).ok) gesendet++;
+      else fehler++;
+    }
+  }
+  await Promise.all(Array.from({ length: 3 }, arbeiter));
+  revalidatePath("/team/teilnehmende/");
+  redirect(`/team/teilnehmende/?hinweis=${encodeURIComponent(`Willkommensmail an ${gesendet} verschickt${fehler ? `, ${fehler} fehlgeschlagen` : ""}.`)}`);
 }

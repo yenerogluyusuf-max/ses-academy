@@ -117,3 +117,16 @@ export async function passwortAendern(_vorher: PasswortZustand, formData: FormDa
   const { error } = await supabase.auth.updateUser({ password: neu });
   return error ? { meldung: "Das hat nicht geklappt. Ist das neue Passwort gleich dem alten?", ok: false } : { meldung: "Passwort geändert.", ok: true };
 }
+
+/** Zweiten Faktor eines Teammitglieds löschen (z. B. Handy verloren). Beim nächsten Login wird neu eingerichtet. */
+export async function faktorZuruecksetzen(formData: FormData) {
+  const staff = await requireStaff("admin");
+  const userId = String(formData.get("user_id"));
+  if (userId === staff.userId) zurueck("selbst");
+  const admin = createAdminClient();
+  const { data } = await admin.auth.admin.mfa.listFactors({ userId });
+  for (const f of data?.factors ?? []) await admin.auth.admin.mfa.deleteFactor({ userId, id: f.id });
+  // laufende Sitzungen beenden, damit niemand mit dem alten Handy weiterarbeitet
+  await admin.auth.admin.signOut(userId, "global").catch(() => {});
+  zurueck("faktor-zurueckgesetzt");
+}

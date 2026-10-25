@@ -3,7 +3,7 @@ import Link from "next/link";
 import { TeamKopf } from "@/components/team/TeamKopf";
 import { Leer, Rueckmeldung, Titel } from "@/components/team/Ui";
 import { requireStaff } from "@/lib/auth";
-import { mentorSpeichern } from "@/lib/aktionen/teilnehmende";
+import { mentorSpeichern, willkommenAnAlle } from "@/lib/aktionen/teilnehmende";
 import { faltName } from "@/lib/import/namen";
 import { createClient } from "@/lib/supabase/server";
 import { jetztMs } from "@/lib/zeit";
@@ -34,6 +34,13 @@ export default async function Teilnehmende({ searchParams }: PageProps<"/team/te
     supabase.from("modules").select("id,slug,title,module_days(id,starts_at,ends_at)").eq("cohort_id", jahrgang?.id ?? "").neq("status", "draft"),
     supabase.from("assignments").select("id,number").eq("cohort_id", jahrgang?.id ?? "").order("number"),
   ]);
+  // noch nie angemeldet und noch ohne Willkommensmail
+  const [{ data: ohneKonto }, { data: begruesst }] = await Promise.all([
+    supabase.from("participants").select("id").eq("affiliation_status", "academy_student").eq("active", true).not("email", "is", null).is("user_id", null),
+    supabase.from("email_log").select("participant_id").eq("kind", "willkommen").eq("status", "sent"),
+  ]);
+  const schonBegruesst = new Set((begruesst ?? []).map((z) => z.participant_id));
+  const ohneLogin = (ohneKonto ?? []).filter((p) => !schonBegruesst.has(p.id)).length;
   const modulListe = (module ?? [])
     .map((m) => ({ ...m, tage: [...m.module_days].sort((a, b) => a.starts_at.localeCompare(b.starts_at)) }))
     .filter((m) => m.tage.length)
@@ -59,6 +66,12 @@ export default async function Teilnehmende({ searchParams }: PageProps<"/team/te
       <main className="mx-auto max-w-7xl px-4 py-10">
         <Titel kicker={`${jahrgang?.name ?? "Kein aktueller Jahrgang"} · ${liste.length} von ${alle.length}`}>Teilnehmende</Titel>
         <Rueckmeldung hinweis={sp.hinweis} fehler={sp.fehler} />
+        {ohneLogin > 0 && (
+          <form action={willkommenAnAlle} className="mb-6 flex flex-wrap items-center gap-3 rounded-2xl bg-white/70 p-4 ring-1 ring-line">
+            <p className="mr-auto text-sm">{ohneLogin} Teilnehmende mit E-Mail haben sich noch nie angemeldet und noch keine Willkommensmail bekommen. Sie enthält Ticket und Anleitung zum Login.</p>
+            <button type="submit" className="knopf">Willkommensmail senden</button>
+          </form>
+        )}
         <div className="mb-6 flex gap-2">
           <Link href="?" className={`rounded-full px-4 py-1.5 text-sm font-semibold ${s("ansicht") !== "verantwortliche" ? "bg-ink text-paper" : "bg-weiss ring-1 ring-line"}`}>Liste</Link>
           <Link href="?ansicht=verantwortliche" className={`rounded-full px-4 py-1.5 text-sm font-semibold ${s("ansicht") === "verantwortliche" ? "bg-ink text-paper" : "bg-weiss ring-1 ring-line"}`}>Verantwortliche ({mentoren?.length ?? 0})</Link>

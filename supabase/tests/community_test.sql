@@ -57,8 +57,14 @@ SELECT id, 'team', 'PR' FROM public.participants WHERE email = 'yusuf@example.te
 SELECT pg_temp.ok('Abzeichen Team mit Kommission',
   (SELECT public.membership_badge(m) FROM public.memberships m WHERE role = 'team'), 'Team · PR');
 
--- 3) Profil ändern
+-- Abzeichen-Funktion mit ausgedachter Zeile verrät keine Titel unveröffentlichter Module
+RESET ROLE;
+INSERT INTO public.modules (slug, title, status) VALUES ('geheim-entwurf', 'Geheimer Entwurf', 'draft');
 SELECT pg_temp.login('amina@example.test');
+SELECT pg_temp.ok('Entwurfstitel nicht über membership_badge',
+  public.membership_badge(ROW(gen_random_uuid(), gen_random_uuid(), NULL, 'referent', NULL, (SELECT id FROM public.modules WHERE slug = 'geheim-entwurf'), current_date, NULL, now())::public.memberships), 'Referent');
+
+-- 3) Profil ändern
 SELECT pg_temp.ok('Amina ändert Telefon und Sprache', public.update_my_profile('+49 170 5555555', 'tr', false, true), 'saved');
 SELECT pg_temp.ok('Gespeichert, Einwilligung mit Zeitpunkt',
   (SELECT phone || ' ' || preferred_language || ' ' || (photo_consent_at IS NOT NULL) FROM public.participants), '+49 170 5555555 tr true');

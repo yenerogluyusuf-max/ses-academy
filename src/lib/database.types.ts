@@ -623,6 +623,20 @@ isOneToOne: false
       referencedColumns: ["id"]
     }
                   ]
+                },"settings": {
+                  Row: {
+                    "key": string,"updated_at": string,"updated_by": string | null,"value": NonNullable<Json>
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "key": string,"updated_at"?: string,"updated_by"?: string | null,"value": NonNullable<Json>
+                  }
+                  Update: {
+                    "key"?: string,"updated_at"?: string,"updated_by"?: string | null,"value"?: NonNullable<Json>
+                  }
+                  Relationships: [
+                    
+                  ]
                 },"staff_members": {
                   Row: {
                     "created_at": string,"display_name": string,"label": string | null,"role": Database["public"]['Enums']["staff_role"],"user_id": string,"valid_from": string | null,"valid_until": string | null
@@ -818,8 +832,14 @@ isOneToOne: false
 "link_my_account":
 { Args: Record<PropertyKey, never>; Returns: string
                            },
+"login_allowed":
+{ Args: { "p_email": string }; Returns: string
+                           },
 "membership_badge":
 { Args: { "m": Omit<Database["public"]['Tables']["memberships"]['Row'], Database["public"]['Tables']["memberships"]['ComputedFields']> }; Returns: string
+                           },
+"mfa_required":
+{ Args: Record<PropertyKey, never>; Returns: boolean
                            },
 "my_participant_id":
 { Args: Record<PropertyKey, never>; Returns: string

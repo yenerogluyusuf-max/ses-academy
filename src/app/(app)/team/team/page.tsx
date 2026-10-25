@@ -1,7 +1,9 @@
 import type { Metadata } from "next";
+import Link from "next/link";
 import { Hinweis } from "@/components/team/Hinweis";
 import { TeamKopf } from "@/components/team/TeamKopf";
-import { mitgliedAnlegen, mitgliedEntfernen, rolleAendern, zugangZeitraum } from "@/lib/aktionen/teamverwaltung";
+import { zweiterFaktorPflicht } from "@/lib/aktionen/team";
+import { faktorZuruecksetzen, mitgliedAnlegen, mitgliedEntfernen, rolleAendern, zugangZeitraum } from "@/lib/aktionen/teamverwaltung";
 import { requireStaff, rollenName } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 import { jetztMs } from "@/lib/zeit";
@@ -17,6 +19,10 @@ const hinweise = {
   "letzter-admin": { text: "Du bist der letzte Admin. Mach zuerst jemand anderen zum Admin.", gut: false },
   selbst: { text: "Das eigene Konto kann man nicht entfernen.", gut: false },
   "modul-ohne-termin": { text: "Das Modul hat noch keine Termine.", gut: false },
+  "faktor-an": { text: "Zweiter Faktor ist jetzt Pflicht. Alle Teamkonten richten ihn bei der nächsten Anmeldung ein.", gut: true },
+  "faktor-aus": { text: "Zweiter Faktor ist keine Pflicht mehr.", gut: true },
+  "erst-selbst": { text: "Bitte zuerst selbst den zweiten Faktor einrichten und damit anmelden (unten „Für mich einrichten“).", gut: false },
+  "faktor-zurueckgesetzt": { text: "Zweiter Faktor zurückgesetzt und alle Sitzungen beendet.", gut: true },
   fehler: { text: "Das hat nicht geklappt.", gut: false },
 };
 
@@ -45,6 +51,7 @@ export default async function TeamVerwaltung({ searchParams }: PageProps<"/team/
     </select>
   );
   const jetzt = jetztMs();
+  const [{ data: pflicht }, { data: aal }] = await Promise.all([supabase.rpc("mfa_required"), supabase.auth.mfa.getAuthenticatorAssuranceLevel()]);
   const feld = "rounded-2xl bg-white px-4 py-3 ring-1 ring-line";
   const rollenAuswahl = (name: string, wert?: string) => (
     <select name={name} defaultValue={wert ?? "checkin_helper"} className={feld}>
@@ -87,6 +94,12 @@ export default async function TeamVerwaltung({ searchParams }: PageProps<"/team/
                 <button type="submit" className="rounded-full bg-white px-4 py-2 text-sm font-semibold ring-1 ring-line">Speichern</button>
               </form>
               {m.user_id !== staff.userId && (
+                <form action={faktorZuruecksetzen}>
+                  <input type="hidden" name="user_id" value={m.user_id} />
+                  <button type="submit" className="text-sm font-semibold text-ink-soft underline">2. Faktor zurücksetzen</button>
+                </form>
+              )}
+              {m.user_id !== staff.userId && (
                 <form action={mitgliedEntfernen}>
                   <input type="hidden" name="user_id" value={m.user_id} />
                   <button type="submit" className="text-sm font-semibold text-red-900 underline">entfernen</button>
@@ -95,6 +108,20 @@ export default async function TeamVerwaltung({ searchParams }: PageProps<"/team/
             </li>
           ))}
         </ul>
+        <section className="mt-8 rounded-3xl bg-white/60 p-6 ring-1 ring-line">
+          <h2 className="font-display text-xl font-bold">Zweiter Faktor</h2>
+          <p className="mt-1 text-sm text-ink-soft">
+            {pflicht ? "Pflicht für alle Teamkonten: Teamrechte gelten nur nach Eingabe des Codes aus der Authenticator-App." : "Noch keine Pflicht. Einschalten, sobald alle Admins ihn eingerichtet haben."}
+            {" "}Du selbst: {aal?.currentLevel === "aal2" ? "mit zweitem Faktor angemeldet." : "ohne zweiten Faktor angemeldet."}
+          </p>
+          <div className="mt-3 flex flex-wrap gap-2">
+            {aal?.currentLevel !== "aal2" && <Link href="/team/zweiter-faktor/" className="rounded-full bg-white px-5 py-2.5 font-semibold ring-1 ring-line">Für mich einrichten</Link>}
+            <form action={zweiterFaktorPflicht}>
+              <input type="hidden" name="an" value={pflicht ? "0" : "1"} />
+              <button type="submit" className={`rounded-full px-5 py-2.5 font-semibold ${pflicht ? "bg-white ring-1 ring-line" : "bg-ink text-paper"}`}>{pflicht ? "Pflicht ausschalten" : "Pflicht einschalten"}</button>
+            </form>
+          </div>
+        </section>
         <section className="mt-8 rounded-3xl bg-white/60 p-6 ring-1 ring-line">
           <h2 className="font-display text-xl font-bold">Konto anlegen</h2>
           <form action={mitgliedAnlegen} className="mt-4 grid gap-3 sm:grid-cols-2">

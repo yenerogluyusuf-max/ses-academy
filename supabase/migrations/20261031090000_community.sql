@@ -72,7 +72,9 @@ CREATE TRIGGER participants_membership AFTER INSERT OR UPDATE OF cohort_id, affi
   FOR EACH ROW EXECUTE FUNCTION public.participants_membership();
 
 -- Abzeichen als Text, z. B. „SES · 1. Generation“, „Team · PR“, „Referent · Demokratie in Europa“
--- SECURITY DEFINER: Teilnehmende dürfen cohorts/modules nicht lesen, der Name gehört aber ins eigene Abzeichen
+-- SECURITY DEFINER: Teilnehmende dürfen cohorts/modules nicht lesen, der Name gehört aber ins eigene Abzeichen.
+-- Da die Funktion mit beliebigen Werten aufrufbar ist, gibt sie Modultitel nur für veröffentlichte Module heraus
+-- (stehen ohnehin auf der Website) oder dem Team; Generationsnamen sind nicht vertraulich.
 CREATE FUNCTION public.membership_badge(m public.memberships)
 RETURNS text LANGUAGE sql STABLE SECURITY DEFINER SET search_path = '' AS $$
   SELECT CASE m.role
@@ -80,8 +82,10 @@ RETURNS text LANGUAGE sql STABLE SECURITY DEFINER SET search_path = '' AS $$
     WHEN 'alumni'       THEN 'Alumni · ' || coalesce((SELECT name FROM public.cohorts WHERE id = m.cohort_id), 'SES')
     WHEN 'sorumlu'      THEN 'Sorumlu · ' || coalesce((SELECT name FROM public.cohorts WHERE id = m.cohort_id), 'SES')
     WHEN 'team'         THEN 'Team' || coalesce(' · ' || m.commission, '')
-    WHEN 'helfer'       THEN 'Helfer' || coalesce(' · ' || (SELECT title FROM public.modules WHERE id = m.module_id), '')
-    WHEN 'referent'     THEN 'Referent' || coalesce(' · ' || (SELECT title FROM public.modules WHERE id = m.module_id), '')
+    WHEN 'helfer'       THEN 'Helfer' || coalesce(' · ' || (SELECT title FROM public.modules WHERE id = m.module_id
+                                                                AND (status = 'published' OR public.has_orga_access())), '')
+    WHEN 'referent'     THEN 'Referent' || coalesce(' · ' || (SELECT title FROM public.modules WHERE id = m.module_id
+                                                                AND (status = 'published' OR public.has_orga_access())), '')
   END
 $$;
 

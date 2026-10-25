@@ -14,7 +14,7 @@ Fünfsprachige Website der SES Academy, dazu Bewerbung, Teilnahme und Einlass (C
 | `/team/regieplan/` | alle Team-Rollen (pflegen ab Orga-Team) | Programm eines Modultags: was läuft, was als Nächstes kommt, Status, Verzögerung um 10/15/30 Minuten für alle folgenden Punkte. Aktualisiert sich alle 30 Sekunden. |
 | `/team/rollenplan/` | ab Orga-Team | Wer an welchem Tag welche Aufgabe hat, mit Telefon und Anruf-Knopf; Leitung vor Ort oben; Einsätze vom Vortag übernehmen. |
 | `/team/bewerbungen/` | Admin, Vorstand | Bewerbungen annehmen (meldet für alle Module an und schickt das Ticket), ablehnen, Warteliste, Ticket erneut senden. |
-| `/team/teilnehmende/` | Admin, Vorstand | Teilnehmende mit Region, GT/KGT, Verantwortlichen; Anwesenheit je Modul und Tag (nachtragen/zurücknehmen), QR-Code per Mail, Stimmen-Beiträge verknüpfen. Ansicht „Verantwortliche“ (Sorumlu) mit E-Mail. |
+| `/team/teilnehmende/` | Admin, Vorstand | Willkommensmail („Dein SES-Konto ist bereit“, mit Ticket und Login-Anleitung, fünf Sprachen) an alle, die sich noch nie angemeldet haben. Teilnehmende mit Region, GT/KGT, Verantwortlichen; Anwesenheit je Modul und Tag (nachtragen/zurücknehmen), QR-Code per Mail, Stimmen-Beiträge verknüpfen. Ansicht „Verantwortliche“ (Sorumlu) mit E-Mail. |
 | `/team/hausaufgaben/` | ab Orga-Team | Hausaufgaben, wer abgegeben hat und wer nicht, Bewertung nach dem Rhetorik-Bogen (9 Kriterien × 1–5 Punkte, Feedback), Gruppenvideos. Namen ohne Kontaktdaten. |
 | `/team/import/` | Admin, Vorstand | Excel/CSV einlesen: Teilnehmerliste, Hausaufgabenliste, Bewertungsbogen, E-Mail-Adressen (z. B. Google-Formular). Immer erst Vorschau, dann übernehmen. |
 | `/mein-bereich/` | Teilnehmende (Login per E-Mail-Code) | Profil mit Abzeichen (Generation, Team, Referent …), Telefon, Sprache, Foto, Kontaktfreigabe, Foto-Einwilligung, E-Mail ändern (Bestätigung über alte und neue Adresse). Eigener QR-Code, kommende Module, Anwesenheit, Hausaufgaben selbst abgeben (Datei bis 100 MB oder Link, mit Bestätigungsmail), eigene Beiträge. Bewertungen bleiben intern (Entscheidung 25.10.2026): angezeigt wird nur, ob die Abgabe eingegangen ist. |
@@ -28,6 +28,8 @@ Fünfsprachige Website der SES Academy, dazu Bewerbung, Teilnahme und Einlass (C
 | `/team/team/` | Admin | Team-Konten anlegen (mit Startpasswort), Rollen ändern, entfernen. Zugang auf ein Modul begrenzen („nur Demokratie in Europa“): gilt vom Einlassbeginn am ersten bis 6 Stunden nach dem letzten Tag, danach automatisch gesperrt. |
 | `/mein-bereich/verzeichnis/` | Mitglieder und Team ab Orga | Mitgliederverzeichnis mit Foto, Region, Abzeichen; E-Mail/Telefon nur mit Freigabe der Person (Team ab Vorstand immer). |
 | `/team/passwort/` | alle Team-Rollen | Eigenes Passwort ändern. |
+| `/mein-bereich/login/` | alle | Ein Login für alle per E-Mail-Code: Teilnehmende landen in „Mein Bereich“, Teamkonten im Team-Bereich. Der Passwort-Login unter `/team/login/` bleibt vorerst. |
+| `/team/zweiter-faktor/` | Team | Authenticator-App einrichten bzw. Code eingeben. Ist die Pflicht eingeschaltet (`/team/team/`, nur Admin mit eigenem zweiten Faktor), gelten Teamrechte in der Datenbank nur mit zweitem Faktor. Handy verloren: Admin setzt den Faktor zurück. |
 
 Rollen: `admin`, `vorstand` (alles), `orga_team` (Einlass mit Liste), `checkin_helper` (nur Scanner und Kurzcode, keine Kontaktdaten).
 
@@ -49,7 +51,7 @@ npm run dev
 ## Tests
 
 ```bash
-npm run test:db                # 184 Datenbanktests (Check-in; Hausaufgaben/Portal; Kennzahlen; Step 2; Eventtag; Feedback/Sorumlu; Abgabe; Übernachtung; Community), setzt die lokale DB zurück
+npm run test:db                # 197 Datenbanktests (Check-in; Hausaufgaben/Portal; Kennzahlen; Step 2; Eventtag; Feedback/Sorumlu; Abgabe; Übernachtung; Community; zweiter Faktor), setzt die lokale DB zurück
 npm run build && npx next start -p 3100 &
 supabase db reset && node scripts/e2e-phase1.mjs   # Ende-zu-Ende, headless
 supabase db reset && node scripts/e2e-phase2.mjs
