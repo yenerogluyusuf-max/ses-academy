@@ -49,7 +49,7 @@ export default async function Gruppen({ searchParams }: PageProps<"/team/gruppen
 
   return (
     <>
-      <TeamKopf staff={staff} aktiv="regieplan" />
+      <TeamKopf staff={staff} aktiv="gruppen" />
       <AutoAktualisieren />
       <main className="mx-auto max-w-3xl px-4 py-6">
         <h1 className="font-display text-3xl font-bold">Gruppen · fehlt noch</h1>

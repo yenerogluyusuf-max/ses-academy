@@ -133,10 +133,17 @@ a:hover .pfeil-extern, button:hover .pfeil-extern { transform: translate(2px, -2
   --color-gruen-hell: #e2f4ea;
 }
 
+/* Team-Bereich: Inhalt neben der festen Seitenleiste (Computer), Platz für die Tab-Leiste unten (Handy) */
+body:has(.team-leiste) { padding-bottom: calc(4.5rem + env(safe-area-inset-bottom)); }
+@media (min-width: 1024px) {
+  body:has(.team-leiste) { padding-left: 16rem; padding-bottom: 0; }
+}
+body:has(.team-leiste)::before { opacity: 0.18; }
+
 @layer components {
-  .karte { @apply rounded-3xl bg-weiss p-6 ring-1 ring-line; }
-  .knopf { @apply inline-flex items-center justify-center gap-2 rounded-full bg-ink px-5 py-2.5 text-sm font-semibold text-paper transition hover:bg-forest disabled:opacity-50; }
-  .knopf-hell { @apply inline-flex items-center justify-center gap-2 rounded-full bg-weiss px-5 py-2.5 text-sm font-semibold ring-1 ring-line transition hover:bg-paper-deep disabled:opacity-50; }
+  .karte { @apply rounded-3xl bg-weiss p-6 shadow-[0_1px_2px_rgb(19_32_26/0.04),0_8px_24px_-12px_rgb(19_32_26/0.12)] ring-1 ring-ink/[0.06]; }
+  .knopf { @apply inline-flex items-center justify-center gap-2 rounded-full bg-ink px-5 py-2.5 text-sm font-semibold text-paper shadow-sm transition hover:bg-forest focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink disabled:opacity-50; }
+  .knopf-hell { @apply inline-flex items-center justify-center gap-2 rounded-full bg-weiss px-5 py-2.5 text-sm font-semibold ring-1 ring-ink/10 transition hover:bg-paper-deep hover:ring-ink/20 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink disabled:opacity-50; }
   .feld { @apply w-full rounded-xl border border-line bg-weiss px-3.5 py-2.5 text-[15px] outline-none focus:border-ink focus:ring-2 focus:ring-signal; }
   .etikett { @apply mb-1.5 block text-sm font-semibold; }
   .tabelle { @apply w-full border-collapse text-sm; }

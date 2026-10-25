@@ -41,7 +41,7 @@ export default async function Rollenplan({ searchParams }: PageProps<"/team/roll
 
   return (
     <>
-      <TeamKopf staff={staff} aktiv="regieplan" />
+      <TeamKopf staff={staff} aktiv="rollenplan" />
       <main className="mx-auto max-w-3xl px-4 py-6">
         <h1 className="font-display text-3xl font-bold">Rollenplan</h1>
         <Hinweis code={code} texte={hinweise} />

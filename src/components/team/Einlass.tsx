@@ -174,7 +174,7 @@ export function Einlass({ tagId, modulTitel, ticketNoetig, zaehler: start, offli
   });
 
   return (
-    <div className="grid gap-6">
+    <div className="grid grid-cols-[minmax(0,1fr)] gap-6">
       {(!online || offen > 0 || syncMeldung) && (
         <section role="status" className={`rounded-3xl p-4 ring-1 ${online ? "bg-white/80 ring-line" : "bg-amber-100 text-amber-950 ring-amber-500"}`}>
           {!online && <p className="font-semibold">Offline: Scans werden auf diesem Gerät geprüft und vorgemerkt.</p>}

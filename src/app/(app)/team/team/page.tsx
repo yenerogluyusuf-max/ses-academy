@@ -95,13 +95,13 @@ export default async function TeamVerwaltung({ searchParams }: PageProps<"/team/
                 )}
               </p>
               {m.user_id !== staff.userId && (
-                <form action={zugangZeitraum} className="flex gap-2">
+                <form action={zugangZeitraum} className="flex flex-wrap gap-2">
                   <input type="hidden" name="user_id" value={m.user_id} />
                   {modulAuswahl("modul")}
                   <button type="submit" className="rounded-full bg-white px-4 py-2 text-sm font-semibold ring-1 ring-line">Zeitraum</button>
                 </form>
               )}
-              <form action={rolleAendern} className="flex gap-2">
+              <form action={rolleAendern} className="flex flex-wrap gap-2">
                 <input type="hidden" name="user_id" value={m.user_id} />
                 {rollenAuswahl("rolle", m.role)}
                 <button type="submit" className="rounded-full bg-white px-4 py-2 text-sm font-semibold ring-1 ring-line">Speichern</button>
