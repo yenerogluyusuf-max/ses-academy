@@ -6,6 +6,8 @@ import { TeamKopf } from "@/components/team/TeamKopf";
 import { einladungEntfernen, gaesteblattSpeichern, referentAnlegen, referentEinladen } from "@/lib/aktionen/modulwerkzeuge";
 import { requireStaff } from "@/lib/auth";
 import { istToken } from "@/lib/codes";
+import { seitenUrl } from "@/lib/mail";
+import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
 
 export const metadata: Metadata = { title: "Referenten | SES Academy" };
@@ -40,6 +42,9 @@ export default async function Referenten({ params, searchParams }: PageProps<"/t
   ]);
   if (!modul) notFound();
   const liste = einladungen ?? [];
+  // Gast-Links sind für Teamkonten nicht lesbar; nach der Rollenprüfung oben liest der Server sie
+  const { data: links } = await createAdminClient().from("module_speakers").select("id, access_token").eq("module_id", id);
+  const linkVon = new Map((links ?? []).map((l) => [l.id, seitenUrl(`/gast/${l.access_token}/`)]));
   const zaehlung = Object.keys(statusName).map((s) => ({ s, n: liste.filter((e) => e.status === s).length })).filter((z) => z.n > 0);
   const offen = liste.filter((e) => (e.status === "zugesagt" || e.status === "bestaetigt") && (!e.slides_received || !e.bio_received || !e.arrival_at));
 
@@ -86,6 +91,14 @@ export default async function Referenten({ params, searchParams }: PageProps<"/t
                 <label className="flex items-center gap-2 text-sm font-semibold"><input type="checkbox" name="bio_received" defaultChecked={e.bio_received} /> Kurzprofil und Foto erhalten</label>
                 <div className="sm:col-span-2"><label className="etikett" htmlFor={`no-${e.id}`}>Notizen</label><input id={`no-${e.id}`} name="notes" defaultValue={e.notes} className="feld" /></div>
                 <p className="text-sm text-ink-soft sm:col-span-4">{[e.speaker.email, e.speaker.phone].filter(Boolean).join(" · ")}</p>
+                {(e.status === "zugesagt" || e.status === "bestaetigt") && (
+                  <p className="text-sm sm:col-span-4">
+                    <span className="font-semibold">Link für den Gast</span> (Ablauf, Anreise, Hotel; Folien, Foto und Kurzprofil hochladen):{" "}
+                    <span className="break-all font-mono text-xs">{linkVon.get(e.id)}</span>
+                    {e.slides_path && <> · <a href={`/team/referenten/${e.id}/datei/?art=folien`} target="_blank" rel="noopener" className="link">Folien</a></>}
+                    {e.photo_path && <> · <a href={`/team/referenten/${e.id}/datei/?art=foto`} target="_blank" rel="noopener" className="link">Foto</a></>}
+                  </p>
+                )}
                 <div className="flex flex-wrap gap-2 sm:col-span-4">
                   <button type="submit" className="knopf">Speichern</button>
                 </div>

@@ -108,6 +108,9 @@ EXCEPTION WHEN insufficient_privilege THEN RAISE NOTICE 'ok  Befristung aufheben
 END $$;
 SELECT public.create_approval('team_zugang', jsonb_build_object('art', 'zeitraum', 'user_id', (SELECT id FROM konten WHERE email = 'helfer@ses.test'), 'modul', NULL));
 SELECT pg_temp.ok('Antrag beschreibt das Ausweiten', (SELECT summary FROM public.approvals WHERE payload ->> 'art' = 'zeitraum'), 'Helfer Test (Einlass-Helfer:in): Zugang unbefristet machen');
+SELECT public.create_approval('team_zugang', jsonb_build_object('art', 'zeitraum', 'user_id', (SELECT id FROM konten WHERE email = 'helfer@ses.test'), 'modul', (SELECT id FROM public.modules WHERE slug = 'demokratie')));
+SELECT pg_temp.ok('Zeitraum steht mit Datum im Antrag',
+  (SELECT summary FROM public.approvals WHERE summary LIKE '%Demokratie%'), 'Helfer Test (Einlass-Helfer:in): Zugang auf Demokratie ausweiten: 14.11.2026 06:00 bis 16.11.2026 00:00');
 SELECT pg_temp.ok('claim_approval nimmt keine Team-Anträge', public.claim_approval((SELECT id FROM public.approvals WHERE action = 'team_zugang' AND status = 'freigegeben' LIMIT 1), 'team_zugang') ->> 'result', 'not_found');
 
 -- 5) Empfänger

@@ -115,6 +115,14 @@ CREATE FUNCTION public.staff_role_name(r public.staff_role) RETURNS text LANGUAG
   SELECT CASE r WHEN 'checkin_helper' THEN 'Einlass-Helfer:in' WHEN 'orga_team' THEN 'Orga-Team' WHEN 'vorstand' THEN 'Vorstand' WHEN 'admin' THEN 'Admin' END
 $$;
 
+-- Zugangszeitraum eines Moduls (4 Stunden vor dem ersten bis 6 Stunden nach dem letzten Termin), als jsonb mit Titel.
+-- Wird beim Antrag festgehalten, damit nach der Freigabe eingetragene Termine den Zeitraum nicht mehr verlängern.
+CREATE FUNCTION public.module_access_window(p_module_id uuid)
+RETURNS jsonb LANGUAGE sql STABLE SECURITY DEFINER SET search_path = '' AS $$
+  SELECT jsonb_build_object('von', min(d.starts_at) - interval '4 hours', 'bis', max(d.ends_at) + interval '6 hours', 'titel', m.title)
+    FROM public.modules m JOIN public.module_days d ON d.module_id = m.id WHERE m.id = p_module_id GROUP BY m.title
+$$;
+
 CREATE FUNCTION public.create_approval(p_action text, p_payload jsonb)
 RETURNS uuid LANGUAGE plpgsql SECURITY DEFINER SET search_path = '' AS $$
 DECLARE
@@ -125,6 +133,7 @@ DECLARE
   teile text[] := '{}';
   ziel public.staff_members%ROWTYPE;
   rolle public.staff_role;
+  fenster jsonb;
   aid uuid;
 BEGIN
   IF NOT public.has_full_access() THEN RAISE EXCEPTION USING ERRCODE = '42501', MESSAGE = 'full_access_required'; END IF;
@@ -147,10 +156,16 @@ BEGIN
   ELSIF p_action = 'team_zugang' AND inhalt ->> 'art' = 'neu' THEN
     rolle := (inhalt ->> 'rolle')::public.staff_role;
     IF coalesce(trim(inhalt ->> 'email'), '') !~ '^[^@\s]+@[^@\s]+\.[^@\s]+$' OR coalesce(trim(inhalt ->> 'name'), '') = '' THEN RAISE EXCEPTION 'invalid_payload'; END IF;
+    IF nullif(inhalt ->> 'modul', '') IS NOT NULL THEN
+      fenster := public.module_access_window((inhalt ->> 'modul')::uuid);
+      IF fenster IS NULL THEN RAISE EXCEPTION 'module_without_days'; END IF;
+    END IF;
     inhalt := jsonb_build_object('art', 'neu', 'email', lower(trim(inhalt ->> 'email')), 'name', left(trim(inhalt ->> 'name'), 80),
-                                 'rolle', rolle, 'modul', nullif(inhalt ->> 'modul', ''));
+                                 'rolle', rolle, 'von', fenster ->> 'von', 'bis', fenster ->> 'bis', 'titel', fenster ->> 'titel');
     beschreibung := format('Neuer Team-Zugang: %s <%s> als %s%s', inhalt ->> 'name', inhalt ->> 'email', public.staff_role_name(rolle),
-      CASE WHEN inhalt ->> 'modul' IS NOT NULL THEN ', nur für ' || coalesce((SELECT title FROM public.modules WHERE id = (inhalt ->> 'modul')::uuid), '?') ELSE ', unbefristet' END);
+      CASE WHEN fenster IS NOT NULL THEN format(', nur %s vom %s bis %s', fenster ->> 'titel',
+             to_char((fenster ->> 'von')::timestamptz AT TIME ZONE 'Europe/Berlin', 'DD.MM.YYYY HH24:MI'),
+             to_char((fenster ->> 'bis')::timestamptz AT TIME ZONE 'Europe/Berlin', 'DD.MM.YYYY HH24:MI')) ELSE ', unbefristet' END);
   ELSIF p_action = 'team_zugang' AND inhalt ->> 'art' = 'rolle' THEN
     rolle := (inhalt ->> 'rolle')::public.staff_role;
     SELECT * INTO ziel FROM public.staff_members WHERE user_id = (inhalt ->> 'user_id')::uuid;
@@ -160,10 +175,16 @@ BEGIN
   ELSIF p_action = 'team_zugang' AND inhalt ->> 'art' = 'zeitraum' THEN
     SELECT * INTO ziel FROM public.staff_members WHERE user_id = (inhalt ->> 'user_id')::uuid;
     IF NOT FOUND THEN RAISE EXCEPTION 'invalid_payload'; END IF;
-    inhalt := jsonb_build_object('art', 'zeitraum', 'user_id', ziel.user_id, 'modul', nullif(inhalt ->> 'modul', ''));
+    IF nullif(inhalt ->> 'modul', '') IS NOT NULL THEN
+      fenster := public.module_access_window((inhalt ->> 'modul')::uuid);
+      IF fenster IS NULL THEN RAISE EXCEPTION 'module_without_days'; END IF;
+    END IF;
+    inhalt := jsonb_build_object('art', 'zeitraum', 'user_id', ziel.user_id, 'von', fenster ->> 'von', 'bis', fenster ->> 'bis', 'titel', fenster ->> 'titel');
     beschreibung := format('%s (%s): Zugang %s', ziel.display_name, public.staff_role_name(ziel.role),
-      CASE WHEN inhalt ->> 'modul' IS NULL THEN 'unbefristet machen'
-           ELSE 'auf ' || coalesce((SELECT title FROM public.modules WHERE id = (inhalt ->> 'modul')::uuid), '?') || ' ausweiten' END);
+      CASE WHEN fenster IS NULL THEN 'unbefristet machen'
+           ELSE format('auf %s ausweiten: %s bis %s', fenster ->> 'titel',
+             to_char((fenster ->> 'von')::timestamptz AT TIME ZONE 'Europe/Berlin', 'DD.MM.YYYY HH24:MI'),
+             to_char((fenster ->> 'bis')::timestamptz AT TIME ZONE 'Europe/Berlin', 'DD.MM.YYYY HH24:MI')) END);
   ELSE
     RAISE EXCEPTION 'invalid_action';
   END IF;
@@ -208,11 +229,10 @@ BEGIN
   IF a.decided_at < now() - interval '24 hours' THEN RETURN 'expired'; END IF;
   IF (SELECT role FROM public.staff_members WHERE user_id = a.decided_by) IS DISTINCT FROM 'admin' THEN RETURN 'admin_required'; END IF;
 
-  IF a.payload ->> 'modul' IS NOT NULL THEN
-    SELECT min(d.starts_at) - interval '4 hours', max(d.ends_at) + interval '6 hours', m.title INTO von, bis, titel
-      FROM public.modules m JOIN public.module_days d ON d.module_id = m.id WHERE m.id = (a.payload ->> 'modul')::uuid GROUP BY m.title;
-    IF von IS NULL THEN RETURN 'module_without_days'; END IF;
-  END IF;
+  -- Zeitraum genau so, wie er beim Antrag festgehalten und freigegeben wurde
+  von := (a.payload ->> 'von')::timestamptz;
+  bis := (a.payload ->> 'bis')::timestamptz;
+  titel := a.payload ->> 'titel';
   PERFORM set_config('ses.team_freigabe', 'ok', true);
   IF a.payload ->> 'art' = 'zeitraum' THEN
     UPDATE public.staff_members SET valid_from = von, valid_until = bis,
@@ -236,6 +256,7 @@ BEGIN
   RETURN 'ok';
 END $$;
 
+REVOKE ALL ON FUNCTION public.module_access_window(uuid) FROM PUBLIC, anon, authenticated;
 REVOKE ALL ON FUNCTION public.create_approval(text, jsonb), public.execute_team_approval(uuid, uuid),
   public.staff_members_guard(), public.staff_role_rank(public.staff_role), public.staff_role_name(public.staff_role) FROM PUBLIC, anon;
 GRANT EXECUTE ON FUNCTION public.create_approval(text, jsonb), public.execute_team_approval(uuid, uuid),
