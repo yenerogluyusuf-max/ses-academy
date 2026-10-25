@@ -7,6 +7,7 @@ import { sorumluLinkErneuern, sorumluTelefon } from "@/lib/aktionen/gruppen";
 import { darf, requireStaff } from "@/lib/auth";
 import { ladeModultage, tagBezeichnung } from "@/lib/eventtag";
 import { seitenUrl } from "@/lib/mail";
+import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
 
 export const metadata: Metadata = { title: "Gruppen | SES Academy" };
@@ -32,8 +33,8 @@ export default async function Gruppen({ searchParams }: PageProps<"/team/gruppen
 
   const [{ data: zeilen }, { data: sorumlu }] = await Promise.all([
     tag ? supabase.rpc("get_group_status", { p_module_day_id: tag.id }) : Promise.resolve({ data: [] }),
-    // Die geheimen Links sieht nur, wer sie auch verwalten darf
-    darf.alles(staff.role) ? supabase.from("mentors").select("id, name, phone, access_token").order("name") : Promise.resolve({ data: [] }),
+    // Die geheimen Links sind für Teamkonten nicht lesbar; Admin/Vorstand bekommen sie über den Server
+    darf.alles(staff.role) ? createAdminClient().from("mentors").select("id, name, phone, access_token").order("name") : Promise.resolve({ data: [] }),
   ]);
 
   // nach Gruppe bündeln; Personen ohne Sorumlu kommen ans Ende

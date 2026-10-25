@@ -156,3 +156,56 @@ export async function sendeFeedbackMail(participantId: string, surveyId: string,
   await protokolliere({ participantId: p.id, art: "feedback", an: p.email, ergebnis, von: ausgeloestVon });
   return ergebnis;
 }
+
+/** Bestätigung nach einer Selbst-Abgabe in „Mein Bereich“. */
+export async function sendeAbgabeBestaetigung(participantId: string, submissionId: string): Promise<Ergebnis> {
+  const db = createAdminClient();
+  const [{ data: p }, { data: s }] = await Promise.all([
+    db.from("participants").select("id, first_name, email").eq("id", participantId).maybeSingle(),
+    db.from("submissions").select("file_name, link, submitted_at, assignment:assignments(number, title)").eq("id", submissionId).maybeSingle(),
+  ]);
+  if (!p?.email || !s) return { ok: false, fehler: "Keine E-Mail-Adresse hinterlegt." };
+  const wann = s.submitted_at ? new Intl.DateTimeFormat("de-DE", { dateStyle: "long", timeStyle: "short", timeZone: "Europe/Berlin" }).format(new Date(s.submitted_at)) : "";
+  const was = s.file_name ?? s.link ?? "Abgabe";
+  const text = [
+    `Hallo ${p.first_name},`, "",
+    `deine Abgabe zu Hausaufgabe ${s.assignment?.number}: ${s.assignment?.title} ist eingegangen${wann ? ` (${wann} Uhr)` : ""}.`,
+    `Abgegeben: ${was}`, "",
+    "Herzliche Grüße", "Dein SES-Academy-Team",
+  ].join("\n");
+  const ergebnis = await senden({
+    to: p.email,
+    subject: `Abgabe eingegangen: Hausaufgabe ${s.assignment?.number} – SES Academy`,
+    text,
+    html: `<div style="font-family:Arial,Helvetica,sans-serif;color:#13201a;max-width:560px;line-height:1.6;white-space:pre-line">${html(text)}</div>`,
+  });
+  await protokolliere({ participantId: p.id, art: "submission_received", an: p.email, ergebnis });
+  return ergebnis;
+}
+
+/** Erinnerung zwei Tage vor der Frist einer Hausaufgabe, mit Link zu „Mein Bereich“. */
+export async function sendeHausaufgabenErinnerung(participantId: string, assignmentId: string): Promise<Ergebnis> {
+  const db = createAdminClient();
+  const [{ data: p }, { data: a }] = await Promise.all([
+    db.from("participants").select("id, first_name, email").eq("id", participantId).maybeSingle(),
+    db.from("assignments").select("number, title, due_date").eq("id", assignmentId).maybeSingle(),
+  ]);
+  if (!p?.email || !a?.due_date) return { ok: false, fehler: "Keine E-Mail-Adresse oder keine Frist." };
+  const frist = new Intl.DateTimeFormat("de-DE", { weekday: "long", day: "numeric", month: "long", timeZone: "UTC" }).format(new Date(`${a.due_date}T12:00:00Z`));
+  const link = seitenUrl("/mein-bereich/#hausaufgaben");
+  const text = [
+    `Hallo ${p.first_name},`, "",
+    `kurze Erinnerung: Hausaufgabe ${a.number} („${a.title}“) ist bis ${frist}, 23:59 Uhr fällig. Abgeben kannst du in „Mein Bereich“ als Datei oder Link:`,
+    link, "",
+    "Falls du schon abgegeben hast oder entschuldigt bist, ignoriere diese Mail einfach.", "",
+    "Herzliche Grüße", "Dein SES-Academy-Team",
+  ].join("\n");
+  const ergebnis = await senden({
+    to: p.email,
+    subject: `Erinnerung: Hausaufgabe ${a.number} bis ${frist} – SES Academy`,
+    text,
+    html: `<div style="font-family:Arial,Helvetica,sans-serif;color:#13201a;max-width:560px;line-height:1.6;white-space:pre-line">${html(text)}</div>`,
+  });
+  await protokolliere({ participantId: p.id, art: `erinnerung_hausaufgabe_${a.number}`, an: p.email, ergebnis });
+  return ergebnis;
+}

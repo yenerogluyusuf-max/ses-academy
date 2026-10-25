@@ -126,6 +126,8 @@ export default async function Abgabe({ params, searchParams }: PageProps<"/team/
                 <div className="flex flex-wrap items-center gap-3">
                   <button className="knopf-hell">Speichern</button>
                   {a.link && <a href={a.link} target="_blank" rel="noopener noreferrer" className="link text-sm">Video öffnen ↗</a>}
+                  {a.storage_path && <a href={`/team/abgaben/${a.id}/datei/`} target="_blank" rel="noopener" className="link text-sm">Hochgeladene Datei öffnen{a.size_bytes ? ` (${Math.round(a.size_bytes / 1048576 * 10) / 10} MB)` : ""}</a>}
+                  {a.source === "self" && a.submitted_at && <span className="text-sm text-ink-soft">selbst abgegeben am {new Intl.DateTimeFormat("de-DE", { dateStyle: "medium", timeStyle: "short", timeZone: "Europe/Berlin" }).format(new Date(a.submitted_at))} Uhr</span>}
                 </div>
               </form>
               <form action={abgabeLoeschen} className="mt-4 border-t border-line pt-4">

@@ -561,14 +561,14 @@ isOneToOne: false
                   ]
                 },"submissions": {
                   Row: {
-                    "assignment_id": string,"created_at": string,"file_name": string | null,"id": string,"label": string,"link": string | null,"note": string | null,"source": string,"submitted_on": string | null
+                    "assignment_id": string,"created_at": string,"file_name": string | null,"id": string,"label": string,"link": string | null,"note": string | null,"size_bytes": number | null,"source": string,"storage_path": string | null,"submitted_at": string | null,"submitted_on": string | null
                   }
                   ComputedFields: never
                   Insert: {
-                    "assignment_id": string,"created_at"?: string,"file_name"?: string | null,"id"?: string,"label": string,"link"?: string | null,"note"?: string | null,"source"?: string,"submitted_on"?: string | null
+                    "assignment_id": string,"created_at"?: string,"file_name"?: string | null,"id"?: string,"label": string,"link"?: string | null,"note"?: string | null,"size_bytes"?: number | null,"source"?: string,"storage_path"?: string | null,"submitted_at"?: string | null,"submitted_on"?: string | null
                   }
                   Update: {
-                    "assignment_id"?: string,"created_at"?: string,"file_name"?: string | null,"id"?: string,"label"?: string,"link"?: string | null,"note"?: string | null,"source"?: string,"submitted_on"?: string | null
+                    "assignment_id"?: string,"created_at"?: string,"file_name"?: string | null,"id"?: string,"label"?: string,"link"?: string | null,"note"?: string | null,"size_bytes"?: number | null,"source"?: string,"storage_path"?: string | null,"submitted_at"?: string | null,"submitted_on"?: string | null
                   }
                   Relationships: [
                     {
@@ -696,6 +696,9 @@ isOneToOne: false
                            },
 "submit_feedback":
 { Args: { "p_answers": Json,"p_survey_id": string,"p_token": string }; Returns: string
+                           },
+"submit_own_assignment":
+{ Args: { "p_assignment_id": string,"p_file_name"?: string,"p_link"?: string,"p_size_bytes"?: number,"p_storage_path"?: string }; Returns: Json
                            },
 "undo_check_in":
 { Args: { "p_attendance_id": string }; Returns: Json

@@ -10,7 +10,8 @@
 #   ./ses.sh sicherung                  Sicherung jetzt (läuft sonst täglich), Kopie auf SICHERUNG_ZIEL
 #   ./ses.sh wiederherstellen-test      neueste Sicherung probeweise einspielen und Zahlen vergleichen
 #   ./ses.sh notfall [JJJJ-MM-TT]       Notfall-Listen für morgen bzw. den Tag als PDF
-#   ./ses.sh autostart                  Start beim Anmelden, Sicherung 02:30, Notfall-Liste 20:00 (LaunchAgents)
+#   ./ses.sh erinnerungen               Hausaufgaben-Erinnerung zwei Tage vor der Frist (läuft sonst täglich)
+#   ./ses.sh autostart                  Start beim Anmelden, Sicherung 02:30, Erinnerungen 17:00, Notfall-Liste 20:00
 set -euo pipefail
 
 HIER="$(cd "$(dirname "$0")" && pwd)"
@@ -194,6 +195,11 @@ case "$befehl" in
     (cd "$APP" && npx tsx --conditions=react-server scripts/notfall-pdf.mts "$SES_ROOT/dokumente/notfall-listen" ${1:+"$1"})
     ;;
 
+  erinnerungen)
+    lade_env
+    (cd "$APP" && npx tsx --conditions=react-server scripts/erinnerungen.mts)
+    ;;
+
   autostart)
     lade_env
     ziel="$HOME/Library/LaunchAgents"
@@ -217,12 +223,13 @@ PLIST
     }
     plist de.ses-organisation.start start "<key>RunAtLoad</key><true/>"
     plist de.ses-organisation.sicherung sicherung "<key>StartCalendarInterval</key><dict><key>Hour</key><integer>2</integer><key>Minute</key><integer>30</integer></dict>"
+    plist de.ses-organisation.erinnerungen erinnerungen "<key>StartCalendarInterval</key><dict><key>Hour</key><integer>17</integer><key>Minute</key><integer>0</integer></dict>"
     plist de.ses-organisation.notfall notfall "<key>StartCalendarInterval</key><dict><key>Hour</key><integer>20</integer><key>Minute</key><integer>0</integer></dict>"
-    echo "Autostart eingerichtet: Start beim Anmelden, Sicherung täglich 02:30, Notfall-Liste täglich 20:00."
-    echo "Entfernen: launchctl bootout gui/$(id -u)/de.ses-organisation.<start|sicherung|notfall> und die plist in $ziel löschen."
+    echo "Autostart eingerichtet: Start beim Anmelden, Sicherung täglich 02:30, Erinnerungen 17:00, Notfall-Liste 20:00."
+    echo "Entfernen: launchctl bootout gui/$(id -u)/de.ses-organisation.<start|sicherung|erinnerungen|notfall> und die plist in $ziel löschen."
     ;;
 
   *)
-    sed -n '2,14p' "$0"; exit 1
+    sed -n '2,15p' "$0"; exit 1
     ;;
 esac

@@ -4,15 +4,16 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { qrSvg } from "@/lib/tickets";
 
 /**
- * Namensschilder eines Moduls: Name, Region, Abzeichen (Generation bzw. Gast) und der persönliche QR-Code,
- * mit dem am Einlass auch ohne Handy gescannt werden kann. Acht Schilder (A7) je A4-Seite, mit Schnittlinien.
+ * Namensschilder eines Moduls: Name, Region, Abzeichen (Generation bzw. Gast) und ein QR-Code mit dem Kurzcode,
+ * mit dem am Einlass auch ohne Handy gescannt werden kann. Bewusst nicht der geheime Ticket-Token: der öffnet die
+ * Ticket-Seite (Abmelden) und die Feedback-Umfrage; der Kurzcode reicht für den Einlass, auch offline. Acht Schilder (A7) je A4-Seite, mit Schnittlinien.
  * Läuft mit dem Admin-Client; die Route prüft vorher die Rolle.
  */
 export async function namensschilderHtml(modulId: string): Promise<string | null> {
   const db = createAdminClient();
   const { data: modul } = await db
     .from("modules")
-    .select("title, registrations(status, participant:participants(first_name, last_name, checkin_token, affiliation_status, region:regions(name), cohort:cohorts(name)))")
+    .select("title, registrations(status, participant:participants(first_name, last_name, short_code, affiliation_status, region:regions(name), cohort:cohorts(name)))")
     .eq("id", modulId)
     .maybeSingle();
   if (!modul) return null;
@@ -27,7 +28,7 @@ export async function namensschilderHtml(modulId: string): Promise<string | null
     return `<div class="schild">
   <div class="text"><p class="kicker">SES Academy · ${esc(modul.title)}</p><p class="vorname">${esc(p.first_name)}</p><p class="nachname">${esc(p.last_name)}</p>
   <p class="zeile">${[p.region?.name, abzeichen].filter(Boolean).map((t) => esc(t!)).join(" · ")}</p></div>
-  <div class="qr">${await qrSvg(p.checkin_token)}</div></div>`;
+  <div class="qr">${p.short_code ? await qrSvg(p.short_code) : ""}</div></div>`;
   }));
   // Vier leere Schilder für Walk-ins und Gäste
   for (let i = 0; i < 4; i++) schilder.push(`<div class="schild leer"><div class="text"><p class="kicker">SES Academy · ${esc(modul.title)}</p></div></div>`);

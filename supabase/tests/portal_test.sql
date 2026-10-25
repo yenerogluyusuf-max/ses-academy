@@ -93,7 +93,8 @@ SELECT pg_temp.login('amina@example.test');
 SELECT pg_temp.ok('Konto verknüpft', public.link_my_account(), 'participant');
 SELECT pg_temp.ok('Amina sieht nur sich selbst', count(*)::text, '1') FROM public.participants;
 SELECT pg_temp.ok('Amina sieht nur ihre Abgabe', string_agg(label, ','), 'Amina & Leila') FROM public.submissions;
-SELECT pg_temp.ok('Amina sieht die Bewertung ihrer Abgabe', string_agg(strengths, ','), 'Klare Kernaussage') FROM public.reviews;
+-- Entscheidung 25.10.2026: Bewertungen bleiben intern (Migration 20261029090000_abgabe_selbst.sql)
+SELECT pg_temp.ok('Amina sieht keine Bewertung (bleibt intern)', count(*)::text, '0') FROM public.reviews;
 SELECT pg_temp.ok('Amina sieht die Hausaufgabe ihres Jahrgangs', count(*)::text, '1') FROM public.assignments;
 SELECT pg_temp.ok('Amina sieht keine Mitabgaben-Zuordnung von Leila', count(*)::text, '1') FROM public.submission_participants;
 SELECT pg_temp.ok('Amina sieht keine Verantwortlichen', count(*)::text, '0') FROM public.mentors;
@@ -104,10 +105,10 @@ SELECT pg_temp.ok('Amina kann Bewertungen nicht ändern', n::text, '0') FROM upd
 CREATE TEMP TABLE upd2 AS WITH u AS (UPDATE public.participants SET branch = 'GT' RETURNING 1) SELECT count(*) AS n FROM u;
 SELECT pg_temp.ok('Amina kann ihre Stammdaten nicht ändern', n::text, '0') FROM upd2;
 
--- 5. Yusuf sieht nur seine eigene (schlechtere) Bewertung
+-- 5. Yusuf sieht ebenfalls keine Bewertung
 SELECT pg_temp.login('yusuf@example.test');
 SELECT pg_temp.ok('Yusuf verknüpft', public.link_my_account(), 'participant');
-SELECT pg_temp.ok('Yusuf sieht nur seine Bewertung', string_agg(content::text, ','), '2') FROM public.reviews;
+SELECT pg_temp.ok('Yusuf sieht keine Bewertung (bleibt intern)', count(*)::text, '0') FROM public.reviews;
 
 -- 6. Unbekannte E-Mail wird nicht verknüpft, nicht eingeloggt sieht niemand etwas
 RESET ROLE;

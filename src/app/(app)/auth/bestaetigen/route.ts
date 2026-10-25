@@ -1,6 +1,7 @@
 import type { EmailOtpType } from "@supabase/supabase-js";
-import { NextResponse, type NextRequest } from "next/server";
+import type { NextRequest } from "next/server";
 import { createClient } from "@/lib/supabase/server";
+import { weiterleiten } from "@/lib/weiterleitung";
 
 // Ziel des Links aus der Anmelde-Mail für Teilnehmende. Funktioniert auch in einem anderen Browser als dem,
 // in dem der Code angefordert wurde.
@@ -12,8 +13,8 @@ export async function GET(request: NextRequest) {
     const { error } = await supabase.auth.verifyOtp({ token_hash, type });
     if (!error) {
       await supabase.rpc("link_my_account");
-      return NextResponse.redirect(new URL("/mein-bereich/", request.url));
+      return weiterleiten("/mein-bereich/");
     }
   }
-  return NextResponse.redirect(new URL("/mein-bereich/login/?fehler=link", request.url));
+  return weiterleiten("/mein-bereich/login/?fehler=link");
 }

@@ -17,7 +17,7 @@ Fünfsprachige Website der SES Academy, dazu Bewerbung, Teilnahme und Einlass (C
 | `/team/teilnehmende/` | Admin, Vorstand | Teilnehmende mit Region, GT/KGT, Verantwortlichen; Anwesenheit je Modul und Tag (nachtragen/zurücknehmen), QR-Code per Mail, Stimmen-Beiträge verknüpfen. Ansicht „Verantwortliche“ (Sorumlu) mit E-Mail. |
 | `/team/hausaufgaben/` | ab Orga-Team | Hausaufgaben, wer abgegeben hat und wer nicht, Bewertung nach dem Rhetorik-Bogen (9 Kriterien × 1–5 Punkte, Feedback), Gruppenvideos. Namen ohne Kontaktdaten. |
 | `/team/import/` | Admin, Vorstand | Excel/CSV einlesen: Teilnehmerliste, Hausaufgabenliste, Bewertungsbogen, E-Mail-Adressen (z. B. Google-Formular). Immer erst Vorschau, dann übernehmen. |
-| `/mein-bereich/` | Teilnehmende (Login per E-Mail-Code) | Eigener QR-Code, kommende Module, Anwesenheit, Hausaufgaben mit Bewertung und Feedback, eigene Beiträge. |
+| `/mein-bereich/` | Teilnehmende (Login per E-Mail-Code) | Eigener QR-Code, kommende Module, Anwesenheit, Hausaufgaben selbst abgeben (Datei bis 100 MB oder Link, mit Bestätigungsmail), eigene Beiträge. Bewertungen bleiben intern (Entscheidung 25.10.2026): angezeigt wird nur, ob die Abgabe eingegangen ist. |
 | `/team/module/` | Admin, Vorstand | Module anlegen und bearbeiten, Termine, mit/ohne Ticket, zählt für Serien, offen für Gäste, Plätze, absagen. Beim Veröffentlichen wird der Jahrgang angemeldet. „Tickets an alle“ schickt jedem Angemeldeten ohne Ticket in dieser Runde (ab 30 Tage vor Beginn) die Ticket-Mail, mit Protokoll und erneutem Versuch bei Fehlern. |
 | `/team/gruppen/` | ab Orga-Team | „Fehlt noch“ je Sorumlu am Eventtag: wer noch nicht eingecheckt ist, mit Anruf-Knopf; Admin/Vorstand pflegen dort Telefon und persönlichen Link der Sorumlu. |
 | `/sorumlu/<link>/` | Sorumlu (geheimer Link, ohne Konto) | Die eigene Gruppe am aktuellen Modultag, wer fehlt, mit Anruf-Knopf. |
@@ -47,7 +47,7 @@ npm run dev
 ## Tests
 
 ```bash
-npm run test:db                # 131 Datenbanktests (Check-in; Hausaufgaben/Portal; Kennzahlen; Step 2; Eventtag; Feedback/Sorumlu), setzt die lokale DB zurück
+npm run test:db                # 144 Datenbanktests (Check-in; Hausaufgaben/Portal; Kennzahlen; Step 2; Eventtag; Feedback/Sorumlu; Abgabe), setzt die lokale DB zurück
 npm run build && npx next start -p 3100 &
 supabase db reset && node scripts/e2e-phase1.mjs   # Ende-zu-Ende, headless
 supabase db reset && node scripts/e2e-phase2.mjs

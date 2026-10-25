@@ -2,7 +2,6 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { portalAbmelden } from "@/lib/aktionen/portal";
-import { auswerten, kriterien, zusammenfassen, type KriteriumFeld } from "@/lib/bewertung";
 import { kurzcodeAnzeige, qrSvg } from "@/lib/tickets";
 import { createClient } from "@/lib/supabase/server";
 import { jetztMs } from "@/lib/zeit";
@@ -10,14 +9,24 @@ import { jetztMs } from "@/lib/zeit";
 export const metadata: Metadata = { title: "Mein Bereich | SES Academy", robots: { index: false, follow: false } };
 
 type Reg = { status: string; modules: { id: string; title: string; location: string | null; module_days: { id: string; starts_at: string; ends_at: string }[] }; attendances: { module_day_id: string }[] };
-type Rev = Partial<Record<KriteriumFeld, number | null>> & { strengths: string | null; improvements: string | null; tip: string | null };
-type Sub = { id: string; label: string; assignment_id: string; reviews: Rev[] };
+type Sub = { id: string; label: string; assignment_id: string; file_name: string | null; link: string | null; submitted_on: string | null; submitted_at: string | null };
 
 const typen: Record<string, string> = { kommentar: "Kommentar", video: "Video", grafik: "Grafik", podcast: "Podcast", rede: "Rede", artikel: "Artikel" };
 const datum = (d: string) => new Intl.DateTimeFormat("de-DE", { day: "numeric", month: "long", year: "numeric", timeZone: "Europe/Berlin" }).format(new Date(d));
 const zeitraum = (tage: { starts_at: string }[]) => (tage.length ? (tage.length === 1 ? datum(tage[0].starts_at) : `${datum(tage[0].starts_at)} – ${datum(tage[tage.length - 1].starts_at)}`) : "Termin folgt");
 
-export default async function MeinBereich() {
+const abgabeHinweise: Record<string, { text: string; gut: boolean }> = {
+  puenktlich: { text: "Danke! Deine Abgabe ist eingegangen. Eine Bestätigung kommt per Mail.", gut: true },
+  verspaetet: { text: "Deine Abgabe ist eingegangen, allerdings nach der Frist.", gut: true },
+  leer: { text: "Bitte eine Datei auswählen oder einen Link eintragen.", gut: false },
+  zu_gross: { text: "Die Datei ist größer als 100 MB. Bitte als Link (z. B. YouTube „nicht gelistet“ oder Drive) abgeben.", gut: false },
+  link: { text: "Der Link muss mit https:// beginnen.", gut: false },
+  fehler: { text: "Die Abgabe hat nicht geklappt. Bitte noch einmal versuchen oder an ses@islamrat.de schreiben.", gut: false },
+};
+
+export default async function MeinBereich({ searchParams }: PageProps<"/mein-bereich">) {
+  const { abgabe } = await searchParams;
+  const abgabeHinweis = typeof abgabe === "string" ? abgabeHinweise[abgabe] : undefined;
   const supabase = await createClient();
   const { data: auth } = await supabase.auth.getUser();
   if (!auth.user) redirect("/mein-bereich/login/");
@@ -34,8 +43,8 @@ export default async function MeinBereich() {
 
   const [{ data: regs }, { data: aufgaben }, { data: subs }, { data: beitraege }] = await Promise.all([
     supabase.from("registrations").select("status,modules(id,title,location,module_days(id,starts_at,ends_at)),attendances(module_day_id)"),
-    supabase.from("assignments").select("id,number,title,description,due_date").order("number"),
-    supabase.from("submissions").select("id,label,assignment_id,reviews(*)"),
+    supabase.from("assignments").select("id,number,title,description,due_date,due_at").order("number"),
+    supabase.from("submissions").select("id,label,assignment_id,file_name,link,submitted_on,submitted_at"),
     supabase.from("contributions").select("*").order("published_on", { ascending: false }),
   ]);
   const jetzt = new Date(jetztMs()).toISOString();
@@ -85,50 +94,41 @@ export default async function MeinBereich() {
           </div>
         </section>
 
-        <section className="mt-12">
+        <section id="hausaufgaben" className="mt-12">
           <h2 className="font-display mb-4 text-2xl font-bold">Hausaufgaben</h2>
+          {abgabeHinweis && <p role="status" className={`mb-4 rounded-2xl p-4 font-semibold ${abgabeHinweis.gut ? "bg-gruen-hell" : "bg-gelb-hell"}`}>{abgabeHinweis.text}</p>}
           <div className="space-y-4">
             {aufgaben?.map((h) => {
-              const meine = abgaben.filter((a) => a.assignment_id === h.id);
-              const e = zusammenfassen(meine.flatMap((a) => a.reviews));
+              const meine = abgaben.filter((a) => a.assignment_id === h.id).sort((x, y) => (y.submitted_at ?? y.submitted_on ?? "").localeCompare(x.submitted_at ?? x.submitted_on ?? ""));
+              const letzte = meine[0];
+              const fristVorbei = h.due_at ? h.due_at < jetzt : false;
               return (
-                <details key={h.id} className="karte" open={e.durchschnitt != null}>
+                <details key={h.id} className="karte" open={!letzte && !fristVorbei}>
                   <summary className="flex cursor-pointer list-none flex-wrap items-center justify-between gap-3">
                     <span>
                       <span className="font-display text-xl font-bold">Hausaufgabe {h.number}: {h.title}</span>
                       {h.due_date && <span className="block text-sm text-ink-soft">Frist: {datum(h.due_date)}</span>}
                     </span>
-                    {meine.length ? (
-                      e.durchschnitt != null ? <span className="chip bg-gruen-hell px-3 py-1 text-sm">Ø {e.durchschnitt} · {e.urteil}</span> : <span className="chip bg-paper-deep px-3 py-1 text-sm">abgegeben · Bewertung folgt</span>
-                    ) : <span className="chip bg-gelb-hell px-3 py-1 text-sm">noch nicht abgegeben</span>}
+                    {letzte
+                      ? <span className="chip bg-gruen-hell px-3 py-1 text-sm">eingegangen{letzte.submitted_on ? ` am ${datum(letzte.submitted_on)}` : ""}</span>
+                      : <span className={`chip px-3 py-1 text-sm ${fristVorbei ? "bg-rot-hell text-rot" : "bg-gelb-hell"}`}>noch nicht abgegeben</span>}
                   </summary>
                   {h.description && <p className="mt-4 whitespace-pre-line text-ink-soft">{h.description}</p>}
-                  {meine.flatMap((a) =>
-                    a.reviews.map((b, i) => {
-                      const w = auswerten(b);
-                      if (!w.anzahl && !b.strengths && !b.improvements && !b.tip) return null;
-                      return (
-                        <div key={`${a.id}-${i}`} className="mt-5 border-t border-line pt-5">
-                          <p className="text-sm text-ink-soft">{a.label}{w.anzahl ? ` · ${w.punkte} von ${w.anzahl * 5} Punkten` : ""}</p>
-                          {w.anzahl > 0 && (
-                            <ul className="mt-3 grid gap-2 sm:grid-cols-2">
-                              {kriterien.map((k) => (
-                                <li key={k.feld} className="text-sm">
-                                  <div className="flex justify-between"><span>{k.name}</span><span className="font-semibold">{b[k.feld] ?? "–"}</span></div>
-                                  <div className="mt-1 h-1.5 overflow-hidden rounded-full bg-paper-deep"><div className="h-full bg-mint" style={{ width: `${((b[k.feld] ?? 0) / 5) * 100}%` }} /></div>
-                                </li>
-                              ))}
-                            </ul>
-                          )}
-                          <div className="mt-4 grid gap-3 text-sm sm:grid-cols-3">
-                            {b.strengths && <p className="rounded-2xl bg-gruen-hell p-3"><strong className="block">Besonders gut</strong>{b.strengths}</p>}
-                            {b.improvements && <p className="rounded-2xl bg-gelb-hell p-3"><strong className="block">Verbessern</strong>{b.improvements}</p>}
-                            {b.tip && <p className="rounded-2xl bg-paper p-3"><strong className="block">Tipp fürs nächste Mal</strong>{b.tip}</p>}
-                          </div>
-                        </div>
-                      );
-                    }),
+                  {meine.length > 0 && (
+                    <ul className="mt-4 space-y-1 text-sm">
+                      {meine.map((a) => (
+                        <li key={a.id} className="text-ink-soft">
+                          ✓ {a.file_name ?? (a.link ? "Link" : a.label)}{a.submitted_on ? ` · ${datum(a.submitted_on)}` : ""}
+                        </li>
+                      ))}
+                    </ul>
                   )}
+                  <form action="/mein-bereich/abgabe/" method="post" encType="multipart/form-data" className="mt-5 grid gap-3 border-t border-line pt-5 sm:grid-cols-2">
+                    <input type="hidden" name="assignment_id" value={h.id} />
+                    <div><label className="etikett" htmlFor={`datei-${h.id}`}>Datei (bis 100 MB)</label><input id={`datei-${h.id}`} name="datei" type="file" className="feld" /></div>
+                    <div><label className="etikett" htmlFor={`link-${h.id}`}>oder Link (z. B. YouTube, Drive)</label><input id={`link-${h.id}`} name="link" type="url" placeholder="https://" className="feld" /></div>
+                    <div className="sm:col-span-2"><button type="submit" className="knopf">{letzte ? "Neue Version abgeben" : "Abgeben"}</button></div>
+                  </form>
                 </details>
               );
             })}

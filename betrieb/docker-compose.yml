@@ -103,7 +103,7 @@ services:
       DATABASE_URL: postgresql://supabase_storage_admin:${POSTGRES_PASSWORD}@db:5432/postgres
       STORAGE_BACKEND: file
       FILE_STORAGE_BACKEND_PATH: /mnt
-      FILE_SIZE_LIMIT: "52428800"
+      FILE_SIZE_LIMIT: "104857600"
       TENANT_ID: stub
       GLOBAL_S3_BUCKET: stub
       STORAGE_S3_REGION: local
