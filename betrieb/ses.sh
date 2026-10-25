@@ -5,6 +5,7 @@
 #   ./ses.sh aktualisieren [ref]        Betriebskopie des Codes auf Stand ref bringen (Standard: aktueller Branch), bauen
 #   ./ses.sh start | stopp | status     Datenbank, Website und HTTPS-Zugang
 #   ./ses.sh migrieren                  neue Migrationen einspielen
+#   ./ses.sh grunddaten                 1. Generation, Module mit Terminen, Regieplan 14.11. (mehrfach ausführbar)
 #   ./ses.sh admin <email> <name>       Teamkonto mit Rolle Admin anlegen (Startpasswort wird einmal angezeigt)
 #   ./ses.sh sicherung                  Sicherung jetzt (läuft sonst täglich), Kopie auf SICHERUNG_ZIEL
 #   ./ses.sh wiederherstellen-test      neueste Sicherung probeweise einspielen und Zahlen vergleichen
@@ -134,6 +135,12 @@ case "$befehl" in
     lade_env; migrieren
     ;;
 
+  grunddaten)
+    lade_env
+    "${COMPOSE[@]}" exec -T db psql -U postgres -d postgres -v ON_ERROR_STOP=1 -q <"$HIER/grunddaten.sql"
+    "${COMPOSE[@]}" exec -T db psql -U postgres -d postgres -tAc "SELECT count(*) || ' Module, ' || (SELECT count(*) FROM public.module_days) || ' Termine, ' || (SELECT count(*) FROM public.program_items) || ' Programmpunkte' FROM public.modules"
+    ;;
+
   admin)
     lade_env
     email="${1:?E-Mail fehlt}"; name="${2:?Name fehlt}"
@@ -216,6 +223,6 @@ PLIST
     ;;
 
   *)
-    sed -n '2,13p' "$0"; exit 1
+    sed -n '2,14p' "$0"; exit 1
     ;;
 esac
