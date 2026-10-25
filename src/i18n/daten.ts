@@ -2,7 +2,7 @@
 //   [WEB] ses.islamrat.de (WordPress-Inhalte, Stand 28.09.2026)
 //   [AG]  SES Academy Agenda Juni 2026
 //   [PR]  Presseberichte IGMG (13.04.2026) und IslamiQ (14.04.2026) zum Auftakt; Fotos: Islamrat
-//   [EG]  Einladungsbrief an Dr. Gregor Gysi (Auftakt-Gäste Yousaf, Rohe, Heil)
+//   [EG]  interner Einladungsbrief zum Auftakt (Gästeliste)
 import type { ModulSlug, Sprache } from "./typ";
 
 export type Modul = {

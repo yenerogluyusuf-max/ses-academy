@@ -107,7 +107,7 @@ export async function mentorSpeichern(formData: FormData) {
   redirect("/team/teilnehmende/?ansicht=verantwortliche&hinweis=gespeichert");
 }
 
-/** Anwesenheit an einem Modultag nachtragen oder zurücknehmen (über Enes' Check-in-Funktionen, mit Protokoll). */
+/** Anwesenheit an einem Modultag nachtragen oder zurücknehmen (über die Check-in-Funktionen der Datenbank, mit Protokoll). */
 export async function anwesenheitSetzen(formData: FormData) {
   await requireStaff("alles");
   const supabase = await createClient();

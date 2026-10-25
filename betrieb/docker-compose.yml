@@ -1,0 +1,139 @@
+# Betrieb der SES-Organisation auf einem eigenen Rechner (Phase 0) und später auf dem IGMG-Server.
+#
+# Anders als `supabase start` (nur für die Entwicklung):
+#   - alle Dienste lauschen nur auf 127.0.0.1, von außen ist nur die Website über den HTTPS-Zugang erreichbar
+#   - eigene Passwörter und Schlüssel aus ../betrieb-daten/.env (siehe schluessel.mjs), keine Standardwerte
+#   - Daten in benannten Docker-Volumes <projekt>_ses_betrieb_*, die `supabase db reset` nie anfasst
+#
+# Start: siehe README.md in diesem Ordner (./ses.sh start).
+services:
+  db:
+    image: public.ecr.aws/supabase/postgres:17.11.0.006
+    restart: unless-stopped
+    command: ["postgres", "-D", "/etc/postgresql"]
+    environment:
+      POSTGRES_HOST: /var/run/postgresql
+      POSTGRES_USER: supabase_admin
+      POSTGRES_DB: postgres
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?fehlt}
+      PGPASSWORD: ${POSTGRES_PASSWORD}
+      JWT_SECRET: ${JWT_SECRET:?fehlt}
+      JWT_EXP: "3600"
+      POSTGRES_INITDB_ARGS: --allow-group-access --locale-provider=icu --encoding=UTF-8 --icu-locale=en_US.UTF-8
+    volumes:
+      - ses_betrieb_db:/var/lib/postgresql/data
+      - ./db/schema.sql:/etc/postgresql.schema.sql:ro
+    ports:
+      - "127.0.0.1:${DB_PORT:-56322}:5432"
+    healthcheck:
+      test: ["CMD", "pg_isready", "-U", "postgres", "-h", "localhost"]
+      interval: 5s
+      timeout: 5s
+      retries: 30
+
+  auth:
+    image: public.ecr.aws/supabase/gotrue:v2.197.0
+    restart: unless-stopped
+    depends_on:
+      db: { condition: service_healthy }
+    environment:
+      GOTRUE_API_HOST: 0.0.0.0
+      GOTRUE_API_PORT: "9999"
+      API_EXTERNAL_URL: ${API_EXTERNAL_URL:-http://127.0.0.1:56321}/auth/v1
+      GOTRUE_DB_DRIVER: postgres
+      GOTRUE_DB_DATABASE_URL: postgresql://supabase_auth_admin:${POSTGRES_PASSWORD}@db:5432/postgres
+      GOTRUE_SITE_URL: ${SITE_URL:?fehlt}
+      GOTRUE_URI_ALLOW_LIST: ${SITE_URL}
+      GOTRUE_DISABLE_SIGNUP: "false"
+      GOTRUE_JWT_SECRET: ${JWT_SECRET}
+      GOTRUE_JWT_EXP: "3600"
+      GOTRUE_JWT_AUD: authenticated
+      GOTRUE_JWT_ADMIN_ROLES: service_role
+      GOTRUE_JWT_DEFAULT_GROUP_NAME: authenticated
+      GOTRUE_EXTERNAL_EMAIL_ENABLED: "true"
+      GOTRUE_EXTERNAL_PHONE_ENABLED: "false"
+      GOTRUE_EXTERNAL_ANONYMOUS_USERS_ENABLED: "false"
+      GOTRUE_MAILER_AUTOCONFIRM: "false"
+      GOTRUE_MAILER_SECURE_EMAIL_CHANGE_ENABLED: "true"
+      GOTRUE_MAILER_OTP_LENGTH: "6"
+      GOTRUE_MAILER_OTP_EXP: "3600"
+      GOTRUE_PASSWORD_MIN_LENGTH: "10"
+      GOTRUE_SECURITY_REFRESH_TOKEN_ROTATION_ENABLED: "true"
+      GOTRUE_SECURITY_REFRESH_TOKEN_REUSE_INTERVAL: "10"
+      GOTRUE_RATE_LIMIT_EMAIL_SENT: "200"
+      GOTRUE_RATE_LIMIT_VERIFY: "30"
+      GOTRUE_RATE_LIMIT_OTP: "30"
+      GOTRUE_MFA_TOTP_ENROLL_ENABLED: "true"
+      GOTRUE_MFA_TOTP_VERIFY_ENABLED: "true"
+      GOTRUE_SMTP_HOST: ${SMTP_HOST:-}
+      GOTRUE_SMTP_PORT: ${SMTP_PORT:-587}
+      GOTRUE_SMTP_USER: ${SMTP_USER:-}
+      GOTRUE_SMTP_PASS: ${SMTP_PASS:-}
+      GOTRUE_SMTP_ADMIN_EMAIL: ${SMTP_FROM_ADDRESS:-ses@islamrat.de}
+      GOTRUE_SMTP_SENDER_NAME: SES Academy
+      GOTRUE_SMTP_MAX_FREQUENCY: 1s
+      GOTRUE_MAILER_SUBJECTS_MAGIC_LINK: "Dein Zugang zu „Mein Bereich“ – SES Academy"
+      GOTRUE_MAILER_SUBJECTS_CONFIRMATION: "Dein Zugang zu „Mein Bereich“ – SES Academy"
+      GOTRUE_MAILER_TEMPLATES_MAGIC_LINK: http://kong:8088/email/anmeldung.html
+      GOTRUE_MAILER_TEMPLATES_CONFIRMATION: http://kong:8088/email/anmeldung.html
+
+  rest:
+    image: public.ecr.aws/supabase/postgrest:v16.5
+    restart: unless-stopped
+    depends_on:
+      db: { condition: service_healthy }
+    environment:
+      PGRST_DB_URI: postgresql://authenticator:${POSTGRES_PASSWORD}@db:5432/postgres
+      PGRST_DB_SCHEMAS: public,graphql_public
+      PGRST_DB_EXTRA_SEARCH_PATH: public,extensions
+      PGRST_DB_ANON_ROLE: anon
+      PGRST_DB_MAX_ROWS: "1000"
+      PGRST_JWT_SECRET: ${JWT_SECRET}
+
+  storage:
+    image: public.ecr.aws/supabase/storage-api:v1.84.19
+    restart: unless-stopped
+    depends_on:
+      db: { condition: service_healthy }
+      rest: { condition: service_started }
+    environment:
+      ANON_KEY: ${ANON_KEY:?fehlt}
+      SERVICE_KEY: ${SERVICE_ROLE_KEY:?fehlt}
+      AUTH_JWT_SECRET: ${JWT_SECRET}
+      DATABASE_URL: postgresql://supabase_storage_admin:${POSTGRES_PASSWORD}@db:5432/postgres
+      STORAGE_BACKEND: file
+      FILE_STORAGE_BACKEND_PATH: /mnt
+      FILE_SIZE_LIMIT: "52428800"
+      TENANT_ID: stub
+      GLOBAL_S3_BUCKET: stub
+      STORAGE_S3_REGION: local
+      ENABLE_IMAGE_TRANSFORMATION: "false"
+      IMAGE_TRANSFORMATION_ENABLED: "false"
+      S3_PROTOCOL_ENABLED: "false"
+      VECTOR_ENABLED: "false"
+    volumes:
+      - ses_betrieb_dateien:/mnt
+
+  kong:
+    image: public.ecr.aws/supabase/kong:2.8.1
+    restart: unless-stopped
+    depends_on: [auth, rest, storage]
+    entrypoint: ["/docker-entrypoint.sh", "kong", "docker-start", "--nginx-conf", "/home/kong/custom_nginx.template"]
+    environment:
+      KONG_DATABASE: "off"
+      KONG_DECLARATIVE_CONFIG: /home/kong/kong.yml
+      KONG_DNS_ORDER: LAST,A,CNAME
+      KONG_PLUGINS: request-transformer,cors
+      KONG_NGINX_WORKER_PROCESSES: "1"
+      KONG_NGINX_PROXY_PROXY_BUFFER_SIZE: 160k
+      KONG_NGINX_PROXY_PROXY_BUFFERS: 64 160k
+    volumes:
+      - ./kong/kong.yml:/home/kong/kong.yml:ro
+      - ./kong/nginx.template:/home/kong/custom_nginx.template:ro
+      - ../supabase/templates:/home/kong/templates/email:ro
+    ports:
+      - "127.0.0.1:${API_PORT:-56321}:8000"
+
+volumes:
+  ses_betrieb_db:
+  ses_betrieb_dateien:
