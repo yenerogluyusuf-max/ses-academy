@@ -22,6 +22,16 @@ export default async function TeamStart({ searchParams }: PageProps<"/team">) {
             <p className="font-display text-xl font-bold">Einlass</p>
             <p className="mt-1 text-ink-soft">QR-Codes scannen, Kurzcodes eingeben, Anwesenheit sehen.</p>
           </Link>
+          <Link href="/team/regieplan/" className={kachel}>
+            <p className="font-display text-xl font-bold">Regieplan</p>
+            <p className="mt-1 text-ink-soft">Was gerade läuft, was als Nächstes kommt, Verzögerungen für alle sichtbar.</p>
+          </Link>
+          {darf.orga(staff.role) && (
+            <Link href="/team/rollenplan/" className={kachel}>
+              <p className="font-display text-xl font-bold">Rollenplan</p>
+              <p className="mt-1 text-ink-soft">Wer an welchem Tag wofür zuständig ist, mit Anruf-Knopf.</p>
+            </Link>
+          )}
           {darf.alles(staff.role) && (
             <Link href="/team/bewerbungen/" className={kachel}>
               <p className="font-display text-xl font-bold">Bewerbungen</p>

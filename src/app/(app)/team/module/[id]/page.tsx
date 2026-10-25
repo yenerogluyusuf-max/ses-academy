@@ -4,9 +4,11 @@ import { notFound } from "next/navigation";
 import { Hinweis } from "@/components/team/Hinweis";
 import { ModulFormular } from "@/components/team/ModulFormular";
 import { TeamKopf } from "@/components/team/TeamKopf";
+import { ticketsAnAlle } from "@/lib/aktionen/eventtag";
 import { absageZuruecknehmen, modulAbsagen, modulSpeichern, tagEntfernen, tagHinzufuegen } from "@/lib/aktionen/module";
 import { requireStaff } from "@/lib/auth";
 import { anmeldestatus } from "@/lib/einlass";
+import { versandrundeSeit } from "@/lib/eventtag";
 import { createClient } from "@/lib/supabase/server";
 import { istToken } from "@/lib/codes";
 
@@ -43,6 +45,12 @@ export default async function ModulDetail({ params, searchParams }: PageProps<"/
     .maybeSingle();
   if (!m) notFound();
 
+  const { data: ticketRoh } = await supabase.rpc("get_ticket_status", { p_module_id: m.id, p_since: await versandrundeSeit(m.id) });
+  const tickets = ticketRoh ?? [];
+  const ticketAnzahl = (s: string) => tickets.filter((t) => t.ticket_status === s).length;
+  const ohneTicket = tickets.filter((t) => t.ticket_status !== "gesendet");
+  const versand = typeof hinweis === "string" && hinweis.startsWith("tickets-") ? hinweis.split("-").slice(1).map(Number) : null;
+
   const code = typeof hinweis === "string" && hinweis.startsWith("gespeichert-") ? "gespeichert" : hinweis;
   const neuAngemeldet = typeof hinweis === "string" && hinweis.startsWith("gespeichert-") ? Number(hinweis.split("-")[1]) : 0;
   const tage = [...m.module_days].sort((a, b) => a.starts_at.localeCompare(b.starts_at));
@@ -78,6 +86,8 @@ export default async function ModulDetail({ params, searchParams }: PageProps<"/
                     <p className="text-sm text-ink-soft">{zeitFormat.format(new Date(t.starts_at))} bis {zeitFormat.format(new Date(t.ends_at))} Uhr · {checkins} eingecheckt</p>
                   </div>
                   <Link href={`/team/einlass/?tag=${t.id}`} className="rounded-full bg-white px-4 py-2 text-sm font-semibold ring-1 ring-line">Einlass</Link>
+                  <Link href={`/team/regieplan/?tag=${t.id}`} className="rounded-full bg-white px-4 py-2 text-sm font-semibold ring-1 ring-line">Regieplan</Link>
+                  <Link href={`/team/rollenplan/?tag=${t.id}`} className="rounded-full bg-white px-4 py-2 text-sm font-semibold ring-1 ring-line">Rollenplan</Link>
                   {checkins === 0 && (
                     <form action={tagEntfernen}>
                       <input type="hidden" name="module_id" value={m.id} /><input type="hidden" name="day_id" value={t.id} />
@@ -97,6 +107,50 @@ export default async function ModulDetail({ params, searchParams }: PageProps<"/
             <div className="min-w-40 flex-1"><label htmlFor="label" className="mb-1 block text-sm font-semibold">Bezeichnung (optional)</label><input id="label" name="label" placeholder="z. B. Tag 1" className={`${feld} w-full`} /></div>
             <button type="submit" className="rounded-full bg-ink px-5 py-3 font-semibold text-paper">Termin eintragen</button>
           </form>
+        </section>
+
+
+        <section id="tickets" className="mt-8 rounded-3xl bg-white/60 p-6 ring-1 ring-line">
+          <h2 className="font-display text-xl font-bold">Tickets</h2>
+          <p className="mt-1 text-sm text-ink-soft">
+            Gezählt werden Ticket-Mails ab 30 Tagen vor dem ersten Termin. Ein zweiter Klick schickt nur an die, die noch keines haben.
+          </p>
+          {versand && (
+            <p role="status" className={`mt-3 rounded-2xl p-4 ${versand[1] ? "bg-amber-100 text-amber-950" : "bg-emerald-100 text-emerald-950"}`}>
+              {versand[0]} Tickets verschickt{versand[1] ? `, ${versand[1]} fehlgeschlagen. Bitte unten prüfen und erneut senden.` : "."}
+            </p>
+          )}
+          <p className="mt-3">
+            {ticketAnzahl("gesendet")} von {tickets.length} haben ihr Ticket
+            {ticketAnzahl("fehlgeschlagen") > 0 && ` · ${ticketAnzahl("fehlgeschlagen")} fehlgeschlagen`}
+            {ticketAnzahl("keine_mail") > 0 && ` · ${ticketAnzahl("keine_mail")} ohne E-Mail-Adresse`}
+          </p>
+          <div className="mt-4 flex flex-wrap gap-2">
+            {ticketAnzahl("offen") + ticketAnzahl("fehlgeschlagen") > 0 && (
+              <form action={ticketsAnAlle}>
+                <input type="hidden" name="module_id" value={m.id} />
+                <button type="submit" className="rounded-full bg-ink px-5 py-3 font-semibold text-paper">
+                  {ticketAnzahl("offen") + ticketAnzahl("fehlgeschlagen")} Tickets jetzt senden
+                </button>
+              </form>
+            )}
+            <Link href={`/team/module/${m.id}/notfall/`} className="rounded-full bg-white px-5 py-3 font-semibold ring-1 ring-line">Notfall-Liste drucken</Link>
+          </div>
+          {ohneTicket.length > 0 && (
+            <details className="mt-4">
+              <summary className="cursor-pointer font-semibold">Wer noch kein Ticket hat ({ohneTicket.length})</summary>
+              <ul className="mt-2 divide-y divide-line text-sm">
+                {ohneTicket.map((t) => (
+                  <li key={t.participant_id} className="flex flex-wrap gap-x-3 py-2">
+                    <Link href={`/team/teilnehmende/${t.participant_id}/`} className="mr-auto font-semibold underline">{t.name}</Link>
+                    <span className="text-ink-soft">
+                      {t.ticket_status === "keine_mail" ? "keine E-Mail-Adresse" : t.ticket_status === "fehlgeschlagen" ? `fehlgeschlagen: ${t.last_error ?? ""}` : "noch nicht verschickt"}
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            </details>
+          )}
         </section>
 
         <section className="mt-8 rounded-3xl bg-white/60 p-6 ring-1 ring-line">

@@ -11,12 +11,15 @@ Fünfsprachige Website der SES Academy, dazu Bewerbung, Teilnahme und Einlass (C
 | `/ticket/<token>/` | Teilnehmende | Persönliches Ticket: QR-Code, Kurzcode, Module, selbst abmelden oder entschuldigen. Der Link kommt per Mail. |
 | `/team/` | Team (Login) | Übersicht je nach Rolle. |
 | `/team/einlass/` | alle Team-Rollen | Scanner und Kurzcode. Ab Orga-Team auch die Anwesenheitsliste (abhaken, zurücknehmen). |
+| `/team/regieplan/` | alle Team-Rollen (pflegen ab Orga-Team) | Programm eines Modultags: was läuft, was als Nächstes kommt, Status, Verzögerung um 10/15/30 Minuten für alle folgenden Punkte. Aktualisiert sich alle 30 Sekunden. |
+| `/team/rollenplan/` | ab Orga-Team | Wer an welchem Tag welche Aufgabe hat, mit Telefon und Anruf-Knopf; Leitung vor Ort oben; Einsätze vom Vortag übernehmen. |
 | `/team/bewerbungen/` | Admin, Vorstand | Bewerbungen annehmen (meldet für alle Module an und schickt das Ticket), ablehnen, Warteliste, Ticket erneut senden. |
 | `/team/teilnehmende/` | Admin, Vorstand | Teilnehmende mit Region, GT/KGT, Verantwortlichen; Anwesenheit je Modul und Tag (nachtragen/zurücknehmen), QR-Code per Mail, Stimmen-Beiträge verknüpfen. Ansicht „Verantwortliche“ (Sorumlu) mit E-Mail. |
 | `/team/hausaufgaben/` | ab Orga-Team | Hausaufgaben, wer abgegeben hat und wer nicht, Bewertung nach dem Rhetorik-Bogen (9 Kriterien × 1–5 Punkte, Feedback), Gruppenvideos. Namen ohne Kontaktdaten. |
 | `/team/import/` | Admin, Vorstand | Excel/CSV einlesen: Teilnehmerliste, Hausaufgabenliste, Bewertungsbogen, E-Mail-Adressen (z. B. Google-Formular). Immer erst Vorschau, dann übernehmen. |
 | `/mein-bereich/` | Teilnehmende (Login per E-Mail-Code) | Eigener QR-Code, kommende Module, Anwesenheit, Hausaufgaben mit Bewertung und Feedback, eigene Beiträge. |
-| `/team/module/` | Admin, Vorstand | Module anlegen und bearbeiten, Termine, mit/ohne Ticket, zählt für Serien, offen für Gäste, Plätze, absagen. Beim Veröffentlichen wird der Jahrgang angemeldet. |
+| `/team/module/` | Admin, Vorstand | Module anlegen und bearbeiten, Termine, mit/ohne Ticket, zählt für Serien, offen für Gäste, Plätze, absagen. Beim Veröffentlichen wird der Jahrgang angemeldet. „Tickets an alle“ schickt jedem Angemeldeten ohne Ticket in dieser Runde (ab 30 Tage vor Beginn) die Ticket-Mail, mit Protokoll und erneutem Versuch bei Fehlern. |
+| `/team/module/<id>/notfall/` | ab Orga-Team | Notfall-Liste zum Drucken: alle Angemeldeten mit Kurzcode und Kästchen je Tag, Leitung vor Ort. Am Vorabend legt `scripts/notfall-pdf.mts` sie automatisch als PDF ab. |
 | `/team/team/` | Admin | Team-Konten anlegen (mit Startpasswort), Rollen ändern, entfernen. |
 | `/team/passwort/` | alle Team-Rollen | Eigenes Passwort ändern. |
 
@@ -40,7 +43,7 @@ npm run dev
 ## Tests
 
 ```bash
-npm run test:db                # 95 Datenbanktests (Check-in; Hausaufgaben/Portal; Kennzahlen; Step 2), setzt die lokale DB zurück
+npm run test:db                # 112 Datenbanktests (Check-in; Hausaufgaben/Portal; Kennzahlen; Step 2; Eventtag), setzt die lokale DB zurück
 npm run build && npx next start -p 3100 &
 supabase db reset && node scripts/e2e-phase1.mjs   # Ende-zu-Ende, headless
 supabase db reset && node scripts/e2e-phase2.mjs
