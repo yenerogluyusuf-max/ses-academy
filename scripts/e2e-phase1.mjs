@@ -78,7 +78,7 @@ alle = await mails();
 const ticketMail = alle.find((m) => m.Subject === "Dein Ticket für die SES Academy");
 ok(Boolean(ticketMail), "Ticket-Mail verschickt");
 ok(ticketMail?.Attachments?.length + (ticketMail?.Inline?.length ?? 0) >= 1, "QR-Code hängt als Bild an");
-const link = ticketMail?.Text.match(/http:\/\/localhost:3000(\/ticket\/[0-9a-f-]{36}\/)/)?.[1];
+const link = ticketMail?.Text.match(/http:\/\/(?:localhost|127\.0\.0\.1):3000(\/ticket\/[0-9a-f-]{36}\/)/)?.[1];
 const kurzcode = ticketMail?.Text.match(/Kurzcode: ([0-9A-F]{4}-[0-9A-F]{4})/)?.[1];
 ok(Boolean(link && kurzcode), `Mail enthält Link und Kurzcode (${kurzcode})`);
 ok(ticketMail?.Text.includes("Demokratie") && ticketMail?.Text.includes("Winter School"), "Mail listet die kommenden Module");

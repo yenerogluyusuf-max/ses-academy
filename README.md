@@ -55,7 +55,7 @@ npm run dev
 ## Tests
 
 ```bash
-npm run test:db                # 235 Datenbanktests (Check-in; Hausaufgaben/Portal; Kennzahlen; Step 2; Eventtag; Feedback/Sorumlu; Abgabe; Übernachtung; Community; zweiter Faktor; Modulwerkzeuge; Vier-Augen), setzt die lokale DB zurück
+npm run test:db                # 260 Datenbanktests (Check-in; Hausaufgaben/Portal; Kennzahlen; Step 2; Eventtag; Feedback/Sorumlu; Abgabe; Übernachtung; Community; zweiter Faktor; Modulwerkzeuge; Vier-Augen; Dokumente), setzt die lokale DB zurück
 npm run build && npx next start -p 3100 &
 supabase db reset && node scripts/e2e-phase1.mjs   # Ende-zu-Ende, headless
 supabase db reset && node scripts/e2e-phase2.mjs

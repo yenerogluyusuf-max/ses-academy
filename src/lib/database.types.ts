@@ -209,6 +209,46 @@ isOneToOne: false
       referencedColumns: ["id"]
     }
                   ]
+                },"document_versions": {
+                  Row: {
+                    "document_id": string,"file_name": string,"id": string,"mime_type": string | null,"note": string,"size_bytes": number | null,"storage_path": string,"uploaded_at": string,"uploaded_by": string | null,"version": number
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "document_id": string,"file_name": string,"id"?: string,"mime_type"?: string | null,"note"?: string,"size_bytes"?: number | null,"storage_path": string,"uploaded_at"?: string,"uploaded_by"?: string | null,"version": number
+                  }
+                  Update: {
+                    "document_id"?: string,"file_name"?: string,"id"?: string,"mime_type"?: string | null,"note"?: string,"size_bytes"?: number | null,"storage_path"?: string,"uploaded_at"?: string,"uploaded_by"?: string | null,"version"?: number
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "document_versions_document_id_fkey"
+      columns: ["document_id"]
+isOneToOne: false
+      referencedRelation: "documents"
+      referencedColumns: ["id"]
+    }
+                  ]
+                },"documents": {
+                  Row: {
+                    "commission": string | null,"created_at": string,"created_by": string | null,"current_version": number,"description": string,"id": string,"kind": string,"link": string | null,"module_id": string | null,"status": string,"tags": (string)[],"title": string,"updated_at": string
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "commission"?: string | null,"created_at"?: string,"created_by"?: string | null,"current_version"?: number,"description"?: string,"id"?: string,"kind"?: string,"link"?: string | null,"module_id"?: string | null,"status"?: string,"tags"?: (string)[],"title": string,"updated_at"?: string
+                  }
+                  Update: {
+                    "commission"?: string | null,"created_at"?: string,"created_by"?: string | null,"current_version"?: number,"description"?: string,"id"?: string,"kind"?: string,"link"?: string | null,"module_id"?: string | null,"status"?: string,"tags"?: (string)[],"title"?: string,"updated_at"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "documents_module_id_fkey"
+      columns: ["module_id"]
+isOneToOne: false
+      referencedRelation: "modules"
+      referencedColumns: ["id"]
+    }
+                  ]
                 },"duty_assignments": {
                   Row: {
                     "created_at": string,"ends_at": string | null,"id": string,"is_lead": boolean,"module_day_id": string,"person_name": string,"phone": string | null,"starts_at": string | null,"task": string,"user_id": string | null
@@ -387,6 +427,40 @@ isOneToOne: false
       referencedColumns: ["id"]
     }
                   ]
+                },"meeting_decisions": {
+                  Row: {
+                    "created_at": string,"id": string,"meeting_id": string,"text": string
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "created_at"?: string,"id"?: string,"meeting_id": string,"text": string
+                  }
+                  Update: {
+                    "created_at"?: string,"id"?: string,"meeting_id"?: string,"text"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "meeting_decisions_meeting_id_fkey"
+      columns: ["meeting_id"]
+isOneToOne: false
+      referencedRelation: "meetings"
+      referencedColumns: ["id"]
+    }
+                  ]
+                },"meetings": {
+                  Row: {
+                    "attendees": string,"commission": string | null,"created_at": string,"created_by": string | null,"held_on": string,"id": string,"protocol": string,"title": string,"updated_at": string
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "attendees"?: string,"commission"?: string | null,"created_at"?: string,"created_by"?: string | null,"held_on": string,"id"?: string,"protocol"?: string,"title": string,"updated_at"?: string
+                  }
+                  Update: {
+                    "attendees"?: string,"commission"?: string | null,"created_at"?: string,"created_by"?: string | null,"held_on"?: string,"id"?: string,"protocol"?: string,"title"?: string,"updated_at"?: string
+                  }
+                  Relationships: [
+                    
+                  ]
                 },"memberships": {
                   Row: {
                     "cohort_id": string | null,"commission": string | null,"created_at": string,"id": string,"module_id": string | null,"participant_id": string,"role": Database["public"]['Enums']["membership_role"],"valid_from": string,"valid_until": string | null,"membership_badge": string | null
@@ -501,14 +575,14 @@ isOneToOne: false
                   ]
                 },"module_speakers": {
                   Row: {
-                    "arrival_at": string | null,"arrival_info": string,"bio_received": boolean,"created_at": string,"departure_at": string | null,"fee": number | null,"host_name": string | null,"hotel_info": string,"id": string,"module_id": string,"notes": string,"program_item_id": string | null,"role": string,"slides_received": boolean,"speaker_id": string,"status": Database["public"]['Enums']["speaker_status"],"status_at": string,"tech_needs": string,"topic": string,"travel_costs": number | null
+                    "access_token": string,"arrival_at": string | null,"arrival_info": string,"bio_received": boolean,"created_at": string,"departure_at": string | null,"fee": number | null,"host_name": string | null,"hotel_info": string,"id": string,"module_id": string,"notes": string,"photo_path": string | null,"program_item_id": string | null,"role": string,"slides_path": string | null,"slides_received": boolean,"speaker_id": string,"status": Database["public"]['Enums']["speaker_status"],"status_at": string,"tech_needs": string,"topic": string,"travel_costs": number | null
                   }
                   ComputedFields: never
                   Insert: {
-                    "arrival_at"?: string | null,"arrival_info"?: string,"bio_received"?: boolean,"created_at"?: string,"departure_at"?: string | null,"fee"?: number | null,"host_name"?: string | null,"hotel_info"?: string,"id"?: string,"module_id": string,"notes"?: string,"program_item_id"?: string | null,"role"?: string,"slides_received"?: boolean,"speaker_id": string,"status"?: Database["public"]['Enums']["speaker_status"],"status_at"?: string,"tech_needs"?: string,"topic"?: string,"travel_costs"?: number | null
+                    "access_token"?: string,"arrival_at"?: string | null,"arrival_info"?: string,"bio_received"?: boolean,"created_at"?: string,"departure_at"?: string | null,"fee"?: number | null,"host_name"?: string | null,"hotel_info"?: string,"id"?: string,"module_id": string,"notes"?: string,"photo_path"?: string | null,"program_item_id"?: string | null,"role"?: string,"slides_path"?: string | null,"slides_received"?: boolean,"speaker_id": string,"status"?: Database["public"]['Enums']["speaker_status"],"status_at"?: string,"tech_needs"?: string,"topic"?: string,"travel_costs"?: number | null
                   }
                   Update: {
-                    "arrival_at"?: string | null,"arrival_info"?: string,"bio_received"?: boolean,"created_at"?: string,"departure_at"?: string | null,"fee"?: number | null,"host_name"?: string | null,"hotel_info"?: string,"id"?: string,"module_id"?: string,"notes"?: string,"program_item_id"?: string | null,"role"?: string,"slides_received"?: boolean,"speaker_id"?: string,"status"?: Database["public"]['Enums']["speaker_status"],"status_at"?: string,"tech_needs"?: string,"topic"?: string,"travel_costs"?: number | null
+                    "access_token"?: string,"arrival_at"?: string | null,"arrival_info"?: string,"bio_received"?: boolean,"created_at"?: string,"departure_at"?: string | null,"fee"?: number | null,"host_name"?: string | null,"hotel_info"?: string,"id"?: string,"module_id"?: string,"notes"?: string,"photo_path"?: string | null,"program_item_id"?: string | null,"role"?: string,"slides_path"?: string | null,"slides_received"?: boolean,"speaker_id"?: string,"status"?: Database["public"]['Enums']["speaker_status"],"status_at"?: string,"tech_needs"?: string,"topic"?: string,"travel_costs"?: number | null
                   }
                   Relationships: [
                     {
@@ -845,17 +919,23 @@ isOneToOne: false
                   ]
                 },"tasks": {
                   Row: {
-                    "assignee_name": string | null,"assignee_user": string | null,"commission": string | null,"created_at": string,"created_by": string | null,"done_at": string | null,"done_by": string | null,"due_date": string | null,"id": string,"module_id": string | null,"notes": string,"template_id": string | null,"title": string
+                    "assignee_name": string | null,"assignee_user": string | null,"commission": string | null,"created_at": string,"created_by": string | null,"done_at": string | null,"done_by": string | null,"due_date": string | null,"id": string,"meeting_id": string | null,"module_id": string | null,"notes": string,"template_id": string | null,"title": string
                   }
                   ComputedFields: never
                   Insert: {
-                    "assignee_name"?: string | null,"assignee_user"?: string | null,"commission"?: string | null,"created_at"?: string,"created_by"?: string | null,"done_at"?: string | null,"done_by"?: string | null,"due_date"?: string | null,"id"?: string,"module_id"?: string | null,"notes"?: string,"template_id"?: string | null,"title": string
+                    "assignee_name"?: string | null,"assignee_user"?: string | null,"commission"?: string | null,"created_at"?: string,"created_by"?: string | null,"done_at"?: string | null,"done_by"?: string | null,"due_date"?: string | null,"id"?: string,"meeting_id"?: string | null,"module_id"?: string | null,"notes"?: string,"template_id"?: string | null,"title": string
                   }
                   Update: {
-                    "assignee_name"?: string | null,"assignee_user"?: string | null,"commission"?: string | null,"created_at"?: string,"created_by"?: string | null,"done_at"?: string | null,"done_by"?: string | null,"due_date"?: string | null,"id"?: string,"module_id"?: string | null,"notes"?: string,"template_id"?: string | null,"title"?: string
+                    "assignee_name"?: string | null,"assignee_user"?: string | null,"commission"?: string | null,"created_at"?: string,"created_by"?: string | null,"done_at"?: string | null,"done_by"?: string | null,"due_date"?: string | null,"id"?: string,"meeting_id"?: string | null,"module_id"?: string | null,"notes"?: string,"template_id"?: string | null,"title"?: string
                   }
                   Relationships: [
                     {
+      foreignKeyName: "tasks_meeting_id_fkey"
+      columns: ["meeting_id"]
+isOneToOne: false
+      referencedRelation: "meetings"
+      referencedColumns: ["id"]
+    },{
       foreignKeyName: "tasks_module_id_fkey"
       columns: ["module_id"]
 isOneToOne: false
@@ -878,6 +958,9 @@ isOneToOne: false
             "accept_application":
 { Args: { "p_application_id": string,"p_note"?: string }; Returns: Json
                            },
+"add_document_version":
+{ Args: { "p_document_id": string,"p_file_name": string,"p_mime": string,"p_note"?: string,"p_storage_path": string }; Returns: number
+                           },
 "broadcast_recipients":
 { Args: { "p_filter": Json }; Returns: {
               "email": string,"first_name": string,"participant_id": string,"preferred_language": string
@@ -894,6 +977,9 @@ isOneToOne: false
                            },
 "claim_approval":
 { Args: { "p_action": string,"p_id": string }; Returns: Json
+                           },
+"create_approval":
+{ Args: { "p_action": string,"p_payload": Json }; Returns: string
                            },
 "create_feedback_survey":
 { Args: { "p_closes_at": string,"p_module_id": string,"p_opens_at": string }; Returns: string
@@ -915,6 +1001,9 @@ isOneToOne: false
                            },
 "end_user_sessions":
 { Args: { "p_user_id": string }; Returns: number
+                           },
+"execute_team_approval":
+{ Args: { "p_id": string,"p_new_user"?: string }; Returns: string
                            },
 "get_assignment_status":
 { Args: { "p_assignment_id": string }; Returns: {
@@ -958,6 +1047,9 @@ isOneToOne: false
 { Args: { "p_module_id": string }; Returns: {
               "branch": string,"country": string,"group_id": string,"name": string,"participant_id": string
             }[]
+                           },
+"get_guest_sheet":
+{ Args: { "p_token": string }; Returns: Json
                            },
 "get_member_directory":
 { Args: Record<PropertyKey, never>; Returns: {
@@ -1045,6 +1137,12 @@ isOneToOne: false
                            },
 "save_my_stay":
 { Args: { "p_arrival_at": string,"p_arrival_by": string,"p_departure_at": string,"p_module_id": string,"p_nights": (string)[],"p_notes": string,"p_room_wish": string }; Returns: string
+                           },
+"staff_role_name":
+{ Args: { "r": Database["public"]['Enums']["staff_role"] }; Returns: string
+                           },
+"staff_role_rank":
+{ Args: { "r": Database["public"]['Enums']["staff_role"] }; Returns: number
                            },
 "submit_feedback":
 { Args: { "p_answers": Json,"p_survey_id": string,"p_token": string }; Returns: string

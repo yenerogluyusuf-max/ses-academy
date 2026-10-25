@@ -58,41 +58,37 @@ export async function mitgliedAnlegen(formData: FormData) {
   if (!d.success) zurueck("eingabe");
   const modul = String(formData.get("modul") ?? "");
   const supabase = await createClient();
-  const { error } = await supabase.from("approvals").insert({
-    action: "team_zugang",
-    summary: `Team-Zugang für ${d.data.name} <${d.data.email}> als ${rollenName[d.data.rolle]}${modul ? " (befristet auf ein Modul)" : ""}`,
-    payload: { art: "neu", email: d.data.email, name: d.data.name, rolle: d.data.rolle, modul: modul || null },
+  const { error } = await supabase.rpc("create_approval", {
+    p_action: "team_zugang", p_payload: { art: "neu", email: d.data.email, name: d.data.name, rolle: d.data.rolle, modul: modul || null },
   });
   zurueck(error ? "fehler" : "beantragt");
 }
 
 const rang: Record<z.infer<typeof rolle>, number> = { checkin_helper: 0, orga_team: 1, vorstand: 2, admin: 3 };
 
-/** Freigegebenen Antrag ausführen: Konto anlegen bzw. Rolle hochstufen. */
+/**
+ * Freigegebenen Antrag ausführen: Konto anlegen bzw. Rolle hochstufen. Die Prüfung (eigener Antrag, freigegeben durch
+ * einen anderen Admin, höchstens 24 Stunden alt) und das Eintragen der Rolle macht execute_team_approval in der Datenbank.
+ */
 export async function teamZugangAusfuehren(formData: FormData) {
   await requireStaff("admin");
   const id = String(formData.get("id"));
   const supabase = await createClient();
-  const { data: antwort } = await supabase.rpc("claim_approval", { p_id: id, p_action: "team_zugang" });
-  const a = antwort as { result: string; payload?: { art: "neu" | "rolle"; email?: string; name?: string; rolle: z.infer<typeof rolle>; modul?: string | null; user_id?: string } } | null;
-  if (a?.result !== "ok" || !a.payload) zurueck(a?.result === "expired" ? "abgelaufen" : "fehler");
-  const p = a.payload;
-  if (p.art === "rolle" && p.user_id) {
-    const { error } = await supabase.from("staff_members").update({ role: p.rolle }).eq("user_id", p.user_id);
-    zurueck(error ? "fehler" : "gespeichert");
+  const { data: antrag } = await supabase.from("approvals").select("payload").eq("id", id).eq("action", "team_zugang").maybeSingle();
+  const p = antrag?.payload as { art?: "neu" | "rolle"; email?: string } | undefined;
+  if (!p) zurueck("fehler");
+  if (p.art === "rolle") {
+    const { data, error } = await supabase.rpc("execute_team_approval", { p_id: id });
+    zurueck(error ? "fehler" : data === "ok" ? "gespeichert" : data === "expired" ? "abgelaufen" : "fehler");
   }
   const admin = createAdminClient();
-  const { data, error } = await admin.auth.admin.createUser({ email: p.email!, email_confirm: true });
+  const { data: konto, error } = await admin.auth.admin.createUser({ email: p.email!, email_confirm: true });
   if (error?.code === "email_exists") zurueck("existiert");
-  if (error || !data.user) zurueck("fehler");
-  const zeitraum = p.modul ? await modulZeitraum(p.modul) : null;
-  const { error: fehler } = await supabase.from("staff_members").insert({
-    user_id: data.user.id, role: p.rolle, display_name: p.name!,
-    ...(zeitraum ? { valid_from: zeitraum.valid_from, valid_until: zeitraum.valid_until, label: `${p.rolle === "checkin_helper" ? "Helfer" : "Team"} · ${zeitraum.titel}` } : {}),
-  });
-  if (fehler) {
-    await admin.auth.admin.deleteUser(data.user.id);
-    zurueck("fehler");
+  if (error || !konto.user) zurueck("fehler");
+  const { data: ergebnis, error: fehler } = await supabase.rpc("execute_team_approval", { p_id: id, p_new_user: konto.user.id });
+  if (fehler || ergebnis !== "ok") {
+    await admin.auth.admin.deleteUser(konto.user.id);
+    zurueck(ergebnis === "expired" ? "abgelaufen" : "fehler");
   }
   zurueck("angelegt");
 }
@@ -113,11 +109,7 @@ export async function rolleAendern(formData: FormData) {
   const supabase = await createClient();
   const { data: bisher } = await supabase.from("staff_members").select("role, display_name").eq("user_id", userId).maybeSingle();
   if (bisher && rang[neu.data] > rang[bisher.role]) {
-    const { error } = await supabase.from("approvals").insert({
-      action: "team_zugang",
-      summary: `${bisher.display_name}: Rolle von ${rollenName[bisher.role]} auf ${rollenName[neu.data]} hochstufen`,
-      payload: { art: "rolle", user_id: userId, rolle: neu.data },
-    });
+    const { error } = await supabase.rpc("create_approval", { p_action: "team_zugang", p_payload: { art: "rolle", user_id: userId, rolle: neu.data } });
     zurueck(error ? "fehler" : "beantragt");
   }
   const { error } = await supabase.from("staff_members").update({ role: neu.data }).eq("user_id", userId);

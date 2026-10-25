@@ -35,7 +35,7 @@ export default async function Referenten({ params, searchParams }: PageProps<"/t
   const supabase = await createClient();
   const [{ data: modul }, { data: einladungen }, { data: pool }] = await Promise.all([
     supabase.from("modules").select("id, title").eq("id", id).maybeSingle(),
-    supabase.from("module_speakers").select("*, speaker:speakers(id, name, affiliation, email, phone, bio)").eq("module_id", id).order("created_at"),
+    supabase.from("module_speakers").select("id, role, topic, status, host_name, arrival_at, arrival_info, departure_at, hotel_info, tech_needs, slides_received, bio_received, fee, travel_costs, notes, slides_path, photo_path, speaker:speakers(id, name, affiliation, email, phone, bio)").eq("module_id", id).order("created_at"),
     supabase.from("speakers").select("id, name, affiliation, topics").order("name"),
   ]);
   if (!modul) notFound();

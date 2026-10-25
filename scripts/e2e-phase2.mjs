@@ -99,7 +99,7 @@ ok(ben.length === 1 && ben[0].Subject === "Your ticket for the SES Academy" && b
   "Gast B: englische Mail mit Status Warteliste");
 
 // 3. A meldet sich ab, B rückt nach und bekommt sein Ticket
-const link = anna[0].Text.match(/http:\/\/localhost:3000(\/ticket\/[0-9a-f-]{36}\/)/)[1];
+const link = anna[0].Text.match(/http:\/\/(?:localhost|127\.0\.0\.1):3000(\/ticket\/[0-9a-f-]{36}\/)/)[1];
 await besucher.goto(`${BASIS}${link}`);
 const zeile = besucher.locator("li", { hasText: "Demokratie" });
 await zeile.getByText("Ich kann nicht teilnehmen").click();
@@ -121,27 +121,30 @@ for (const adresse of ["amina@example.test", "niemand@example.test"]) {
 ok((await mailsAn("amina@example.test")).length === 1, "Ticket verloren: Mail an bekannte Adresse");
 ok((await mailsAn("niemand@example.test")).length === 0, "Ticket verloren: unbekannte Adresse bekommt nichts, gleiche Meldung");
 
-// 5. Team-Konto anlegen, einloggen, Passwort ändern
+// 5. Team-Zugang beantragen (Vier-Augen-Prinzip), Freigabe nur durch einen zweiten Admin; Passwort ändern
 await admin.goto(`${BASIS}/team/team/`);
 await admin.fill("input[name=name]", "Neue Helferin");
 await admin.fill("input[name=email]", "neu@ses.test");
-await admin.fill("input[name=passwort]", "startpasswort1");
-await admin.click("button:has-text('Anlegen')");
-await admin.getByText("Konto angelegt").waitFor();
-const neu = await login(browser, "neu@ses.test", "startpasswort1");
-ok(await neu.getByText("Neue Helferin · Einlass-Helfer:in").isVisible(), "Neues Konto kann sich als Helferin anmelden");
-await neu.goto(`${BASIS}/team/passwort/`);
-await neu.fill("#neu", "meinneuespasswort");
-await neu.fill("#wiederholung", "meinneuespasswort");
-await neu.click("button:has-text('Speichern')");
-await neu.getByText("Passwort geändert.").waitFor();
-await login(browser, "neu@ses.test", "meinneuespasswort");
+await admin.click("button:has-text('Zur Freigabe vorlegen')");
+await admin.getByText("Beantragt.").waitFor();
+ok(true, "Team-Zugang beantragt statt sofort angelegt");
+const orga = await login(browser, "orga@ses.test");
+await orga.goto(`${BASIS}/team/passwort/`);
+await orga.fill("#neu", "meinneuespasswort");
+await orga.fill("#wiederholung", "meinneuespasswort");
+await orga.click("button:has-text('Speichern')");
+await orga.getByText("Passwort geändert.").waitFor();
+await login(browser, "orga@ses.test", "meinneuespasswort");
 ok(true, "Passwort geändert, Login mit neuem Passwort");
 const vorstand = await login(browser, "vorstand@ses.test");
 ok(!(await vorstand.getByRole("link", { name: "Team", exact: true }).count()) && (await vorstand.getByRole("link", { name: "Module" }).count()) > 0,
   "Vorstand sieht Module, aber nicht die Teamverwaltung");
 await vorstand.goto(`${BASIS}/team/team/`);
 ok(vorstand.url().includes("fehler=rechte"), "Vorstand kommt nicht in die Teamverwaltung");
+await vorstand.goto(`${BASIS}/team/freigaben/`);
+await vorstand.click("button:has-text('Freigeben')");
+await vorstand.waitForURL(/hinweis=/);
+ok(await vorstand.getByText("Team-Zugänge gibt nur ein Admin frei.").isVisible(), "Vorstand kann Team-Zugänge nicht freigeben");
 
 await browser.close();
 console.log(fehler === 0 ? "\nALLES GRÜN" : `\n${fehler} FEHLER`);

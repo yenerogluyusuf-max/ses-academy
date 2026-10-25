@@ -3,7 +3,7 @@ import Link from "next/link";
 import { Hinweis } from "@/components/team/Hinweis";
 import { TeamKopf } from "@/components/team/TeamKopf";
 import { freigabeEntscheiden } from "@/lib/aktionen/freigaben";
-import { requireStaff } from "@/lib/auth";
+import { requireStaff, rollenName } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 import { jetztMs } from "@/lib/zeit";
 
@@ -50,12 +50,18 @@ export default async function Freigaben({ searchParams }: PageProps<"/team/freig
           {offenFremd.length === 0 && <p className="mt-2 text-ink-soft">Nichts offen.</p>}
           <ul className="mt-3 space-y-3">
             {offenFremd.map((a) => {
-              const p = a.payload as { betreff?: string; text?: string; anzahl?: number; email?: string; rolle?: string };
+              const p = a.payload as { betreff?: string; text?: string; anzahl?: number; email?: string; name?: string; rolle?: string; art?: string; filter?: Record<string, string> };
               return (
                 <li key={a.id} className="karte">
                   <p className="text-xs font-semibold tracking-wide text-ink-soft uppercase">{aktionName[a.action]} · beantragt von {name.get(a.requested_by) ?? "?"} · {zeit.format(new Date(a.requested_at))}</p>
                   <p className="mt-1 font-semibold">{a.summary}</p>
                   {p.text && <pre className="mt-3 max-h-64 overflow-auto rounded-2xl bg-paper p-3 font-sans text-sm whitespace-pre-wrap">{p.text}</pre>}
+                  {a.action === "team_zugang" && (
+                    <dl className="mt-2 grid grid-cols-[auto_1fr] gap-x-3 text-sm">
+                      {p.email && <><dt className="text-ink-soft">E-Mail</dt><dd>{p.email}</dd></>}
+                      {p.rolle && <><dt className="text-ink-soft">Rolle</dt><dd className="font-semibold">{rollenName[p.rolle as keyof typeof rollenName] ?? p.rolle}</dd></>}
+                    </dl>
+                  )}
                   <form action={freigabeEntscheiden} className="mt-3 flex flex-wrap items-end gap-2">
                     <input type="hidden" name="id" value={a.id} />
                     <input name="notiz" placeholder="Notiz (optional)" className="feld !w-64" aria-label="Notiz" />

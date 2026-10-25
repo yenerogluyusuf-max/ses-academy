@@ -89,7 +89,6 @@ export default async function Nachrichten({ searchParams }: PageProps<"/team/nac
               <select name="mentor_id" className="feld" aria-label="Sorumlu"><option value="">alle Sorumlu-Gruppen</option>{(sorumlu ?? []).map((s) => <option key={s.id} value={s.id}>{s.name}</option>)}</select>
               <select name="module_id" className="feld" aria-label="Modul"><option value="">unabhängig von Modulen</option>{(module ?? []).map((m) => <option key={m.id} value={m.id}>angemeldet: {m.title}</option>)}</select>
               <select name="group_id" className="feld" aria-label="Gruppe"><option value="">alle Gruppen</option>{(gruppen ?? []).map((g) => <option key={g.id} value={g.id}>{g.name}{g.module ? ` (${g.module.title})` : ""}</option>)}</select>
-              <input name="beschreibung" placeholder="Kurz: an wen? (für die Freigabe)" className="feld" aria-label="Beschreibung der Empfänger" />
             </fieldset>
             <div className="sm:col-span-2"><button type="submit" className="knopf">Zur Freigabe vorlegen</button></div>
           </form>

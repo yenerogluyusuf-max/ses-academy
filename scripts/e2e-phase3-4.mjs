@@ -105,7 +105,18 @@ ok(/No-Shows/.test(kpi) && /87,5 %/.test(kpi), "Kennzahl: Anwesenheit gesamt 87,
 await vorstand.goto(`${BASIS}/team/auswertung/?von=2026-06-01&bis=2026-06-30`);
 ok((await vorstand.locator("figure button").count()) === 2, "Zeitraumfilter: Juni hat 2 Tage");
 
-const csv = await vorstand.request.get(`${BASIS}/team/auswertung/export/`);
+// Export nur nach Freigabe (Vier-Augen-Prinzip): Vorstand beantragt, Admin gibt frei, Vorstand lädt einmal herunter
+ok((await vorstand.request.get(`${BASIS}/team/auswertung/export/`)).status() === 403, "Export ohne Freigabe gesperrt");
+await vorstand.goto(`${BASIS}/team/auswertung/`);
+await vorstand.click("button:has-text('CSV-Export beantragen')");
+await vorstand.waitForURL(/export-beantragt/);
+const { page: admin } = await login(browser, "admin@ses.test");
+await admin.goto(`${BASIS}/team/freigaben/`);
+await admin.click("button:has-text('Freigeben')");
+await admin.waitForURL(/hinweis=approved/);
+await vorstand.goto(`${BASIS}/team/auswertung/`);
+const exportLink = await vorstand.getByRole("link", { name: "Freigegebenen Export herunterladen" }).getAttribute("href");
+const csv = await vorstand.request.get(`${BASIS}${exportLink}`);
 const csvText = await csv.text();
 ok(csv.status() === 200 && csv.headers()["content-type"].includes("text/csv"), "CSV-Export lädt");
 ok(csvText.startsWith("﻿Vorname;Nachname;E-Mail") && csvText.includes("Amina;Yilmaz;amina@example.test"), "CSV hat Kopf und Daten");

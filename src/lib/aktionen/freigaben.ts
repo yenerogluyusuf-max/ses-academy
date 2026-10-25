@@ -39,17 +39,10 @@ export async function nachrichtBeantragen(formData: FormData) {
   if (!betreff || !text) redirect("/team/nachrichten/?hinweis=eingabe");
   const filter = leseFilter(formData);
   const supabase = await createClient();
-  const { data: empfaenger } = await supabase.rpc("broadcast_recipients", { p_filter: filter });
-  const anzahl = (empfaenger ?? []).length;
-  if (anzahl === 0) redirect("/team/nachrichten/?hinweis=keine-empfaenger");
-  const beschreibung = String(formData.get("beschreibung") ?? "").slice(0, 300);
-  const { error } = await supabase.from("approvals").insert({
-    action: "nachricht",
-    summary: `Nachricht „${betreff}“ an ${anzahl} Personen${beschreibung ? ` (${beschreibung})` : ""}`,
-    payload: { betreff, text, filter, anzahl },
-  });
+  // Die Beschreibung für die zweite Person (Empfängerzahl, Filter) baut die Datenbank selbst
+  const { error } = await supabase.rpc("create_approval", { p_action: "nachricht", p_payload: { betreff, text, filter } });
   revalidatePath("/team/nachrichten/");
-  redirect(`/team/nachrichten/?hinweis=${error ? "fehler" : "beantragt"}`);
+  redirect(`/team/nachrichten/?hinweis=${error ? (error.message.includes("no_recipients") ? "keine-empfaenger" : "fehler") : "beantragt"}`);
 }
 
 /** Freigegebene Nachricht verschicken. Empfänger werden jetzt neu ermittelt (gleiche Filter). */
@@ -82,6 +75,6 @@ export async function exportBeantragen(formData: FormData) {
   await requireStaff("alles");
   const filter = Object.fromEntries([...formData.entries()].filter(([k]) => k !== "$ACTION_ID" && !k.startsWith("$")).map(([k, v]) => [k, String(v).slice(0, 100)]));
   const supabase = await createClient();
-  const { error } = await supabase.from("approvals").insert({ action: "export", summary: "Export der Auswertung (CSV mit E-Mail-Adressen)", payload: { filter } });
+  const { error } = await supabase.rpc("create_approval", { p_action: "export", p_payload: { filter } });
   redirect(`/team/auswertung/?hinweis=${error ? "fehler" : "export-beantragt"}`);
 }
