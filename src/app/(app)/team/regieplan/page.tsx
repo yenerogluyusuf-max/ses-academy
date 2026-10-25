@@ -58,6 +58,7 @@ export default async function Regieplan({ searchParams }: PageProps<"/team/regie
               </div>
               <button type="submit" className="knopf-hell">Öffnen</button>
               {darfPflegen && <Link href={`/team/rollenplan/?tag=${tag.id}`} className="knopf-hell">Rollenplan</Link>}
+              {darfPflegen && <Link href={`/team/gruppen/?tag=${tag.id}`} className="knopf-hell">Fehlt noch</Link>}
             </form>
 
             {(laufend || naechster) && (

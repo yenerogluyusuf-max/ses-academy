@@ -19,6 +19,10 @@ Fünfsprachige Website der SES Academy, dazu Bewerbung, Teilnahme und Einlass (C
 | `/team/import/` | Admin, Vorstand | Excel/CSV einlesen: Teilnehmerliste, Hausaufgabenliste, Bewertungsbogen, E-Mail-Adressen (z. B. Google-Formular). Immer erst Vorschau, dann übernehmen. |
 | `/mein-bereich/` | Teilnehmende (Login per E-Mail-Code) | Eigener QR-Code, kommende Module, Anwesenheit, Hausaufgaben mit Bewertung und Feedback, eigene Beiträge. |
 | `/team/module/` | Admin, Vorstand | Module anlegen und bearbeiten, Termine, mit/ohne Ticket, zählt für Serien, offen für Gäste, Plätze, absagen. Beim Veröffentlichen wird der Jahrgang angemeldet. „Tickets an alle“ schickt jedem Angemeldeten ohne Ticket in dieser Runde (ab 30 Tage vor Beginn) die Ticket-Mail, mit Protokoll und erneutem Versuch bei Fehlern. |
+| `/team/gruppen/` | ab Orga-Team | „Fehlt noch“ je Sorumlu am Eventtag: wer noch nicht eingecheckt ist, mit Anruf-Knopf; Admin/Vorstand pflegen dort Telefon und persönlichen Link der Sorumlu. |
+| `/sorumlu/<link>/` | Sorumlu (geheimer Link, ohne Konto) | Die eigene Gruppe am aktuellen Modultag, wer fehlt, mit Anruf-Knopf. |
+| `/team/module/<id>/namensschilder/` | ab Orga-Team | Namensschilder zum Drucken: acht je A4-Seite mit Name, Region, Generation und QR-Code für den Einlass, vier leere für Walk-ins. |
+| `/feedback/<ticket-token>/<umfrage>/` | Teilnehmende (Link aus der Mail) | Feedback-Umfrage zum Modul; antworten kann nur, wer eingecheckt war. Das Team sieht auf der Modulseite nur zusammengefasste Ergebnisse. |
 | `/team/module/<id>/notfall/` | ab Orga-Team | Notfall-Liste zum Drucken: alle Angemeldeten mit Kurzcode und Kästchen je Tag, Leitung vor Ort. Am Vorabend legt `scripts/notfall-pdf.mts` sie automatisch als PDF ab. |
 | `/team/team/` | Admin | Team-Konten anlegen (mit Startpasswort), Rollen ändern, entfernen. |
 | `/team/passwort/` | alle Team-Rollen | Eigenes Passwort ändern. |
@@ -43,7 +47,7 @@ npm run dev
 ## Tests
 
 ```bash
-npm run test:db                # 112 Datenbanktests (Check-in; Hausaufgaben/Portal; Kennzahlen; Step 2; Eventtag), setzt die lokale DB zurück
+npm run test:db                # 131 Datenbanktests (Check-in; Hausaufgaben/Portal; Kennzahlen; Step 2; Eventtag; Feedback/Sorumlu), setzt die lokale DB zurück
 npm run build && npx next start -p 3100 &
 supabase db reset && node scripts/e2e-phase1.mjs   # Ende-zu-Ende, headless
 supabase db reset && node scripts/e2e-phase2.mjs

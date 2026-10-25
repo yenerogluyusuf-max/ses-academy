@@ -241,16 +241,82 @@ isOneToOne: false
       referencedColumns: ["id"]
     }
                   ]
-                },"mentors": {
+                },"feedback_questions": {
                   Row: {
-                    "created_at": string,"email": string | null,"id": string,"name": string,"user_id": string | null
+                    "id": string,"kind": string,"position": number,"prompt": string,"survey_id": string
                   }
                   ComputedFields: never
                   Insert: {
-                    "created_at"?: string,"email"?: string | null,"id"?: string,"name": string,"user_id"?: string | null
+                    "id"?: string,"kind": string,"position": number,"prompt": string,"survey_id": string
                   }
                   Update: {
-                    "created_at"?: string,"email"?: string | null,"id"?: string,"name"?: string,"user_id"?: string | null
+                    "id"?: string,"kind"?: string,"position"?: number,"prompt"?: string,"survey_id"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "feedback_questions_survey_id_fkey"
+      columns: ["survey_id"]
+isOneToOne: false
+      referencedRelation: "feedback_surveys"
+      referencedColumns: ["id"]
+    }
+                  ]
+                },"feedback_responses": {
+                  Row: {
+                    "answers": NonNullable<Json>,"id": string,"participant_id": string,"submitted_at": string,"survey_id": string
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "answers"?: NonNullable<Json>,"id"?: string,"participant_id": string,"submitted_at"?: string,"survey_id": string
+                  }
+                  Update: {
+                    "answers"?: NonNullable<Json>,"id"?: string,"participant_id"?: string,"submitted_at"?: string,"survey_id"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "feedback_responses_participant_id_fkey"
+      columns: ["participant_id"]
+isOneToOne: false
+      referencedRelation: "participants"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "feedback_responses_survey_id_fkey"
+      columns: ["survey_id"]
+isOneToOne: false
+      referencedRelation: "feedback_surveys"
+      referencedColumns: ["id"]
+    }
+                  ]
+                },"feedback_surveys": {
+                  Row: {
+                    "closes_at": string,"created_at": string,"id": string,"module_id": string,"opens_at": string,"sent_at": string | null
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "closes_at": string,"created_at"?: string,"id"?: string,"module_id": string,"opens_at": string,"sent_at"?: string | null
+                  }
+                  Update: {
+                    "closes_at"?: string,"created_at"?: string,"id"?: string,"module_id"?: string,"opens_at"?: string,"sent_at"?: string | null
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "feedback_surveys_module_id_fkey"
+      columns: ["module_id"]
+isOneToOne: true
+      referencedRelation: "modules"
+      referencedColumns: ["id"]
+    }
+                  ]
+                },"mentors": {
+                  Row: {
+                    "access_token": string,"created_at": string,"email": string | null,"id": string,"name": string,"phone": string | null,"user_id": string | null
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "access_token"?: string,"created_at"?: string,"email"?: string | null,"id"?: string,"name": string,"phone"?: string | null,"user_id"?: string | null
+                  }
+                  Update: {
+                    "access_token"?: string,"created_at"?: string,"email"?: string | null,"id"?: string,"name"?: string,"phone"?: string | null,"user_id"?: string | null
                   }
                   Relationships: [
                     
@@ -531,6 +597,9 @@ isOneToOne: false
 "checkin_core":
 { Args: { "p_allow_off_window": boolean,"p_day": Omit<Database["public"]['Tables']["module_days"]['Row'], Database["public"]['Tables']["module_days"]['ComputedFields']>,"p_method": Database["public"]['Enums']["checkin_method"],"p_participant": Omit<Database["public"]['Tables']["participants"]['Row'], Database["public"]['Tables']["participants"]['ComputedFields']>,"p_scanned_at": string }; Returns: Json
                            },
+"create_feedback_survey":
+{ Args: { "p_closes_at": string,"p_module_id": string,"p_opens_at": string }; Returns: string
+                           },
 "create_walk_in":
 { Args: { "p_affiliation"?: Database["public"]['Enums']["affiliation_status"],"p_email"?: string,"p_first_name": string,"p_last_name": string,"p_module_day_id": string,"p_privacy_consent"?: boolean }; Returns: Json
                            },
@@ -556,6 +625,21 @@ isOneToOne: false
 "get_day_stats":
 { Args: { "timeframe_end"?: string,"timeframe_start"?: string }; Returns: {
               "checked_in": number,"counts_for_streak": boolean,"day_id": string,"ends_at": string,"expected": number,"module_id": string,"module_title": string,"starts_at": string,"walk_ins": number
+            }[]
+                           },
+"get_feedback_results":
+{ Args: { "p_survey_id": string }; Returns: {
+              "answers": number,"average": number,"distribution": (number)[],"kind": string,"nr": number,"prompt": string,"question_id": string,"texts": (string)[]
+            }[]
+                           },
+"get_group_status":
+{ Args: { "p_module_day_id": string }; Returns: {
+              "checked_in_at": string,"mentor_id": string,"mentor_name": string,"mentor_phone": string,"name": string,"participant_id": string,"phone": string,"registration_status": Database["public"]['Enums']["registration_status"]
+            }[]
+                           },
+"get_group_status_by_token":
+{ Args: { "p_module_day_id": string,"p_token": string }; Returns: {
+              "checked_in_at": string,"mentor_name": string,"name": string,"participant_id": string,"phone": string,"registration_status": Database["public"]['Enums']["registration_status"]
             }[]
                            },
 "get_module_stats":
@@ -609,6 +693,9 @@ isOneToOne: false
                            },
 "register_public":
 { Args: { "p_email": string,"p_first_name": string,"p_language"?: string,"p_last_name": string,"p_module_slug": string,"p_phone"?: string }; Returns: Json
+                           },
+"submit_feedback":
+{ Args: { "p_answers": Json,"p_survey_id": string,"p_token": string }; Returns: string
                            },
 "undo_check_in":
 { Args: { "p_attendance_id": string }; Returns: Json

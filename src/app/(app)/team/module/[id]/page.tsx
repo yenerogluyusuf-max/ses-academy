@@ -5,6 +5,7 @@ import { Hinweis } from "@/components/team/Hinweis";
 import { ModulFormular } from "@/components/team/ModulFormular";
 import { TeamKopf } from "@/components/team/TeamKopf";
 import { ticketsAnAlle } from "@/lib/aktionen/eventtag";
+import { feedbackEinladen, frageEntfernen, frageHinzufuegen, umfrageAnlegen } from "@/lib/aktionen/feedback";
 import { absageZuruecknehmen, modulAbsagen, modulSpeichern, tagEntfernen, tagHinzufuegen } from "@/lib/aktionen/module";
 import { requireStaff } from "@/lib/auth";
 import { anmeldestatus } from "@/lib/einlass";
@@ -26,6 +27,11 @@ const hinweise: Record<string, { text: string; gut: boolean }> = {
   "tag-hat-checkins": { text: "An diesem Tag wurde schon eingecheckt. Der Termin bleibt deshalb bestehen.", gut: false },
   abgesagt: { text: "Modul abgesagt. Der Einlass ist gesperrt, Tickets gelten für dieses Modul nicht mehr.", gut: true },
   reaktiviert: { text: "Absage zurückgenommen.", gut: true },
+  "feedback-angelegt": { text: "Umfrage mit Standardfragen angelegt. Fragen prüfen, dann nach dem Modul die Einladung senden.", gut: true },
+  "feedback-ohne-termin": { text: "Zuerst Termine eintragen, die Umfrage öffnet am letzten Modultag.", gut: false },
+  "frage-gespeichert": { text: "Frage hinzugefügt.", gut: true },
+  "frage-entfernt": { text: "Frage entfernt.", gut: true },
+  "frage-hat-antworten": { text: "Es gibt schon Antworten. Fragen lassen sich jetzt nicht mehr entfernen.", gut: false },
   fehler: { text: "Das hat nicht geklappt.", gut: false },
 };
 
@@ -50,6 +56,13 @@ export default async function ModulDetail({ params, searchParams }: PageProps<"/
   const ticketAnzahl = (s: string) => tickets.filter((t) => t.ticket_status === s).length;
   const ohneTicket = tickets.filter((t) => t.ticket_status !== "gesendet");
   const versand = typeof hinweis === "string" && hinweis.startsWith("tickets-") ? hinweis.split("-").slice(1).map(Number) : null;
+
+  const { data: umfrage } = await supabase.from("feedback_surveys").select("id, opens_at, closes_at, sent_at, feedback_questions(id, position, kind, prompt)").eq("module_id", m.id).maybeSingle();
+  const { data: ergebnisse } = umfrage ? await supabase.rpc("get_feedback_results", { p_survey_id: umfrage.id }) : { data: null };
+  const { count: anwesende } = await supabase.from("attendances").select("registration_id, registrations!inner(module_id)", { count: "exact", head: true }).eq("registrations.module_id", m.id);
+  const fragen = umfrage ? [...umfrage.feedback_questions].sort((a, b) => a.position - b.position) : [];
+  const feedbackVersand = typeof hinweis === "string" && /^feedback-\d+-\d+$/.test(hinweis) ? hinweis.split("-").slice(1).map(Number) : null;
+  const antworten = Math.max(0, ...(ergebnisse ?? []).map((e) => e.answers));
 
   const code = typeof hinweis === "string" && hinweis.startsWith("gespeichert-") ? "gespeichert" : hinweis;
   const neuAngemeldet = typeof hinweis === "string" && hinweis.startsWith("gespeichert-") ? Number(hinweis.split("-")[1]) : 0;
@@ -135,6 +148,7 @@ export default async function ModulDetail({ params, searchParams }: PageProps<"/
               </form>
             )}
             <Link href={`/team/module/${m.id}/notfall/`} className="rounded-full bg-white px-5 py-3 font-semibold ring-1 ring-line">Notfall-Liste drucken</Link>
+            <Link href={`/team/module/${m.id}/namensschilder/`} className="rounded-full bg-white px-5 py-3 font-semibold ring-1 ring-line">Namensschilder drucken</Link>
           </div>
           {ohneTicket.length > 0 && (
             <details className="mt-4">
@@ -150,6 +164,85 @@ export default async function ModulDetail({ params, searchParams }: PageProps<"/
                 ))}
               </ul>
             </details>
+          )}
+        </section>
+
+
+        <section id="feedback" className="mt-8 rounded-3xl bg-white/60 p-6 ring-1 ring-line">
+          <h2 className="font-display text-xl font-bold">Feedback</h2>
+          {feedbackVersand && (
+            <p role="status" className={`mt-3 rounded-2xl p-4 ${feedbackVersand[1] ? "bg-amber-100 text-amber-950" : "bg-emerald-100 text-emerald-950"}`}>
+              {feedbackVersand[0]} Einladungen verschickt{feedbackVersand[1] ? `, ${feedbackVersand[1]} fehlgeschlagen (meist fehlt die E-Mail-Adresse).` : "."}
+            </p>
+          )}
+          {!umfrage ? (
+            <form action={umfrageAnlegen} className="mt-3">
+              <p className="text-sm text-ink-soft">Die Umfrage öffnet am letzten Modultag um 13 Uhr und bleibt 14 Tage offen. Antworten können nur Anwesende.</p>
+              <input type="hidden" name="module_id" value={m.id} />
+              <button type="submit" className="mt-3 rounded-full bg-ink px-5 py-3 font-semibold text-paper">Umfrage anlegen</button>
+            </form>
+          ) : (
+            <>
+              <p className="mt-1 text-sm text-ink-soft">
+                Offen {tagFormat.format(new Date(umfrage.opens_at))}, {zeitFormat.format(new Date(umfrage.opens_at))} Uhr bis {tagFormat.format(new Date(umfrage.closes_at))}
+                {umfrage.sent_at ? ` · Einladung zuletzt am ${tagFormat.format(new Date(umfrage.sent_at))} verschickt` : ""} · {antworten} Antworten
+              </p>
+              <form action={feedbackEinladen} className="mt-3">
+                <input type="hidden" name="module_id" value={m.id} /><input type="hidden" name="survey_id" value={umfrage.id} />
+                <button type="submit" disabled={!anwesende} className="rounded-full bg-ink px-5 py-3 font-semibold text-paper disabled:opacity-50">
+                  Einladung an alle Anwesenden ohne Antwort senden
+                </button>
+                {!anwesende && <span className="ml-3 text-sm text-ink-soft">Noch niemand eingecheckt.</span>}
+              </form>
+
+              {antworten > 0 && (
+                <div className="mt-6 space-y-4">
+                  {(ergebnisse ?? []).map((e) => (
+                    <div key={e.question_id}>
+                      <p className="font-semibold">{e.nr}. {e.prompt}</p>
+                      {e.kind === "skala" ? (
+                        <div className="mt-1">
+                          <p className="text-sm text-ink-soft">{e.average !== null ? `Durchschnitt ${String(e.average).replace(".", ",")} von 5` : "noch keine Antworten"} · {e.answers} Antworten</p>
+                          <div className="mt-2 flex h-6 overflow-hidden rounded-full ring-1 ring-line" role="img" aria-label={`Verteilung 1 bis 5: ${(e.distribution ?? []).join(", ")}`}>
+                            {(e.distribution ?? []).map((n, i) => n > 0 && (
+                              <div key={i} className={["bg-rot-hell", "bg-amber-100", "bg-paper-deep", "bg-emerald-100", "bg-emerald-300"][i]} style={{ width: `${(n / e.answers) * 100}%` }}>
+                                <span className="block text-center text-xs leading-6 font-semibold">{i + 1}</span>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      ) : (
+                        <ul className="mt-1 list-disc space-y-1 pl-5 text-sm">{(e.texts ?? []).map((t, i) => <li key={i}>{t}</li>)}</ul>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              <details className="mt-6">
+                <summary className="cursor-pointer font-semibold">Fragen bearbeiten ({fragen.length})</summary>
+                <ol className="mt-3 space-y-2">
+                  {fragen.map((f) => (
+                    <li key={f.id} className="flex flex-wrap items-center gap-2 text-sm">
+                      <span className="mr-auto">{f.position}. {f.prompt} <span className="text-ink-soft">({f.kind === "skala" ? "Skala 1–5" : "Freitext"})</span></span>
+                      {antworten === 0 && (
+                        <form action={frageEntfernen}>
+                          <input type="hidden" name="module_id" value={m.id} /><input type="hidden" name="survey_id" value={umfrage.id} /><input type="hidden" name="id" value={f.id} />
+                          <button type="submit" className="font-semibold text-ink-soft underline">entfernen</button>
+                        </form>
+                      )}
+                    </li>
+                  ))}
+                </ol>
+                <form action={frageHinzufuegen} className="mt-4 flex flex-wrap items-end gap-2">
+                  <input type="hidden" name="module_id" value={m.id} /><input type="hidden" name="survey_id" value={umfrage.id} />
+                  <div className="min-w-60 flex-1"><label htmlFor="prompt" className="mb-1 block text-sm font-semibold">Neue Frage</label><input id="prompt" name="prompt" required minLength={3} maxLength={300} className={`${feld} w-full`} /></div>
+                  <div><label htmlFor="kind" className="mb-1 block text-sm font-semibold">Art</label>
+                    <select id="kind" name="kind" className={feld}><option value="skala">Skala 1–5</option><option value="text">Freitext</option></select></div>
+                  <button type="submit" className="rounded-full bg-white px-5 py-3 font-semibold ring-1 ring-line">Hinzufügen</button>
+                </form>
+              </details>
+            </>
           )}
         </section>
 

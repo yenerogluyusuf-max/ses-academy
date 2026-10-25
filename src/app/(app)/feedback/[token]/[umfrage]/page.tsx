@@ -1,0 +1,37 @@
+import type { Metadata } from "next";
+import { notFound } from "next/navigation";
+import { istToken } from "@/lib/codes";
+import { createAdminClient } from "@/lib/supabase/admin";
+import { jetztMs } from "@/lib/zeit";
+import { FeedbackFormular } from "./FeedbackFormular";
+
+export const metadata: Metadata = { title: "Feedback | SES Academy", robots: { index: false, follow: false }, referrer: "no-referrer" };
+
+/** Feedback-Umfrage über den persönlichen Link aus der Mail. Der Ticket-Token ist der Nachweis, ein Konto ist nicht nötig. */
+export default async function FeedbackSeite({ params }: PageProps<"/feedback/[token]/[umfrage]">) {
+  const { token, umfrage } = await params;
+  if (!istToken(token) || !istToken(umfrage)) notFound();
+  const db = createAdminClient();
+  const [{ data: person }, { data: u }] = await Promise.all([
+    db.from("participants").select("id, first_name").eq("checkin_token", token.toLowerCase()).maybeSingle(),
+    db.from("feedback_surveys").select("id, opens_at, closes_at, module:modules(title), feedback_questions(id, position, kind, prompt)").eq("id", umfrage).maybeSingle(),
+  ]);
+  if (!person || !u) notFound();
+  const jetzt = jetztMs();
+  const offen = jetzt >= Date.parse(u.opens_at) && jetzt <= Date.parse(u.closes_at);
+  const fragen = [...u.feedback_questions].sort((a, b) => a.position - b.position);
+
+  return (
+    <main className="mx-auto max-w-lg px-4 py-10">
+      <img src="/brand/ses-logo.png" alt="SES Academy" className="h-10 w-auto" />
+      <h1 className="font-display mt-8 text-3xl font-bold">Dein Feedback</h1>
+      <p className="mt-1 text-lg">{u.module?.title}</p>
+      <p className="mt-4 text-ink-soft">Hallo {person.first_name}, danke, dass du dabei warst. Das Team sieht die Antworten nur zusammengefasst, nicht einzeln mit Namen.</p>
+      {offen ? (
+        <FeedbackFormular token={token.toLowerCase()} umfrage={u.id} fragen={fragen} />
+      ) : (
+        <p className="karte mt-6">{jetzt < Date.parse(u.opens_at) ? "Die Umfrage öffnet am Ende des Moduls." : "Die Umfrage ist beendet. Danke!"}</p>
+      )}
+    </main>
+  );
+}
