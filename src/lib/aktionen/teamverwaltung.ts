@@ -31,16 +31,19 @@ export async function zugangZeitraum(formData: FormData) {
   const modul = String(formData.get("modul") ?? "");
   if (userId === staff.userId) zurueck("selbst");
   const supabase = await createClient();
-  if (!modul) {
-    const { error } = await supabase.from("staff_members").update({ valid_from: null, valid_until: null, label: null }).eq("user_id", userId);
-    zurueck(error ? "fehler" : "gespeichert");
+  const { data: m } = await supabase.from("staff_members").select("role, valid_from, valid_until").eq("user_id", userId).maybeSingle();
+  if (!m) zurueck("fehler");
+  const z = modul ? await modulZeitraum(modul) : null;
+  if (modul && !z) zurueck("modul-ohne-termin");
+  // Einschränken geht sofort; ausweiten (unbefristet, später enden, früher beginnen) ist eine Vergabe mit Freigabe
+  const weiter = (m.valid_until && (!z || Date.parse(z.valid_until) > Date.parse(m.valid_until))) || (m.valid_from && (!z || Date.parse(z.valid_from) < Date.parse(m.valid_from)));
+  if (weiter) {
+    const { error } = await supabase.rpc("create_approval", { p_action: "team_zugang", p_payload: { art: "zeitraum", user_id: userId, modul: modul || null } });
+    zurueck(error ? "fehler" : "beantragt");
   }
-  const z = await modulZeitraum(modul);
-  if (!z) zurueck("modul-ohne-termin");
-  const { data: m } = await supabase.from("staff_members").select("role").eq("user_id", userId).maybeSingle();
-  const { error } = await supabase.from("staff_members").update({
-    valid_from: z.valid_from, valid_until: z.valid_until, label: `${m?.role === "checkin_helper" ? "Helfer" : "Team"} · ${z.titel}`,
-  }).eq("user_id", userId);
+  const { error } = await supabase.from("staff_members").update(z
+    ? { valid_from: z.valid_from, valid_until: z.valid_until, label: `${m.role === "checkin_helper" ? "Helfer" : "Team"} · ${z.titel}` }
+    : { valid_from: null, valid_until: null, label: null }).eq("user_id", userId);
   zurueck(error ? "fehler" : "gespeichert");
 }
 
@@ -75,11 +78,11 @@ export async function teamZugangAusfuehren(formData: FormData) {
   const id = String(formData.get("id"));
   const supabase = await createClient();
   const { data: antrag } = await supabase.from("approvals").select("payload").eq("id", id).eq("action", "team_zugang").maybeSingle();
-  const p = antrag?.payload as { art?: "neu" | "rolle"; email?: string } | undefined;
+  const p = antrag?.payload as { art?: "neu" | "rolle" | "zeitraum"; email?: string } | undefined;
   if (!p) zurueck("fehler");
-  if (p.art === "rolle") {
+  if (p.art === "rolle" || p.art === "zeitraum") {
     const { data, error } = await supabase.rpc("execute_team_approval", { p_id: id });
-    zurueck(error ? "fehler" : data === "ok" ? "gespeichert" : data === "expired" ? "abgelaufen" : "fehler");
+    zurueck(error ? "fehler" : data === "ok" ? "gespeichert" : data === "expired" ? "abgelaufen" : data === "module_without_days" ? "modul-ohne-termin" : "fehler");
   }
   const admin = createAdminClient();
   const { data: konto, error } = await admin.auth.admin.createUser({ email: p.email!, email_confirm: true });

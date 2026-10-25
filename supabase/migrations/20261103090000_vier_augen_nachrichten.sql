@@ -157,6 +157,13 @@ BEGIN
     IF NOT FOUND OR public.staff_role_rank(rolle) <= public.staff_role_rank(ziel.role) THEN RAISE EXCEPTION 'invalid_payload'; END IF;
     inhalt := jsonb_build_object('art', 'rolle', 'user_id', ziel.user_id, 'rolle', rolle);
     beschreibung := format('%s: Rolle von %s auf %s hochstufen', ziel.display_name, public.staff_role_name(ziel.role), public.staff_role_name(rolle));
+  ELSIF p_action = 'team_zugang' AND inhalt ->> 'art' = 'zeitraum' THEN
+    SELECT * INTO ziel FROM public.staff_members WHERE user_id = (inhalt ->> 'user_id')::uuid;
+    IF NOT FOUND THEN RAISE EXCEPTION 'invalid_payload'; END IF;
+    inhalt := jsonb_build_object('art', 'zeitraum', 'user_id', ziel.user_id, 'modul', nullif(inhalt ->> 'modul', ''));
+    beschreibung := format('%s (%s): Zugang %s', ziel.display_name, public.staff_role_name(ziel.role),
+      CASE WHEN inhalt ->> 'modul' IS NULL THEN 'unbefristet machen'
+           ELSE 'auf ' || coalesce((SELECT title FROM public.modules WHERE id = (inhalt ->> 'modul')::uuid), '?') || ' ausweiten' END);
   ELSE
     RAISE EXCEPTION 'invalid_action';
   END IF;
@@ -174,7 +181,10 @@ BEGIN
   IF current_setting('ses.team_freigabe', true) = 'ok' OR current_user IN ('postgres', 'supabase_admin', 'service_role') THEN
     RETURN NEW;
   END IF;
-  IF TG_OP = 'INSERT' OR public.staff_role_rank(NEW.role) > public.staff_role_rank(OLD.role) OR NEW.user_id <> OLD.user_id THEN
+  IF TG_OP = 'INSERT' OR public.staff_role_rank(NEW.role) > public.staff_role_rank(OLD.role) OR NEW.user_id <> OLD.user_id
+     -- Zeitraum ausweiten (später enden, früher beginnen, Befristung aufheben) ist ebenfalls eine Vergabe
+     OR (OLD.valid_until IS NOT NULL AND (NEW.valid_until IS NULL OR NEW.valid_until > OLD.valid_until))
+     OR (OLD.valid_from IS NOT NULL AND (NEW.valid_from IS NULL OR NEW.valid_from < OLD.valid_from)) THEN
     RAISE EXCEPTION USING ERRCODE = '42501', MESSAGE = 'team_approval_required';
   END IF;
   RETURN NEW;
@@ -198,17 +208,22 @@ BEGIN
   IF a.decided_at < now() - interval '24 hours' THEN RETURN 'expired'; END IF;
   IF (SELECT role FROM public.staff_members WHERE user_id = a.decided_by) IS DISTINCT FROM 'admin' THEN RETURN 'admin_required'; END IF;
 
+  IF a.payload ->> 'modul' IS NOT NULL THEN
+    SELECT min(d.starts_at) - interval '4 hours', max(d.ends_at) + interval '6 hours', m.title INTO von, bis, titel
+      FROM public.modules m JOIN public.module_days d ON d.module_id = m.id WHERE m.id = (a.payload ->> 'modul')::uuid GROUP BY m.title;
+    IF von IS NULL THEN RETURN 'module_without_days'; END IF;
+  END IF;
   PERFORM set_config('ses.team_freigabe', 'ok', true);
-  IF a.payload ->> 'art' = 'rolle' THEN
+  IF a.payload ->> 'art' = 'zeitraum' THEN
+    UPDATE public.staff_members SET valid_from = von, valid_until = bis,
+           label = CASE WHEN titel IS NOT NULL THEN CASE WHEN role = 'checkin_helper' THEN 'Helfer' ELSE 'Team' END || ' · ' || titel END
+     WHERE user_id = (a.payload ->> 'user_id')::uuid;
+  ELSIF a.payload ->> 'art' = 'rolle' THEN
     UPDATE public.staff_members SET role = (a.payload ->> 'rolle')::public.staff_role WHERE user_id = (a.payload ->> 'user_id')::uuid;
   ELSE
     IF p_new_user IS NULL OR (SELECT lower(email) FROM auth.users WHERE id = p_new_user) IS DISTINCT FROM a.payload ->> 'email' THEN
       PERFORM set_config('ses.team_freigabe', '', true);
       RETURN 'user_mismatch';
-    END IF;
-    IF a.payload ->> 'modul' IS NOT NULL THEN
-      SELECT min(d.starts_at) - interval '4 hours', max(d.ends_at) + interval '6 hours', m.title INTO von, bis, titel
-        FROM public.modules m JOIN public.module_days d ON d.module_id = m.id WHERE m.id = (a.payload ->> 'modul')::uuid GROUP BY m.title;
     END IF;
     INSERT INTO public.staff_members (user_id, role, display_name, valid_from, valid_until, label)
     VALUES (p_new_user, (a.payload ->> 'rolle')::public.staff_role, a.payload ->> 'name', von, bis,

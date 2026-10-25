@@ -7,6 +7,7 @@ const reiter = [
   { pfad: "checkliste/", name: "Checkliste" },
   { pfad: "gruppen/", name: "Gruppen" },
   { pfad: "hotel/", name: "Logistik" },
+  { pfad: "material/", name: "Material und Medien" },
 ] as const;
 
 /** Reiter eines Moduls (Plan: Programm, Referenten, Material, Logistik, Medien; dazu Checkliste und Gruppen). */

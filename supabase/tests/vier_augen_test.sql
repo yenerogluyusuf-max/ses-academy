@@ -98,6 +98,16 @@ SELECT pg_temp.ok('Zweiter Admin gibt Hochstufung frei', public.decide_approval(
 SELECT pg_temp.login('admin@ses.test');
 SELECT pg_temp.ok('Antragsteller führt Hochstufung aus', public.execute_team_approval((SELECT id FROM public.approvals WHERE summary LIKE 'Orga Test: Rolle%')), 'ok');
 SELECT pg_temp.ok('Rolle wieder Orga-Team', (SELECT role::text FROM public.staff_members WHERE user_id = (SELECT id FROM konten WHERE email = 'orga@ses.test')), 'orga_team');
+-- Zeitraum: einschränken direkt, ausweiten nur mit Freigabe
+UPDATE public.staff_members SET valid_from = now() - interval '1 hour', valid_until = now() + interval '1 day' WHERE user_id = (SELECT id FROM konten WHERE email = 'helfer@ses.test');
+SELECT pg_temp.ok('Befristen geht direkt', (SELECT (valid_until IS NOT NULL)::text FROM public.staff_members WHERE user_id = (SELECT id FROM konten WHERE email = 'helfer@ses.test')), 'true');
+DO $$ BEGIN
+  UPDATE public.staff_members SET valid_from = NULL, valid_until = NULL WHERE user_id = (SELECT id FROM konten WHERE email = 'helfer@ses.test');
+  RAISE EXCEPTION 'FEHLER ausweiten';
+EXCEPTION WHEN insufficient_privilege THEN RAISE NOTICE 'ok  Befristung aufheben nur mit Freigabe';
+END $$;
+SELECT public.create_approval('team_zugang', jsonb_build_object('art', 'zeitraum', 'user_id', (SELECT id FROM konten WHERE email = 'helfer@ses.test'), 'modul', NULL));
+SELECT pg_temp.ok('Antrag beschreibt das Ausweiten', (SELECT summary FROM public.approvals WHERE payload ->> 'art' = 'zeitraum'), 'Helfer Test (Einlass-Helfer:in): Zugang unbefristet machen');
 SELECT pg_temp.ok('claim_approval nimmt keine Team-Anträge', public.claim_approval((SELECT id FROM public.approvals WHERE action = 'team_zugang' AND status = 'freigegeben' LIMIT 1), 'team_zugang') ->> 'result', 'not_found');
 
 -- 5) Empfänger
