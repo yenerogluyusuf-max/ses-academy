@@ -141,6 +141,26 @@ isOneToOne: false
       referencedColumns: ["id"]
     }
                   ]
+                },"audience_questions": {
+                  Row: {
+                    "created_at": string,"device": string,"id": string,"name": string | null,"round_id": string,"status": string,"text": string,"votes": number
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "created_at"?: string,"device": string,"id"?: string,"name"?: string | null,"round_id": string,"status"?: string,"text": string,"votes"?: number
+                  }
+                  Update: {
+                    "created_at"?: string,"device"?: string,"id"?: string,"name"?: string | null,"round_id"?: string,"status"?: string,"text"?: string,"votes"?: number
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "audience_questions_round_id_fkey"
+      columns: ["round_id"]
+isOneToOne: false
+      referencedRelation: "question_rounds"
+      referencedColumns: ["id"]
+    }
+                  ]
                 },"audit_log": {
                   Row: {
                     "action": string,"actor_id": string | null,"created_at": string,"entity_id": string | null,"entity_type": string,"id": number,"metadata": NonNullable<Json>,"target_participant_id": string | null
@@ -697,6 +717,52 @@ isOneToOne: false
       referencedColumns: ["id"]
     }
                   ]
+                },"question_rounds": {
+                  Row: {
+                    "code": string,"created_at": string,"created_by": string | null,"id": string,"moderated": boolean,"module_id": string | null,"open": boolean,"program_item_id": string | null,"title": string
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "code"?: string,"created_at"?: string,"created_by"?: string | null,"id"?: string,"moderated"?: boolean,"module_id"?: string | null,"open"?: boolean,"program_item_id"?: string | null,"title": string
+                  }
+                  Update: {
+                    "code"?: string,"created_at"?: string,"created_by"?: string | null,"id"?: string,"moderated"?: boolean,"module_id"?: string | null,"open"?: boolean,"program_item_id"?: string | null,"title"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "question_rounds_module_id_fkey"
+      columns: ["module_id"]
+isOneToOne: false
+      referencedRelation: "modules"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "question_rounds_program_item_id_fkey"
+      columns: ["program_item_id"]
+isOneToOne: false
+      referencedRelation: "program_items"
+      referencedColumns: ["id"]
+    }
+                  ]
+                },"question_votes": {
+                  Row: {
+                    "device": string,"question_id": string
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "device": string,"question_id": string
+                  }
+                  Update: {
+                    "device"?: string,"question_id"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "question_votes_question_id_fkey"
+      columns: ["question_id"]
+isOneToOne: false
+      referencedRelation: "audience_questions"
+      referencedColumns: ["id"]
+    }
+                  ]
                 },"regions": {
                   Row: {
                     "country": string,"id": number,"name": string
@@ -961,6 +1027,9 @@ isOneToOne: false
 "add_document_version":
 { Args: { "p_document_id": string,"p_file_name": string,"p_mime": string,"p_note"?: string,"p_storage_path": string }; Returns: number
                            },
+"ask_question":
+{ Args: { "p_code": string,"p_device": string,"p_name": string,"p_text": string }; Returns: string
+                           },
 "broadcast_recipients":
 { Args: { "p_filter": Json }; Returns: {
               "email": string,"first_name": string,"participant_id": string,"preferred_language": string
@@ -1081,6 +1150,9 @@ isOneToOne: false
               "engagement_count": number,"grade_avg": number,"homework_rate": number,"hw_excused": number,"hw_expected": number,"hw_late": number,"hw_missing": number,"hw_on_time": number,"hw_open": number
             }[]
                            },
+"get_question_round":
+{ Args: { "p_code": string,"p_device": string }; Returns: Json
+                           },
 "get_stay_overview":
 { Args: { "p_module_id": string }; Returns: {
               "answered": boolean,"arrival_at": string,"arrival_by": string,"departure_at": string,"name": string,"nights": (string)[],"notes": string,"participant_id": string,"registration_status": Database["public"]['Enums']["registration_status"],"room_id": string,"room_label": string,"room_wish": string
@@ -1117,7 +1189,13 @@ isOneToOne: false
 "mfa_required":
 { Args: Record<PropertyKey, never>; Returns: boolean
                            },
+"module_access_window":
+{ Args: { "p_module_id": string }; Returns: Json
+                           },
 "my_participant_id":
+{ Args: Record<PropertyKey, never>; Returns: string
+                           },
+"new_round_code":
 { Args: Record<PropertyKey, never>; Returns: string
                            },
 "normalize_checkin_code":
@@ -1158,6 +1236,9 @@ isOneToOne: false
                            },
 "upsert_participant":
 { Args: { "p_affiliation"?: Database["public"]['Enums']["affiliation_status"],"p_email": string,"p_first_name": string,"p_language"?: string,"p_last_name": string,"p_phone"?: string,"p_privacy_consent"?: boolean,"p_user_id"?: string }; Returns: string
+                           },
+"vote_question":
+{ Args: { "p_device": string,"p_question": string }; Returns: string
                            },
 "withdraw_by_token":
 { Args: { "p_excuse_note"?: string,"p_module_id": string,"p_token": string }; Returns: Json
