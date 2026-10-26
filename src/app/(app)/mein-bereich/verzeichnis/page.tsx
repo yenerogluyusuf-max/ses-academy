@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { redirect } from "next/navigation";
+import { TeamKopf } from "@/components/team/TeamKopf";
 import { getStaff } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 
@@ -31,8 +32,10 @@ export default async function Verzeichnis({ searchParams }: PageProps<"/mein-ber
     (typeof abzeichen !== "string" || !abzeichen || (m.badges ?? []).includes(abzeichen)));
 
   return (
+    <>
+    {staff && <TeamKopf staff={staff} aktiv="mitglieder" />}
     <main className="mx-auto max-w-5xl px-4 py-8">
-      <Link href={staff ? "/team/" : "/mein-bereich/"} className="text-sm font-semibold text-ink-soft hover:text-ink">← {staff ? "Team-Bereich" : "Mein Bereich"}</Link>
+      {!staff && <Link href="/mein-bereich/" className="text-sm font-semibold text-ink-soft hover:text-ink">← Mein Bereich</Link>}
       <h1 className="font-display mt-2 text-4xl font-extrabold">Mitglieder</h1>
       <p className="mt-1 text-ink-soft">{liste.length} von {alle.length}. E-Mail und Telefon erscheinen nur, wenn die Person sie in ihrem Profil freigegeben hat.</p>
       <form className="mt-6 grid gap-2 sm:grid-cols-[1fr_auto_auto_auto]" action="/mein-bereich/verzeichnis/">
@@ -66,5 +69,6 @@ export default async function Verzeichnis({ searchParams }: PageProps<"/mein-ber
       </ul>
       {liste.length === 0 && <p className="mt-6 rounded-3xl border-2 border-dashed border-line p-8 text-center text-ink-soft">Niemand gefunden.</p>}
     </main>
+    </>
   );
 }
