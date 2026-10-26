@@ -1028,7 +1028,7 @@ isOneToOne: false
 { Args: { "p_document_id": string,"p_file_name": string,"p_mime": string,"p_note"?: string,"p_storage_path": string }; Returns: number
                            },
 "ask_question":
-{ Args: { "p_code": string,"p_device": string,"p_name": string,"p_text": string }; Returns: string
+{ Args: { "p_code": string,"p_device": string,"p_ip": string,"p_name": string,"p_text": string }; Returns: string
                            },
 "broadcast_recipients":
 { Args: { "p_filter": Json }; Returns: {
@@ -1238,7 +1238,7 @@ isOneToOne: false
 { Args: { "p_affiliation"?: Database["public"]['Enums']["affiliation_status"],"p_email": string,"p_first_name": string,"p_language"?: string,"p_last_name": string,"p_phone"?: string,"p_privacy_consent"?: boolean,"p_user_id"?: string }; Returns: string
                            },
 "vote_question":
-{ Args: { "p_device": string,"p_question": string }; Returns: string
+{ Args: { "p_device": string,"p_ip": string,"p_question": string }; Returns: string
                            },
 "withdraw_by_token":
 { Args: { "p_excuse_note"?: string,"p_module_id": string,"p_token": string }; Returns: Json

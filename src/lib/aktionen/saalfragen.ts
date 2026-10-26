@@ -1,29 +1,25 @@
 "use server";
 
-import { createHash, randomUUID } from "node:crypto";
 import { revalidatePath } from "next/cache";
-import { cookies } from "next/headers";
+import { cookies, headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { requireStaff } from "@/lib/auth";
 import { istToken } from "@/lib/codes";
+import { GERAET_COOKIE, geraeteHash, ipHash } from "@/lib/saalfragen-geraet";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
 
-const COOKIE = "ses_geraet";
-
-/** Gerätekennung fürs Publikum: zufällig im Cookie, in der Datenbank nur als Hash (Spamschutz, eine Stimme je Gerät). */
-async function geraet(anlegen: boolean): Promise<string> {
-  const speicher = await cookies();
-  let roh = speicher.get(COOKIE)?.value;
-  if (!roh && anlegen) {
-    roh = randomUUID();
-    speicher.set(COOKIE, roh, { httpOnly: true, sameSite: "lax", maxAge: 60 * 60 * 24 * 30, path: "/fragen", secure: (process.env.NEXT_PUBLIC_SITE_URL ?? "").startsWith("https://") });
-  }
-  return roh ? createHash("sha256").update(roh).digest("hex").slice(0, 32) : "";
+/** Gerätekennung (vom Server signiert, beim Öffnen der Seite vergeben) als Hash; ungültig oder fehlend: "". */
+async function geraet(): Promise<string> {
+  return geraeteHash((await cookies()).get(GERAET_COOKIE)?.value);
 }
 
 export async function geraetLesen(): Promise<string> {
-  return geraet(false);
+  return geraet();
+}
+
+async function ip(): Promise<string> {
+  return ipHash((await headers()).get("x-forwarded-for"));
 }
 
 const codeOk = (c: string) => /^[A-Za-z2-9]{5}$/.test(c);
@@ -32,7 +28,7 @@ export async function frageStellen(formData: FormData) {
   const code = String(formData.get("code") ?? "").toUpperCase();
   if (!codeOk(code)) redirect("/fragen/");
   const { data } = await createAdminClient().rpc("ask_question", {
-    p_code: code, p_text: String(formData.get("text") ?? "").slice(0, 500), p_name: String(formData.get("name") ?? "").slice(0, 80), p_device: await geraet(true),
+    p_code: code, p_text: String(formData.get("text") ?? "").slice(0, 500), p_name: String(formData.get("name") ?? "").slice(0, 80), p_device: await geraet(), p_ip: await ip(),
   });
   redirect(`/fragen/${code}/?hinweis=${data ?? "fehler"}`);
 }
@@ -41,7 +37,7 @@ export async function frageZustimmen(formData: FormData) {
   const code = String(formData.get("code") ?? "").toUpperCase();
   const id = String(formData.get("id") ?? "");
   if (!codeOk(code) || !istToken(id)) redirect("/fragen/");
-  await createAdminClient().rpc("vote_question", { p_question: id, p_device: await geraet(true) });
+  await createAdminClient().rpc("vote_question", { p_question: id, p_device: await geraet(), p_ip: await ip() });
   redirect(`/fragen/${code}/`);
 }
 
