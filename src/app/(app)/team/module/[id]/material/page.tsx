@@ -39,9 +39,9 @@ export default async function Material({ params, searchParams }: PageProps<"/tea
         <ModulReiter id={id} titel={modul.title} aktiv="material/" />
         <Hinweis code={hinweis} texte={hinweise} />
         <h2 className="font-display mt-2 mb-3 text-xl font-bold">Material</h2>
-        <DokumentListe dokumente={material} />
+        <DokumentListe dokumente={material} ohneModul />
         <h2 className="font-display mt-8 mb-3 text-xl font-bold">Medien</h2>
-        <DokumentListe dokumente={medien} />
+        <DokumentListe dokumente={medien} ohneModul />
         <h2 className="font-display mt-10 mb-3 text-xl font-bold">Ablegen</h2>
         <DokumentFormular zurueck={zurueck} modulId={id} art="material" />
       </main>

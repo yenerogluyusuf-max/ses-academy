@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { FileText, Files, Film, Presentation, ScrollText, type LucideIcon } from "lucide-react";
 
 export const dokumentArt: Record<string, string> = { dokument: "Dokument", material: "Material", medien: "Medien", vorlage: "Vorlage", protokoll: "Protokoll" };
 export const dokumentStatus: Record<string, { name: string; farbe: string }> = {
@@ -7,27 +8,37 @@ export const dokumentStatus: Record<string, { name: string; farbe: string }> = {
 };
 
 type Dok = { id: string; title: string; kind: string; status: string; commission: string | null; tags: string[]; link: string | null; current_version: number; updated_at: string; module?: { title: string } | null };
-const datum = new Intl.DateTimeFormat("de-DE", { dateStyle: "medium", timeZone: "Europe/Berlin" });
 
-/** Liste der Dokumente mit Status, Art, Kommission, Version und Direktlink zur Datei. */
-export function DokumentListe({ dokumente }: { dokumente: Dok[] }) {
+const artIcon: Record<string, LucideIcon> = { dokument: FileText, material: Presentation, medien: Film, vorlage: Files, protokoll: ScrollText };
+
+/**
+ * Liste der Dokumente: ein Klick öffnet die Datei bzw. den Link, „Details“ führt zu Versionen und Bearbeiten.
+ * Gezeigt wird nur, was beim Suchen hilft: Art (als Symbol), Modul bzw. Kommission und ein Status, wenn er nicht „final“ ist.
+ */
+export function DokumentListe({ dokumente, ohneModul }: { dokumente: Dok[]; ohneModul?: boolean }) {
   if (dokumente.length === 0) return <p className="rounded-3xl border-2 border-dashed border-line p-8 text-center text-ink-soft">Keine Dokumente.</p>;
   return (
-    <ul className="divide-y divide-line rounded-3xl bg-weiss px-4 ring-1 ring-line">
-      {dokumente.map((d) => (
-        <li key={d.id} className="flex flex-wrap items-center gap-2 py-3">
-          <div className="mr-auto min-w-0">
-            <Link href={`/team/dokumente/${d.id}/`} className="font-semibold hover:underline">{d.title}</Link>
-            <p className="text-xs text-ink-soft">
-              {[dokumentArt[d.kind], d.commission, d.module?.title, d.current_version ? `Version ${d.current_version}` : null, `geändert ${datum.format(new Date(d.updated_at))}`].filter(Boolean).join(" · ")}
-              {d.tags.length > 0 && ` · ${d.tags.map((t) => `#${t}`).join(" ")}`}
-            </p>
-          </div>
-          <span className={`chip ${dokumentStatus[d.status]?.farbe ?? ""}`}>{dokumentStatus[d.status]?.name ?? d.status}</span>
-          {d.current_version > 0 && <a href={`/team/dokumente/${d.id}/datei/`} className="text-sm font-semibold underline" target="_blank" rel="noopener">öffnen</a>}
-          {d.link && <a href={d.link} className="text-sm font-semibold underline" target="_blank" rel="noopener noreferrer">Link ↗</a>}
-        </li>
-      ))}
+    <ul className="divide-y divide-line overflow-hidden rounded-3xl bg-weiss ring-1 ring-line">
+      {dokumente.map((d) => {
+        const Icon = artIcon[d.kind] ?? FileText;
+        const ziel = d.current_version > 0 ? `/team/dokumente/${d.id}/datei/` : d.link;
+        const zusatz = [ohneModul ? null : d.module?.title, d.commission].filter(Boolean).join(" · ");
+        const status = d.status !== "final" ? dokumentStatus[d.status] : null;
+        return (
+          <li key={d.id} className="group relative flex items-center gap-3 px-4 py-3 transition hover:bg-paper/60">
+            <span aria-hidden className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-paper text-ink-soft" title={dokumentArt[d.kind]}><Icon className="h-[18px] w-[18px]" /></span>
+            <div className="min-w-0 flex-1">
+              {ziel
+                ? <a href={ziel} target="_blank" rel="noopener noreferrer" className="block truncate font-semibold after:absolute after:inset-0 group-hover:underline">{d.title}</a>
+                : <Link href={`/team/dokumente/${d.id}/`} className="block truncate font-semibold after:absolute after:inset-0 group-hover:underline">{d.title}</Link>}
+              {zusatz && <p className="truncate text-xs text-ink-soft">{zusatz}</p>}
+            </div>
+            {status && <span className={`chip ${status.farbe}`}>{status.name}</span>}
+            {d.current_version > 1 && <span className="hidden text-xs text-ink-soft sm:inline">Version {d.current_version}</span>}
+            <Link href={`/team/dokumente/${d.id}/`} className="relative z-10 rounded-full px-3 py-1 text-sm font-semibold text-ink-soft ring-1 ring-line hover:bg-weiss hover:text-ink">Details</Link>
+          </li>
+        );
+      })}
     </ul>
   );
 }
