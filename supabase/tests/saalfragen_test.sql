@@ -53,6 +53,13 @@ DO $$ DECLARE i int; BEGIN
   FOR i IN 1..10 LOOP PERFORM public.ask_question((SELECT code FROM r), 'Skriptfrage ' || i, NULL, 'skriptfrage-' || i, 'ip-fragen'); END LOOP;
 END $$;
 SELECT pg_temp.ok('11. Frage derselben IP in einer Minute wird abgelehnt', public.ask_question((SELECT code FROM r), 'Noch eine Skriptfrage', NULL, 'skriptfrage-11', 'ip-fragen'), 'too_fast');
+DO $$ DECLARE i int; q uuid := (SELECT id FROM public.audience_questions WHERE device = 'geraet-a'); BEGIN
+  FOR i IN 1..20 LOOP PERFORM public.vote_question(q, 'nat-' || i, 'ip-nat'); END LOOP;
+END $$;
+SELECT pg_temp.ok('21. Stimme derselben IP für dieselbe Frage wird abgelehnt', public.vote_question((SELECT id FROM public.audience_questions WHERE device = 'geraet-a'), 'nat-21', 'ip-nat'), 'limit');
+INSERT INTO public.audience_questions (round_id, text, device, ip_hash, status, created_at)
+  SELECT (SELECT id FROM r), 'Alte Frage ' || i, 'alt-' || i, 'ip-runde', 'neu', now() - interval '1 hour' FROM generate_series(1, 15) i;
+SELECT pg_temp.ok('16. Frage derselben IP in der Runde wird abgelehnt', public.ask_question((SELECT code FROM r), 'Neue Frage', NULL, 'alt-neu', 'ip-runde'), 'limit');
 SELECT pg_temp.ok('question_rate nicht direkt lesbar', (SELECT has_table_privilege('authenticated', 'public.question_rate', 'SELECT')::text), 'false');
 
 SELECT pg_temp.login('orga@ses.test');
