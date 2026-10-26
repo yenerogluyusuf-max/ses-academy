@@ -7,6 +7,7 @@
 #   ./ses.sh migrieren                  neue Migrationen einspielen
 #   ./ses.sh grunddaten                 1. Generation, Module mit Terminen, Regieplan 14.11. (mehrfach ausführbar)
 #   ./ses.sh admin <email> <name>       Teamkonto mit Rolle Admin anlegen (Startpasswort wird einmal angezeigt)
+#   ./ses.sh passwort <email>           neues Startpasswort für ein bestehendes Teamkonto (wird einmal angezeigt)
 #   ./ses.sh sicherung                  Sicherung jetzt (läuft sonst täglich), Kopie auf SICHERUNG_ZIEL
 #   ./ses.sh wiederherstellen-test      neueste Sicherung probeweise einspielen und Zahlen vergleichen
 #   ./ses.sh notfall [JJJJ-MM-TT]       Notfall-Listen für morgen bzw. den Tag als PDF
@@ -146,6 +147,12 @@ case "$befehl" in
     lade_env
     email="${1:?E-Mail fehlt}"; name="${2:?Name fehlt}"
     (cd "$APP" 2>/dev/null || cd "$REPO"; npx tsx --conditions=react-server "$HIER/admin-anlegen.mts" "$email" "$name")
+    ;;
+
+  passwort)
+    lade_env
+    email="${1:?E-Mail fehlt}"
+    (cd "$APP" 2>/dev/null || cd "$REPO"; npx tsx --conditions=react-server "$HIER/passwort-neu.mts" "$email")
     ;;
 
   sicherung)
