@@ -4,7 +4,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { z } from "zod";
 import { requireStaff } from "@/lib/auth";
-import { sendeTicketMail } from "@/lib/mail";
+import { mailBereit, sendeTicketMail } from "@/lib/mail";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
 
@@ -58,6 +58,7 @@ export async function personSpeichern(formData: FormData) {
 export async function ticketSenden(formData: FormData) {
   const staff = await requireStaff("alles");
   const id = String(formData.get("id"));
+  if (!mailBereit()) redirect(`/team/teilnehmende/${id}/?hinweis=mail-aus`);
   const r = await sendeTicketMail(id, staff.userId);
   redirect(`/team/teilnehmende/${id}/?hinweis=${r.ok ? "ticket-gesendet" : "ticket-fehler"}`);
 }

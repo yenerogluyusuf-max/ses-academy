@@ -31,13 +31,14 @@ const hinweise: Record<string, string> = {
   gespeichert: "Gespeichert.",
   bewertet: "Bewertung gespeichert.",
   "ticket-gesendet": "QR-Code per Mail verschickt.",
-  "ticket-fehler": "Die Mail konnte nicht verschickt werden (keine E-Mail-Adresse oder Mailserver nicht erreichbar).",
+  "ticket-fehler": "Die Mail konnte nicht verschickt werden: Der Mailserver hat sie abgelehnt oder war nicht erreichbar.",
+  "mail-aus": "Mailversand ist noch nicht eingerichtet: Die Zugangsdaten für ses@islamrat.de fehlen noch.",
 };
 
 /** Rückmeldung aus ?hinweis= bzw. ?fehler= */
 export function Rueckmeldung({ hinweis, fehler }: { hinweis?: string | string[]; fehler?: string | string[] }) {
   if (typeof fehler === "string") return <p role="alert" className="mb-6 rounded-2xl bg-rot-hell p-4 text-sm font-semibold text-rot">{fehler}</p>;
-  if (typeof hinweis === "string") return <p role="status" className={`mb-6 rounded-2xl p-4 text-sm font-semibold ${hinweis === "ticket-fehler" ? "bg-gelb-hell" : "bg-gruen-hell"}`}>{hinweise[hinweis] ?? hinweis}</p>;
+  if (typeof hinweis === "string") return <p role="status" className={`mb-6 rounded-2xl p-4 text-sm font-semibold ${hinweis === "ticket-fehler" || hinweis === "mail-aus" ? "bg-gelb-hell" : "bg-gruen-hell"}`}>{hinweise[hinweis] ?? hinweis}</p>;
   return null;
 }
 

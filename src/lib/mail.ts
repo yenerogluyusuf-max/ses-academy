@@ -7,6 +7,11 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { ladeTicket, modulZeitraum } from "@/lib/teilnahme";
 import { kurzcodeAnzeige, qrPng } from "@/lib/tickets";
 
+/** Ist der Mailversand eingerichtet (SMTP-Zugangsdaten in der .env)? */
+export function mailBereit() {
+  return Boolean(process.env.SMTP_HOST);
+}
+
 function transport() {
   const host = process.env.SMTP_HOST;
   if (!host) throw new Error("SMTP_HOST fehlt (siehe .env.example).");
