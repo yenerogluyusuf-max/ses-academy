@@ -95,7 +95,7 @@ export async function programmVerschieben(formData: FormData) {
   const { data: betroffen } = await supabase.from("program_items")
     .select("id, starts_at, ends_at, status")
     .eq("module_day_id", tagId).gte("starts_at", ab.starts_at)
-    .not("status", "in", "(erledigt,entfaellt)");
+    .neq("status", "entfaellt");
   const versatz = minuten * 60_000;
   const plus = (iso: string | null) => (iso ? new Date(Date.parse(iso) + versatz).toISOString() : null);
   for (const p of betroffen ?? []) {
@@ -134,7 +134,7 @@ const einsatzSchema = z.object({
 export async function einsatzAnlegen(formData: FormData) {
   await requireStaff("orga");
   const tagId = String(formData.get("tag"));
-  const pfad = `/team/rollenplan/?tag=${tagId}`;
+  const pfad = `/team/regieplan/?tag=${tagId}`;
   const tag = await ladeTag(tagId);
   const d = einsatzSchema.safeParse({
     person_name: formData.get("person_name"), phone: formData.get("phone") ?? "", task: formData.get("task"),
@@ -158,7 +158,7 @@ export async function einsatzEntfernen(formData: FormData) {
   await requireStaff("orga");
   const tagId = String(formData.get("tag"));
   const id = String(formData.get("id"));
-  const pfad = `/team/rollenplan/?tag=${tagId}`;
+  const pfad = `/team/regieplan/?tag=${tagId}`;
   if (!istToken(id)) zurueck(pfad, "eingabe");
   const supabase = await createClient();
   const { error } = await supabase.from("duty_assignments").delete().eq("id", id);
@@ -170,7 +170,7 @@ export async function einsaetzeUebernehmen(formData: FormData) {
   await requireStaff("orga");
   const vonTag = String(formData.get("von_tag"));
   const tagId = String(formData.get("tag"));
-  const pfad = `/team/rollenplan/?tag=${tagId}`;
+  const pfad = `/team/regieplan/?tag=${tagId}`;
   const [quelle, ziel] = await Promise.all([ladeTag(vonTag), ladeTag(tagId)]);
   if (!quelle || !ziel || quelle.id === ziel.id) zurueck(pfad, "eingabe");
   const supabase = await createClient();

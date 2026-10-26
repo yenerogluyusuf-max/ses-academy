@@ -100,7 +100,6 @@ export default async function ModulDetail({ params, searchParams }: PageProps<"/
                   </div>
                   <Link href={`/team/einlass/?tag=${t.id}`} className="rounded-full bg-white px-4 py-2 text-sm font-semibold ring-1 ring-line">Einlass</Link>
                   <Link href={`/team/regieplan/?tag=${t.id}`} className="rounded-full bg-white px-4 py-2 text-sm font-semibold ring-1 ring-line">Regieplan</Link>
-                  <Link href={`/team/rollenplan/?tag=${t.id}`} className="rounded-full bg-white px-4 py-2 text-sm font-semibold ring-1 ring-line">Rollenplan</Link>
                   {checkins === 0 && (
                     <form action={tagEntfernen}>
                       <input type="hidden" name="module_id" value={m.id} /><input type="hidden" name="day_id" value={t.id} />

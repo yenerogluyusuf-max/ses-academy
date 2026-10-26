@@ -1,6 +1,6 @@
 import Link from "next/link";
 import {
-  BookOpen, CalendarClock, ChartColumn, ClipboardList, Contact, FolderOpen, House, Inbox, KeyRound, Layers, LogOut,
+  BookOpen, CalendarClock, ChartColumn, Contact, FolderOpen, House, Inbox, KeyRound, Layers, LogOut,
   MessagesSquare, ScanLine, Send, ShieldCheck, Upload, UserCog, Users, UserX, type LucideIcon,
 } from "lucide-react";
 import { HandyMenue } from "@/components/team/HandyMenue";
@@ -21,7 +21,6 @@ const gruppen: { titel: string; eintraege: Eintrag[] }[] = [
     eintraege: [
       { id: "einlass", name: "Einlass", href: "/team/einlass/", icon: ScanLine, recht: alle },
       { id: "regieplan", name: "Regieplan", href: "/team/regieplan/", icon: CalendarClock, recht: alle },
-      { id: "rollenplan", name: "Rollenplan", href: "/team/rollenplan/", icon: ClipboardList, recht: darf.orga },
       { id: "gruppen", name: "Fehlt noch", href: "/team/gruppen/", icon: UserX, recht: darf.orga },
     ],
   },

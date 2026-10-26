@@ -11,8 +11,8 @@ Fünfsprachige Website der SES Academy, dazu Bewerbung, Teilnahme und Einlass (C
 | `/ticket/<token>/` | Teilnehmende | Persönliches Ticket: QR-Code, Kurzcode, Module, selbst abmelden oder entschuldigen. Der Link kommt per Mail. |
 | `/team/` | Team (Login) | Übersicht je nach Rolle. |
 | `/team/einlass/` | alle Team-Rollen | Scanner und Kurzcode. Ab Orga-Team auch die Anwesenheitsliste (abhaken, zurücknehmen). |
-| `/team/regieplan/` | alle Team-Rollen (pflegen ab Orga-Team) | Programm eines Modultags: was läuft, was als Nächstes kommt, Status, Verzögerung um 10/15/30 Minuten für alle folgenden Punkte. Aktualisiert sich alle 30 Sekunden. |
-| `/team/rollenplan/` | ab Orga-Team | Wer an welchem Tag welche Aufgabe hat, mit Telefon und Anruf-Knopf; Leitung vor Ort oben; Einsätze vom Vortag übernehmen. |
+| `/team/regieplan/` | alle Team-Rollen (pflegen ab Orga-Team) | Regie- und Rollenplan eines Modultags auf einer Seite: Programm mit Stand nach der Uhr (läuft/vorbei automatisch, von Hand nur „entfällt“), Zeitplan verschieben, je Punkt die Eingeteilten; rechts das Team des Tages (ab Orga-Team) mit Leitung und Telefon; Druckansicht A4 quer unter `/team/regieplan/druck/`. Aktualisiert sich alle 30 Sekunden. |
+| `/team/rollenplan/` | ab Orga-Team | Weiterleitung auf den Regieplan (Team des Tages steht dort rechts). |
 | `/team/bewerbungen/` | Admin, Vorstand | Bewerbungen annehmen (meldet für alle Module an und schickt das Ticket), ablehnen, Warteliste, Ticket erneut senden. |
 | `/team/teilnehmende/` | Admin, Vorstand | Willkommensmail („Dein SES-Konto ist bereit“, mit Ticket und Login-Anleitung, fünf Sprachen) an alle, die sich noch nie angemeldet haben. Teilnehmende mit Region, GT/KGT, Verantwortlichen; Anwesenheit je Modul und Tag (nachtragen/zurücknehmen), QR-Code per Mail, Stimmen-Beiträge verknüpfen. Ansicht „Verantwortliche“ (Sorumlu) mit E-Mail. |
 | `/team/hausaufgaben/` | ab Orga-Team | Hausaufgaben, wer abgegeben hat und wer nicht, Bewertung nach dem Rhetorik-Bogen (9 Kriterien × 1–5 Punkte, Feedback), Gruppenvideos. Namen ohne Kontaktdaten. |
