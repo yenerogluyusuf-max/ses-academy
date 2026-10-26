@@ -41,7 +41,8 @@ export default async function HotelSeite({ params, searchParams }: PageProps<"/t
   const alleNaechte = naechte(modul.module_days.map((d) => d.day));
   const liste = personen ?? [];
   const geantwortet = liste.filter((p) => p.answered);
-  const proNacht = alleNaechte.map((n) => ({ nacht: n, anzahl: geantwortet.filter((p) => p.nights.includes(n)).length }));
+  const proNacht = alleNaechte.map((n) => ({ nacht: n, anzahl: geantwortet.filter((p) => p.nights.includes(n)).length,
+    w: geantwortet.filter((p) => p.nights.includes(n) && p.gender === "w").length, m: geantwortet.filter((p) => p.nights.includes(n) && p.gender === "m").length }));
   const hotel = hotels?.[0];
   const zimmer = [...(hotel?.rooms ?? [])].sort((a, b) => a.label.localeCompare(b.label, "de", { numeric: true }));
   const belegt = zimmer.reduce((s, z) => s + z.room_assignments.length, 0);
@@ -69,7 +70,7 @@ export default async function HotelSeite({ params, searchParams }: PageProps<"/t
           </div>
           {proNacht.length > 0 && (
             <ul className="mt-4 flex flex-wrap gap-2" aria-label="Übernachtungen je Nacht">
-              {proNacht.map((n) => <li key={n.nacht} className="chip bg-paper-deep px-3 py-1.5 text-sm">{nachtName(n.nacht)}: {n.anzahl}</li>)}
+              {proNacht.map((n) => <li key={n.nacht} className="chip bg-paper-deep px-3 py-1.5 text-sm">{nachtName(n.nacht)}: {n.anzahl}{n.anzahl ? ` (${n.w} w · ${n.m} m)` : ""}</li>)}
             </ul>
           )}
         </section>
@@ -133,7 +134,7 @@ export default async function HotelSeite({ params, searchParams }: PageProps<"/t
             <tbody>
               {liste.map((p) => (
                 <tr key={p.participant_id} className={p.answered ? "" : "text-ink-soft"}>
-                  <td className="font-semibold">{p.name}{p.registration_status === "waitlist" && <span className="chip ml-1 bg-gelb-hell">Warteliste</span>}{!p.answered && <span className="block text-xs font-normal">noch keine Angaben</span>}</td>
+                  <td className="font-semibold">{p.name}{p.gender && <span className={`chip ml-1 ${p.gender === "w" ? "bg-rose-100" : "bg-sky-100"}`} title={p.gender === "w" ? "weiblich" : "männlich"}>{p.gender}</span>}{p.registration_status === "waitlist" && <span className="chip ml-1 bg-gelb-hell">Warteliste</span>}{!p.answered && <span className="block text-xs font-normal">noch keine Angaben</span>}</td>
                   {alleNaechte.map((n) => <td key={n} className="text-center">{p.nights.includes(n) ? "●" : ""}</td>)}
                   <td className="whitespace-nowrap">{p.arrival_at ? zeit.format(new Date(p.arrival_at)) : ""}{p.arrival_by ? ` · ${anreiseName[p.arrival_by]}` : ""}</td>
                   <td className="whitespace-nowrap">{p.departure_at ? zeit.format(new Date(p.departure_at)) : ""}</td>

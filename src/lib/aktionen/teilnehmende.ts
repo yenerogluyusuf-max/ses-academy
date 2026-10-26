@@ -18,6 +18,7 @@ const schema = z.object({
   region_id: z.coerce.number().int().nullable(),
   country: z.enum(["DE", "AT", "FR", "CH", "NL", "BE", "other"]).nullable(),
   branch: z.enum(["GT", "KGT"]).nullable(),
+  gender: z.enum(["w", "m"]).nullable(),
   mentor_id: z.uuid().nullable(),
   active: z.boolean(),
 });
@@ -35,6 +36,7 @@ export async function personSpeichern(formData: FormData) {
     region_id: leer(formData.get("region_id")),
     country: leer(formData.get("country")),
     branch: leer(formData.get("branch")),
+    gender: leer(formData.get("gender")),
     mentor_id: leer(formData.get("mentor_id")),
     active: formData.get("active") === "on",
   });

@@ -23,6 +23,7 @@ INSERT INTO auth.users (instance_id, id, aud, role, email, email_confirmed_at, c
 VALUES ('00000000-0000-0000-0000-000000000000', gen_random_uuid(), 'authenticated', 'authenticated', 'amina@example.test', now(), now(), now()),
        ('00000000-0000-0000-0000-000000000000', gen_random_uuid(), 'authenticated', 'authenticated', 'yusuf@example.test', now(), now(), now());
 UPDATE public.participants p SET user_id = u.id FROM auth.users u WHERE u.email = p.email AND p.email IN ('amina@example.test', 'yusuf@example.test');
+UPDATE public.participants SET gender = 'w' WHERE email = 'amina@example.test';
 CREATE TEMP TABLE t AS SELECT
   (SELECT id FROM public.modules WHERE slug = 'winter-school') AS ws,
   (SELECT id FROM public.modules WHERE slug = 'demokratie') AS demo,
@@ -70,6 +71,7 @@ END $$;
 CREATE TEMP TABLE ov AS SELECT * FROM public.get_stay_overview((SELECT ws FROM t));
 SELECT pg_temp.ok('Überblick: drei Angemeldete', (SELECT count(*)::text FROM ov), '3');
 SELECT pg_temp.ok('Amina: geantwortet, Zimmer 101, eine Nacht', (SELECT answered || ' ' || room_label || ' ' || cardinality(nights) FROM ov WHERE participant_id = (SELECT amina FROM t)), 'true 101 1');
+SELECT pg_temp.ok('Zimmerplan zeigt das Geschlecht', (SELECT gender FROM ov WHERE participant_id = (SELECT amina FROM t)), 'w');
 SELECT pg_temp.ok('Yusuf: noch keine Angaben', (SELECT answered::text FROM ov WHERE participant_id = (SELECT yusuf FROM t)), 'false');
 SELECT pg_temp.login('helfer@ses.test');
 SELECT pg_temp.ok('Helfer sieht keinen Überblick', (SELECT count(*)::text FROM public.get_stay_overview((SELECT ws FROM t))), '0');

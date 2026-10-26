@@ -71,7 +71,7 @@ export default async function BewerbungenSeite({ searchParams }: PageProps<"/tea
                 <div>
                   <p className="font-display text-xl font-bold">{b.first_name} {b.last_name}</p>
                   <p className="text-sm text-ink-soft">
-                    {b.email}{b.phone ? ` · ${b.phone}` : ""} · {b.city}, {b.country} · Jahrgang {b.birth_year}
+                    {b.email}{b.phone ? ` · ${b.phone}` : ""}{[b.city, b.country].filter(Boolean).length ? ` · ${[b.city, b.country].filter(Boolean).join(", ")}` : ""}{b.age ? ` · ${b.age} Jahre` : b.birth_year ? ` · Jahrgang ${b.birth_year}` : ""}
                   </p>
                   <p className="text-sm text-ink-soft">
                     Sprachen: {b.languages.join(", ") || "keine Angabe"} · eingegangen am {new Date(b.created_at).toLocaleDateString("de-DE", { timeZone: "Europe/Berlin" })}
@@ -81,8 +81,15 @@ export default async function BewerbungenSeite({ searchParams }: PageProps<"/tea
                 <span className="rounded-full bg-paper-deep px-3 py-1 text-sm font-semibold">{statusName[b.status]}</span>
               </div>
               <details className="mt-3">
-                <summary className="cursor-pointer text-sm font-semibold">Motivation lesen</summary>
+                <summary className="cursor-pointer text-sm font-semibold">Motivation und weitere Angaben</summary>
                 <p className="mt-2 whitespace-pre-line">{b.motivation}</p>
+                {Object.keys(b.details ?? {}).length > 0 && (
+                  <dl className="mt-3 grid gap-x-4 gap-y-1.5 text-sm sm:grid-cols-[minmax(0,14rem)_1fr]">
+                    {Object.entries(b.details as Record<string, string>).filter(([, v]) => v).map(([k, v]) => (
+                      <div key={k} className="contents"><dt className="text-ink-soft">{k}</dt><dd className="whitespace-pre-line">{v}</dd></div>
+                    ))}
+                  </dl>
+                )}
               </details>
               <div className="mt-4 flex flex-wrap gap-2">
                 {b.status !== "angenommen" ? (

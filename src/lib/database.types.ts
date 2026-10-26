@@ -25,14 +25,14 @@ export type Database = {
           Tables: {
             "applications": {
                   Row: {
-                    "birth_year": number | null,"city": string | null,"cohort_id": string,"consent_at": string,"country": string | null,"created_at": string,"email": string,"first_name": string,"id": string,"language": string,"languages": (string)[],"last_name": string,"motivation": string,"participant_id": string | null,"phone": string | null,"review_note": string,"reviewed_at": string | null,"reviewed_by": string | null,"source": string | null,"status": Database["public"]['Enums']["application_status"]
+                    "age": number | null,"birth_year": number | null,"city": string | null,"cohort_id": string,"consent_at": string,"country": string | null,"created_at": string,"details": NonNullable<Json>,"email": string,"first_name": string,"gender": string | null,"id": string,"imported_from": string | null,"language": string,"languages": (string)[],"last_name": string,"motivation": string,"participant_id": string | null,"phone": string | null,"review_note": string,"reviewed_at": string | null,"reviewed_by": string | null,"source": string | null,"status": Database["public"]['Enums']["application_status"]
                   }
                   ComputedFields: never
                   Insert: {
-                    "birth_year"?: number | null,"city"?: string | null,"cohort_id": string,"consent_at": string,"country"?: string | null,"created_at"?: string,"email": string,"first_name": string,"id"?: string,"language"?: string,"languages"?: (string)[],"last_name": string,"motivation"?: string,"participant_id"?: string | null,"phone"?: string | null,"review_note"?: string,"reviewed_at"?: string | null,"reviewed_by"?: string | null,"source"?: string | null,"status"?: Database["public"]['Enums']["application_status"]
+                    "age"?: number | null,"birth_year"?: number | null,"city"?: string | null,"cohort_id": string,"consent_at": string,"country"?: string | null,"created_at"?: string,"details"?: NonNullable<Json>,"email": string,"first_name": string,"gender"?: string | null,"id"?: string,"imported_from"?: string | null,"language"?: string,"languages"?: (string)[],"last_name": string,"motivation"?: string,"participant_id"?: string | null,"phone"?: string | null,"review_note"?: string,"reviewed_at"?: string | null,"reviewed_by"?: string | null,"source"?: string | null,"status"?: Database["public"]['Enums']["application_status"]
                   }
                   Update: {
-                    "birth_year"?: number | null,"city"?: string | null,"cohort_id"?: string,"consent_at"?: string,"country"?: string | null,"created_at"?: string,"email"?: string,"first_name"?: string,"id"?: string,"language"?: string,"languages"?: (string)[],"last_name"?: string,"motivation"?: string,"participant_id"?: string | null,"phone"?: string | null,"review_note"?: string,"reviewed_at"?: string | null,"reviewed_by"?: string | null,"source"?: string | null,"status"?: Database["public"]['Enums']["application_status"]
+                    "age"?: number | null,"birth_year"?: number | null,"city"?: string | null,"cohort_id"?: string,"consent_at"?: string,"country"?: string | null,"created_at"?: string,"details"?: NonNullable<Json>,"email"?: string,"first_name"?: string,"gender"?: string | null,"id"?: string,"imported_from"?: string | null,"language"?: string,"languages"?: (string)[],"last_name"?: string,"motivation"?: string,"participant_id"?: string | null,"phone"?: string | null,"review_note"?: string,"reviewed_at"?: string | null,"reviewed_by"?: string | null,"source"?: string | null,"status"?: Database["public"]['Enums']["application_status"]
                   }
                   Relationships: [
                     {
@@ -667,14 +667,14 @@ isOneToOne: true
                   ]
                 },"participants": {
                   Row: {
-                    "active": boolean,"affiliation_status": Database["public"]['Enums']["affiliation_status"],"branch": string | null,"checkin_token": string,"cohort_id": string | null,"country": string | null,"created_at": string,"email": string | null,"first_name": string,"id": string,"last_name": string,"mentor_id": string | null,"phone": string | null,"photo_consent_at": string | null,"photo_path": string | null,"preferred_language": string,"privacy_consent_at": string | null,"region_id": number | null,"share_contact": boolean,"short_code": string | null,"updated_at": string,"user_id": string | null,"display_name": string | null
+                    "active": boolean,"affiliation_status": Database["public"]['Enums']["affiliation_status"],"branch": string | null,"checkin_token": string,"cohort_id": string | null,"country": string | null,"created_at": string,"email": string | null,"first_name": string,"gender": string | null,"id": string,"last_name": string,"mentor_id": string | null,"phone": string | null,"photo_consent_at": string | null,"photo_path": string | null,"preferred_language": string,"privacy_consent_at": string | null,"region_id": number | null,"share_contact": boolean,"short_code": string | null,"updated_at": string,"user_id": string | null,"display_name": string | null
                   }
                   ComputedFields: "display_name"
                   Insert: {
-                    "active"?: boolean,"affiliation_status"?: Database["public"]['Enums']["affiliation_status"],"branch"?: string | null,"checkin_token"?: string,"cohort_id"?: string | null,"country"?: string | null,"created_at"?: string,"email"?: string | null,"first_name": string,"id"?: string,"last_name"?: string,"mentor_id"?: string | null,"phone"?: string | null,"photo_consent_at"?: string | null,"photo_path"?: string | null,"preferred_language"?: string,"privacy_consent_at"?: string | null,"region_id"?: number | null,"share_contact"?: boolean,"short_code"?: never,"updated_at"?: string,"user_id"?: string | null
+                    "active"?: boolean,"affiliation_status"?: Database["public"]['Enums']["affiliation_status"],"branch"?: string | null,"checkin_token"?: string,"cohort_id"?: string | null,"country"?: string | null,"created_at"?: string,"email"?: string | null,"first_name": string,"gender"?: string | null,"id"?: string,"last_name"?: string,"mentor_id"?: string | null,"phone"?: string | null,"photo_consent_at"?: string | null,"photo_path"?: string | null,"preferred_language"?: string,"privacy_consent_at"?: string | null,"region_id"?: number | null,"share_contact"?: boolean,"short_code"?: never,"updated_at"?: string,"user_id"?: string | null
                   }
                   Update: {
-                    "active"?: boolean,"affiliation_status"?: Database["public"]['Enums']["affiliation_status"],"branch"?: string | null,"checkin_token"?: string,"cohort_id"?: string | null,"country"?: string | null,"created_at"?: string,"email"?: string | null,"first_name"?: string,"id"?: string,"last_name"?: string,"mentor_id"?: string | null,"phone"?: string | null,"photo_consent_at"?: string | null,"photo_path"?: string | null,"preferred_language"?: string,"privacy_consent_at"?: string | null,"region_id"?: number | null,"share_contact"?: boolean,"short_code"?: never,"updated_at"?: string,"user_id"?: string | null
+                    "active"?: boolean,"affiliation_status"?: Database["public"]['Enums']["affiliation_status"],"branch"?: string | null,"checkin_token"?: string,"cohort_id"?: string | null,"country"?: string | null,"created_at"?: string,"email"?: string | null,"first_name"?: string,"gender"?: string | null,"id"?: string,"last_name"?: string,"mentor_id"?: string | null,"phone"?: string | null,"photo_consent_at"?: string | null,"photo_path"?: string | null,"preferred_language"?: string,"privacy_consent_at"?: string | null,"region_id"?: number | null,"share_contact"?: boolean,"short_code"?: never,"updated_at"?: string,"user_id"?: string | null
                   }
                   Relationships: [
                     {
@@ -1114,7 +1114,7 @@ isOneToOne: false
                            },
 "get_grouping_candidates":
 { Args: { "p_module_id": string }; Returns: {
-              "branch": string,"country": string,"group_id": string,"name": string,"participant_id": string
+              "branch": string,"country": string,"gender": string,"group_id": string,"name": string,"participant_id": string
             }[]
                            },
 "get_guest_sheet":
@@ -1155,7 +1155,7 @@ isOneToOne: false
                            },
 "get_stay_overview":
 { Args: { "p_module_id": string }; Returns: {
-              "answered": boolean,"arrival_at": string,"arrival_by": string,"departure_at": string,"name": string,"nights": (string)[],"notes": string,"participant_id": string,"registration_status": Database["public"]['Enums']["registration_status"],"room_id": string,"room_label": string,"room_wish": string
+              "answered": boolean,"arrival_at": string,"arrival_by": string,"departure_at": string,"gender": string,"name": string,"nights": (string)[],"notes": string,"participant_id": string,"registration_status": Database["public"]['Enums']["registration_status"],"room_id": string,"room_label": string,"room_wish": string
             }[]
                            },
 "get_team_members":

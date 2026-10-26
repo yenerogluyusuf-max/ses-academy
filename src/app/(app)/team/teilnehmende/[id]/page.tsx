@@ -88,6 +88,12 @@ export default async function Person({ params, searchParams }: PageProps<"/team/
                 </select>
               </div>
               <div>
+                <label className="etikett" htmlFor="gender">Geschlecht</label>
+                <select id="gender" name="gender" defaultValue={p.gender ?? ""} className="feld">
+                  <option value="">– keine Angabe –</option><option value="w">weiblich</option><option value="m">männlich</option>
+                </select>
+              </div>
+              <div>
                 <label className="etikett" htmlFor="mentor_id">Verantwortliche Person</label>
                 <select id="mentor_id" name="mentor_id" defaultValue={p.mentor_id ?? ""} className="feld">
                   <option value="">– keine –</option>
