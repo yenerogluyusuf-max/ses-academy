@@ -2,11 +2,12 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { AutoAktualisieren } from "@/components/team/AutoAktualisieren";
 import { Hinweis } from "@/components/team/Hinweis";
+import { TagWahl } from "@/components/team/TagWahl";
 import { TeamKopf } from "@/components/team/TeamKopf";
 import { programmpunktAnlegen, programmpunktEntfernen, programmpunktStatus, programmVerschieben } from "@/lib/aktionen/eventtag";
 import { darf, requireStaff } from "@/lib/auth";
 import { uhrzeit } from "@/lib/einlass";
-import { ladeModultage, programmStatus, tagBezeichnung } from "@/lib/eventtag";
+import { ladeModultage, programmStatus } from "@/lib/eventtag";
 import { createClient } from "@/lib/supabase/server";
 import { jetztMs } from "@/lib/zeit";
 
@@ -49,17 +50,8 @@ export default async function Regieplan({ searchParams }: PageProps<"/team/regie
           <p className="karte mt-6">Es gibt noch keine veröffentlichten Modultage.</p>
         ) : (
           <>
-            <form className="mt-4 flex flex-wrap items-end gap-2" action="/team/regieplan/">
-              <div className="min-w-0 basis-full sm:basis-auto sm:flex-1">
-                <label htmlFor="tag" className="etikett">Modultag</label>
-                <select id="tag" name="tag" defaultValue={tag.id} className={feld}>
-                  {tage.map((t) => <option key={t.id} value={t.id}>{tagBezeichnung(t, t.module.title)}</option>)}
-                </select>
-              </div>
-              <button type="submit" className="knopf-hell">Öffnen</button>
-              {darfPflegen && <Link href={`/team/rollenplan/?tag=${tag.id}`} className="knopf-hell">Rollenplan</Link>}
-              {darfPflegen && <Link href={`/team/gruppen/?tag=${tag.id}`} className="knopf-hell">Fehlt noch</Link>}
-            </form>
+            <TagWahl tage={tage} aktiv={tag.id} pfad="/team/regieplan/" jetzt={jetztMs()} />
+            <div className="mt-3 flex flex-wrap gap-2">{darfPflegen && <Link href={`/team/rollenplan/?tag=${tag.id}`} className="knopf-hell">Rollenplan</Link>}{darfPflegen && <Link href={`/team/gruppen/?tag=${tag.id}`} className="knopf-hell">Fehlt noch</Link>}</div>
 
             {(laufend || naechster) && (
               <section aria-label="Jetzt und als Nächstes" className="mt-6 grid gap-3 sm:grid-cols-2">

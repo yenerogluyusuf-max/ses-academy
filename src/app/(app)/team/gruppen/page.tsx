@@ -2,10 +2,12 @@ import type { Metadata } from "next";
 import { AutoAktualisieren } from "@/components/team/AutoAktualisieren";
 import { GruppenListe, type GruppenPerson } from "@/components/team/GruppenListe";
 import { Hinweis } from "@/components/team/Hinweis";
+import { TagWahl } from "@/components/team/TagWahl";
 import { TeamKopf } from "@/components/team/TeamKopf";
+import { jetztMs } from "@/lib/zeit";
 import { sorumluLinkErneuern, sorumluTelefon } from "@/lib/aktionen/gruppen";
 import { darf, requireStaff } from "@/lib/auth";
-import { ladeModultage, tagBezeichnung } from "@/lib/eventtag";
+import { ladeModultage } from "@/lib/eventtag";
 import { seitenUrl } from "@/lib/mail";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
@@ -56,15 +58,7 @@ export default async function Gruppen({ searchParams }: PageProps<"/team/gruppen
         <Hinweis code={hinweis} texte={hinweise} />
         {!tag ? <p className="karte mt-6">Es gibt noch keine veröffentlichten Modultage.</p> : (
           <>
-            <form className="mt-4 flex flex-wrap items-end gap-2" action="/team/gruppen/">
-              <div className="min-w-0 basis-full sm:basis-auto sm:flex-1">
-                <label htmlFor="tag" className="etikett">Modultag</label>
-                <select id="tag" name="tag" defaultValue={tag.id} className="feld">
-                  {tage.map((t) => <option key={t.id} value={t.id}>{tagBezeichnung(t, t.module.title)}</option>)}
-                </select>
-              </div>
-              <button type="submit" className="knopf-hell">Öffnen</button>
-            </form>
+            <TagWahl tage={tage} aktiv={tag.id} pfad="/team/gruppen/" jetzt={jetztMs()} />
 
             <div className="mt-6 space-y-4">
               {liste.map((g) => (

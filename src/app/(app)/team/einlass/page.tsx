@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { jetztMs } from "@/lib/zeit";
 import { Einlass, type ListenEintrag } from "@/components/team/Einlass";
+import { TagWahl } from "@/components/team/TagWahl";
 import { TeamKopf } from "@/components/team/TeamKopf";
 import { darf, requireStaff } from "@/lib/auth";
 import type { Zaehler } from "@/lib/einlass";
@@ -16,11 +17,6 @@ function imZeitfenster(tag: { starts_at: string; ends_at: string }, jetzt: numbe
   return jetzt >= Date.parse(tag.starts_at) - 4 * STUNDE && jetzt <= Date.parse(tag.ends_at) + 6 * STUNDE;
 }
 
-function tagName(tag: { day: string; starts_at: string }, modul: string) {
-  const datum = new Intl.DateTimeFormat("de-DE", { weekday: "short", day: "numeric", month: "short", year: "numeric", timeZone: "Europe/Berlin" })
-    .format(new Date(tag.starts_at));
-  return `${modul} · ${datum}`;
-}
 
 export default async function EinlassSeite({ searchParams }: PageProps<"/team/einlass">) {
   const staff = await requireStaff("einlass");
@@ -64,17 +60,7 @@ export default async function EinlassSeite({ searchParams }: PageProps<"/team/ei
           </p>
         ) : (
           <>
-            <form className="mt-4 flex flex-wrap items-end gap-2" action="/team/einlass/">
-              <div className="min-w-0 flex-1">
-                <label htmlFor="tag" className="mb-1.5 block text-sm font-semibold">Modultag</label>
-                <select id="tag" name="tag" defaultValue={tag.id} className="w-full rounded-2xl bg-white px-4 py-3 ring-1 ring-line">
-                  {tage.map((t) => (
-                    <option key={t.id} value={t.id}>{tagName(t, t.module.title)}{imZeitfenster(t, jetzt) ? " (jetzt)" : ""}</option>
-                  ))}
-                </select>
-              </div>
-              <button type="submit" className="rounded-2xl bg-white px-5 py-3 font-semibold ring-1 ring-line">Öffnen</button>
-            </form>
+            <TagWahl tage={tage} aktiv={tag.id} pfad="/team/einlass/" jetzt={jetztMs()} />
             <div className="mt-6">
               <Einlass
                 key={tag.id}

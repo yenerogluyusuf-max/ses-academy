@@ -1,7 +1,9 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { Hinweis } from "@/components/team/Hinweis";
+import { TagWahl } from "@/components/team/TagWahl";
 import { TeamKopf } from "@/components/team/TeamKopf";
+import { jetztMs } from "@/lib/zeit";
 import { einsaetzeUebernehmen, einsatzAnlegen, einsatzEntfernen } from "@/lib/aktionen/eventtag";
 import { requireStaff } from "@/lib/auth";
 import { uhrzeit } from "@/lib/einlass";
@@ -50,16 +52,8 @@ export default async function Rollenplan({ searchParams }: PageProps<"/team/roll
           <p className="karte mt-6">Es gibt noch keine veröffentlichten Modultage.</p>
         ) : (
           <>
-            <form className="mt-4 flex flex-wrap items-end gap-2" action="/team/rollenplan/">
-              <div className="min-w-0 basis-full sm:basis-auto sm:flex-1">
-                <label htmlFor="tag" className="etikett">Modultag</label>
-                <select id="tag" name="tag" defaultValue={tag.id} className="feld">
-                  {tage.map((t) => <option key={t.id} value={t.id}>{tagBezeichnung(t, t.module.title)}</option>)}
-                </select>
-              </div>
-              <button type="submit" className="knopf-hell">Öffnen</button>
-              <Link href={`/team/regieplan/?tag=${tag.id}`} className="knopf-hell">Regieplan</Link>
-            </form>
+            <TagWahl tage={tage} aktiv={tag.id} pfad="/team/rollenplan/" jetzt={jetztMs()} />
+            <div className="mt-3 flex flex-wrap gap-2"><Link href={`/team/regieplan/?tag=${tag.id}`} className="knopf-hell">Regieplan</Link></div>
 
             {leitung.length > 0 && (
               <section className="mt-6 rounded-3xl bg-gelb-hell p-5 ring-1 ring-line">
