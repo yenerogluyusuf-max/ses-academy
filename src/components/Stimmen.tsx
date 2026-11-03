@@ -5,7 +5,7 @@ import { useState } from "react";
 import type { Beitrag, BeitragTyp, Land } from "@/i18n/stimmen";
 import type { ModulSlug, Texte } from "@/i18n/typ";
 
-export type Karte = Beitrag & { href: string; modulTitel?: string; datumText: string };
+export type Karte = Beitrag & { href: string; modulTitel?: string; datumText: string; lesezeitMin?: number };
 
 export function StimmenListe({ karten, t }: { karten: Karte[]; t: Texte["stimmen"] }) {
   const [modul, setModul] = useState<ModulSlug | "alle">("alle");
@@ -21,14 +21,14 @@ export function StimmenListe({ karten, t }: { karten: Karte[]; t: Texte["stimmen
 
   if (karten.length === 0) {
     return (
-      <div className="rounded-[2rem] border-2 border-dashed border-ink/20 p-10 text-center">
+      <div className="border-2 border-dashed border-ink/20 p-10 text-center">
         <p className="font-display text-3xl font-bold">{t.leer}</p>
       </div>
     );
   }
 
   const chip = (aktiv: boolean) =>
-    `rounded-full px-4 py-2 text-sm font-semibold transition ${aktiv ? "bg-ink text-paper" : "bg-white/60 ring-1 ring-line hover:bg-white"}`;
+    ` px-4 py-2 text-sm font-semibold transition ${aktiv ? "bg-ink text-paper" : "bg-white/60 ring-1 ring-line hover:bg-white"}`;
 
   return (
     <div>
@@ -74,27 +74,10 @@ export function StimmenListe({ karten, t }: { karten: Karte[]; t: Texte["stimmen
         )}
       </div>
 
-      <ul className="mt-10 grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+      <ul className="mt-10 grid gap-x-8 gap-y-10 md:grid-cols-2 lg:grid-cols-3">
         {sichtbar.map((k) => (
           <li key={k.slug}>
-            <Link href={k.href} className="group flex h-full flex-col rounded-3xl bg-white/60 p-7 ring-1 ring-line transition hover:-translate-y-1 hover:bg-white">
-              <div className="flex flex-wrap items-center gap-2 text-xs font-semibold">
-                {k.muster && <span className="rounded-full bg-signal px-2.5 py-1 uppercase">{t.muster}</span>}
-                <span className="rounded-full bg-ink px-2.5 py-1 text-paper">{t.typ[k.typ]}</span>
-                <span className="text-ink-soft">{t.laender[k.land]}</span>
-                <span className="text-ink-soft uppercase">· {k.sprache}</span>
-              </div>
-              <p lang={k.sprache} className="font-display mt-6 text-2xl leading-tight font-bold">{k.titel}</p>
-              <p lang={k.sprache} className="mt-3 text-ink-soft">{k.teaser}</p>
-              <p className="mt-auto pt-6 text-sm">
-                <span className="font-semibold">{k.autor.name}</span>
-                {k.autor.alter ? `, ${k.autor.alter}` : ""}
-                {k.autor.stadt ? ` · ${k.autor.stadt}` : ""}
-              </p>
-              <p className="text-sm text-ink-soft">
-                {[k.extern?.medium ?? k.anlass ?? k.modulTitel?.split(/[–:]/)[0].trim(), k.datumText].filter(Boolean).join(" · ")}
-              </p>
-            </Link>
+            <StimmenKarte k={k} t={t} />
           </li>
         ))}
       </ul>
@@ -102,11 +85,89 @@ export function StimmenListe({ karten, t }: { karten: Karte[]; t: Texte["stimmen
   );
 }
 
+/** Magazin-Karte: Mono-Metazeile, große Serif-Überschrift, Lesezeit, Autor/Datum + Lesen-Link. */
+export function StimmenKarte({ k, t }: { k: Karte; t: Texte["stimmen"] }) {
+  return (
+    <Link href={k.href} className="group flex h-full flex-col border-t-2 border-ink pt-4">
+      <p className="mono flex flex-wrap items-center gap-x-2 text-[11px] tracking-[0.12em] text-ink-soft uppercase">
+        {k.muster && <span className="bg-signal px-1.5 text-ink">{t.muster}</span>}
+        <span className="font-semibold text-ink">{t.typ[k.typ]}</span>
+        <span aria-hidden>•</span>
+        <span>{t.laender[k.land]}</span>
+        <span aria-hidden>•</span>
+        <span>[{k.sprache}]</span>
+      </p>
+      <p lang={k.sprache} className="mt-4 font-serif text-[1.7rem] leading-[1.12] font-medium tracking-[-0.01em] text-balance decoration-1 underline-offset-4 group-hover:underline">
+        {k.titel}
+      </p>
+      <p lang={k.sprache} className="mt-3 text-ink-soft">{k.teaser}</p>
+      {k.lesezeitMin && <p className="mono mt-4 text-[11px] tracking-[0.12em] text-ink-soft uppercase">◷ {t.lesezeit.replace("{n}", String(k.lesezeitMin))}</p>}
+      <div className="min-h-6 flex-1" aria-hidden />
+      <div className="flex items-end justify-between gap-4 border-t border-line pt-4">
+        <p className="text-sm">
+          <span className="font-semibold">{k.autor.name}</span>
+          {k.autor.alter ? `, ${k.autor.alter}` : ""}
+          {k.autor.stadt ? ` · ${k.autor.stadt}` : ""}
+          <span className="mono mt-0.5 block text-xs text-ink-soft">
+            {[k.extern?.medium ?? k.anlass ?? k.modulTitel?.split(/[–:]/)[0].trim(), k.datumText].filter(Boolean).join(" · ")}
+          </span>
+        </p>
+        <span className="shrink-0 text-sm font-semibold whitespace-nowrap">
+          {k.typ === "artikel" ? t.artikelLesen : t.lesen} <span className="pfeil pfeil-rechts inline-block">→</span>
+        </span>
+      </div>
+    </Link>
+  );
+}
+
+const teaserSprachen = ["de", "tr", "fr", "en"] as const;
+
+/** Startseiten-Auszug mit Sprachfilter (Alle | DE | TR | FR | EN); Sprachen ohne Beiträge sind deaktiviert. */
+export function StimmenTeaserListe({ karten, t, max = 3, kopf }: { karten: Karte[]; t: Texte["stimmen"]; max?: number; kopf: React.ReactNode }) {
+  const [sprache, setSprache] = useState<(typeof teaserSprachen)[number] | "alle">("alle");
+  const sichtbar = karten.filter((k) => sprache === "alle" || k.sprache === sprache).slice(0, max);
+  const knopf = (aktiv: boolean) =>
+    `mono px-3 py-1.5 text-[11px] tracking-[0.12em] uppercase transition disabled:cursor-not-allowed disabled:opacity-35 ${
+      aktiv ? "bg-ink text-paper" : "ring-1 ring-ink/25 enabled:hover:bg-ink enabled:hover:text-paper"
+    }`;
+  return (
+    <>
+      <div className="grid gap-6 lg:grid-cols-[1fr_auto] lg:items-end">
+        {kopf}
+        <div role="group" aria-label={t.filterSprache} className="flex flex-wrap gap-2">
+          <button type="button" className={knopf(sprache === "alle")} aria-pressed={sprache === "alle"} onClick={() => setSprache("alle")}>
+            {t.alle}
+          </button>
+          {teaserSprachen.map((s) => (
+            <button
+              key={s}
+              type="button"
+              className={knopf(sprache === s)}
+              aria-pressed={sprache === s}
+              disabled={!karten.some((k) => k.sprache === s)}
+              onClick={() => setSprache(s)}
+            >
+              {s}
+            </button>
+          ))}
+        </div>
+      </div>
+      <ul className="mt-12 grid gap-x-8 gap-y-12 md:grid-cols-2 lg:grid-cols-3">
+        {sichtbar.map((k) => (
+          <li key={k.slug}>
+            <StimmenKarte k={k} t={t} />
+          </li>
+        ))}
+      </ul>
+    </>
+  );
+}
+
 /** YouTube erst nach Klick laden (keine Verbindung zu YouTube beim Seitenaufruf). */
 export function YoutubeKlick({ id, titel, t }: { id: string; titel: string; t: Texte["stimmen"] }) {
   const [an, setAn] = useState(false);
   return (
-    <div className="relative aspect-video overflow-hidden rounded-3xl bg-ink">
+    <div className="relative aspect-video overflow-hidden bg-ink">
       {an ? (
         <iframe
           src={`https://www.youtube-nocookie.com/embed/${id}?autoplay=1`}

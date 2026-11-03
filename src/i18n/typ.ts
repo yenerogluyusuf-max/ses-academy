@@ -39,6 +39,10 @@ export type Texte = {
     intro: string;
     ctaProgramm: string;
     ctaFaq: string;
+    /** Hauptknopf, solange keine Bewerbungsphase läuft (siehe `bewerbungOffen` in daten.ts). */
+    ctaVormerken: string;
+    /** Editorial-Hero: Überschrift = vor + kursives Akzentwort + nach. */
+    editorial: { kicker: string; vor: string; akzent: string; nach: string; lead: string; ctaProgramm: string; trust: string[] };
     laufzeitLabel: string;
     laufzeit: string;
     ortLabel: string;
@@ -64,10 +68,11 @@ export type Texte = {
     weitereTitel: string;
     weitereText: string;
     details: string;
+    spotlightCta: string;
     art: Record<"auftakt" | "seminar" | "workshop" | "winterschool", string>;
   };
   kompetenzen: { kicker: string; titel: string; intro: string; liste: { name: string; kurz: string; text: string }[] };
-  rueckblick: { kicker: string; titel: string; text: string; gaesteTitel: string; alle: string };
+  rueckblick: { kicker: string; titel: string; text: string; gaesteTitel: string; alle: string; /** {n} = Anzahl */ alleZeigen: string };
   ueber: {
     kicker: string;
     titel: string;
@@ -79,7 +84,7 @@ export type Texte = {
     ablauf: { titel: string; text: string }[];
   };
   faq: { kicker: string; titel: string; suche: string; keineTreffer: string; liste: { frage: string; antwort: string[]; punkte?: string[]; nachsatz?: string }[] };
-  kontakt: { titel: string; text: string; cta: string };
+  kontakt: { titel: string; text: string; cta: string; aufruf: { titel: string; text: string; bewerben: string; kontakt: string } };
   footer: { claim: string; traeger: string; impressum: string; datenschutz: string; islamrat: string; kontakt: string };
   seminar: { zurueck: string; datum: string; ort: string; ortOffen: string; vorher: string; nachher: string; gaeste: string; eindruecke: string };
   formate: Record<"keynote" | "panel" | "grusswort" | "videobotschaft" | "moderation" | "eroeffnung" | "studie" | "laendergruppe" | "gespraech" | "schlusswort", string>;
@@ -119,6 +124,7 @@ export type Texte = {
     filterModul: string;
     filterLand: string;
     filterTyp: string;
+    filterSprache: string;
     alle: string;
     typ: Record<"kommentar" | "video" | "grafik" | "podcast" | "rede" | "artikel", string>;
     anlass: string;
@@ -133,6 +139,10 @@ export type Texte = {
     muster: string;
     startseiteTitel: string;
     startseiteText: string;
+    startseiteAlle: string;
+    /** {n} = Minuten */
+    lesezeit: string;
+    artikelLesen: string;
   };
   presse: {
     nav: string;

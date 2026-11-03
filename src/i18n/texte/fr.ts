@@ -16,6 +16,16 @@ export const fr: Texte = {
       "La SES Academy (abrév. de „Sosyal ve Siyasal Eğitim Semineri“ – séminaire d’éducation sociale et politique) est un programme de formation de deux ans qui aide les jeunes musulmans d’Europe à acquérir une culture politique, à s’engager dans la société et à assumer des responsabilités.",
     ctaProgramm: "Voir le programme",
     ctaFaq: "Questions fréquentes",
+    ctaVormerken: "Postuler pour la prochaine promotion",
+    editorial: {
+      kicker: "Programme européen de leadership et de formation",
+      vor: "Savoir. Conviction. ",
+      akzent: "Responsabilité",
+      nach: " pour l’avenir de l’Europe.",
+      lead: "Pour les jeunes musulmanes et musulmans de 18 à 30 ans qui façonnent activement la société, la politique et les médias.",
+      ctaProgramm: "Voir le programme et les modules",
+      trust: ["10+ modules", "2 ans", "Réseau européen", "Cologne & partout en Europe"],
+    },
     laufzeitLabel: "Durée du programme",
     laufzeit: "avril 2026 – juin 2028 (prévisionnel)",
     ortLabel: "Lieu",
@@ -45,6 +55,7 @@ export const fr: Texte = {
     weitereTitel: "D’autres modules sont en planification",
     weitereText: "Séminaires, ateliers et séjours d’hiver et d’été jusqu’en juin 2028 (prévisionnel) – à Cologne et dans d’autres villes d’Europe.",
     details: "Détails",
+    spotlightCta: "Détails et programme du séminaire",
     art: { auftakt: "Lancement", seminar: "Séminaire", workshop: "Atelier de compétences", winterschool: "Winter School" },
   },
   kompetenzen: {
@@ -65,6 +76,7 @@ export const fr: Texte = {
     text: "Pour le lancement en avril 2026, de jeunes musulmans venus de plusieurs pays d’Europe se sont retrouvés à Cologne – discours, tables rondes et de nombreuses questions de la salle.",
     gaesteTitel: "Nos invités jusqu’ici",
     alle: "Tous les invités de ce module",
+    alleZeigen: "Voir les {n} invités",
   },
   ueber: {
     kicker: "À propos du programme",
@@ -116,7 +128,7 @@ export const fr: Texte = {
       { frage: "Qui porte le projet ?", antwort: ["Le projet est porté par le Conseil islamique de la République fédérale d’Allemagne (Islamrat für die BRD) et réalisé en coopération avec les associations de jeunesse de la CIMG (IGMG)."] },
     ],
   },
-  kontakt: { titel: "Tu as d’autres questions ?", text: "Nous t’aidons volontiers.", cta: "Écris-nous" },
+  kontakt: { titel: "Tu as d’autres questions ?", text: "Nous t’aidons volontiers.", cta: "Écris-nous", aufruf: { titel: "Prêt·e à faire entendre ta voix en Europe ?", text: "Postule pour la prochaine promotion de la SES Academy ou contacte notre équipe à Cologne.", bewerben: "Postuler en ligne", kontakt: "Nous contacter" } },
   footer: {
     claim: "Formation politique des jeunes musulmans en Europe.",
     traeger: "Un projet de l’Islamrat für die BRD en coopération avec les associations de jeunesse et de jeunesse féminine de la CIMG (IGMG).",
@@ -230,6 +242,7 @@ export const fr: Texte = {
     "filterModul": "Module",
     "filterLand": "Pays",
     "filterTyp": "Format",
+    "filterSprache": "Langue",
     "alle": "Tous",
     "typ": {
       "kommentar": "Tribune",
@@ -258,7 +271,10 @@ export const fr: Texte = {
     "hinweis": "Les contributions reflètent l’opinion personnelle de leurs auteur·e·s.",
     "muster": "Exemple",
     "startseiteTitel": "Des voix de l’Academy",
-    "startseiteText": "Ce que les participant·e·s pensent, écrivent et créent."
+    "startseiteText": "Ce que les participant·e·s pensent, écrivent et créent.",
+    "startseiteAlle": "Toutes les voix",
+    "lesezeit": "{n} min de lecture",
+    "artikelLesen": "Lire l’article"
   },
   presse: {
     "nav": "Presse & intervenant·e·s",

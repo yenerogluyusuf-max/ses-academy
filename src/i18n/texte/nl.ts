@@ -16,6 +16,16 @@ export const nl: Texte = {
       "De SES Academy (afk. van „Sosyal ve Siyasal Eğitim Semineri“ – seminar voor sociale en politieke educatie) is een tweejarig onderwijsprogramma dat jonge moslims in Europa helpt politieke en maatschappelijke ontwikkelingen te begrijpen en zich op een verantwoordelijke manier in te zetten.",
     ctaProgramm: "Bekijk het programma",
     ctaFaq: "Veelgestelde vragen",
+    ctaVormerken: "Aanmelden voor de volgende lichting",
+    editorial: {
+      kicker: "Europees leiderschaps- en onderwijsprogramma",
+      vor: "Kennis. Houding. ",
+      akzent: "Verantwoordelijkheid",
+      nach: " voor de toekomst van Europa.",
+      lead: "Voor jonge moslima’s en moslims tussen 18 en 30 jaar die samenleving, politiek en media actief mee vormgeven.",
+      ctaProgramm: "Programma & modules bekijken",
+      trust: ["10+ modules", "2 jaar", "Europees netwerk", "Keulen & heel Europa"],
+    },
     laufzeitLabel: "Programmaduur",
     laufzeit: "april 2026 – juni 2028 (verwacht)",
     ortLabel: "Locatie",
@@ -45,6 +55,7 @@ export const nl: Texte = {
     weitereTitel: "Verdere modules zijn in planning",
     weitereText: "Seminars, workshops en winter- en zomerkampen tot juni 2028 (verwacht) – in Keulen en andere steden in Europa.",
     details: "Details",
+    spotlightCta: "Seminardetails & programma",
     art: { auftakt: "Aftrap", seminar: "Seminar", workshop: "Vaardighedenworkshop", winterschool: "Winter School" },
   },
   kompetenzen: {
@@ -65,6 +76,7 @@ export const nl: Texte = {
     text: "Voor de aftrap in april 2026 kwamen jonge moslims uit meerdere Europese landen naar Keulen – voor keynotes, panels en veel vragen uit de zaal.",
     gaesteTitel: "Onze gasten tot nu toe",
     alle: "Alle gasten van deze module",
+    alleZeigen: "Alle {n} gasten tonen",
   },
   ueber: {
     kicker: "Over de seminarreeks",
@@ -116,7 +128,7 @@ export const nl: Texte = {
       { frage: "Wie is de initiatiefnemer van het project?", antwort: ["De initiatiefnemer van het project is de Islam Raad van Duitsland. De IGMG Jongeren- en Vrouwenjongerenorganisaties zijn samenwerkingspartners van de Islam Raad."] },
     ],
   },
-  kontakt: { titel: "Heb je nog vragen?", text: "We helpen je graag verder.", cta: "Schrijf ons" },
+  kontakt: { titel: "Heb je nog vragen?", text: "We helpen je graag verder.", cta: "Schrijf ons", aufruf: { titel: "Klaar om je stem te laten horen in Europa?", text: "Meld je aan voor de volgende lichting van de SES Academy of neem contact op met ons team in Keulen.", bewerben: "Nu online aanmelden", kontakt: "Contact opnemen" } },
   footer: {
     claim: "Politieke educatie voor jonge moslims in Europa.",
     traeger: "Een project van de Islamrat für die BRD in samenwerking met de IGMG Jongeren- en Vrouwenjongerenorganisaties.",
@@ -223,6 +235,7 @@ export const nl: Texte = {
     "filterModul": "Module",
     "filterLand": "Land",
     "filterTyp": "Vorm",
+    "filterSprache": "Taal",
     "alle": "Alle",
     "typ": {
       "kommentar": "Opinie",
@@ -251,7 +264,10 @@ export const nl: Texte = {
     "hinweis": "De bijdragen geven de persoonlijke mening van de auteurs weer.",
     "muster": "Voorbeeld",
     "startseiteTitel": "Stemmen uit de Academy",
-    "startseiteText": "Wat deelnemers denken, schrijven en maken."
+    "startseiteText": "Wat deelnemers denken, schrijven en maken.",
+    "startseiteAlle": "Alle stemmen",
+    "lesezeit": "{n} min. leestijd",
+    "artikelLesen": "Artikel lezen"
   },
   presse: {
     "nav": "Pers & sprekers",

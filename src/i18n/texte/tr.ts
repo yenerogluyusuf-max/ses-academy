@@ -16,6 +16,16 @@ export const tr: Texte = {
       "SES Akademisi (Sosyal ve Siyasal Eğitim Seminerleri), Avrupa’daki genç Müslümanların siyasi ve toplumsal gelişmeleri derinlemesine tahlil etmelerine, sorumluluk bilinci ve kamu yararı odaklı bir şekilde katkıda bulunmalarına destek olan iki yıllık bir eğitim programıdır.",
     ctaProgramm: "Programa göz at",
     ctaFaq: "Sıkça sorulanlar",
+    ctaVormerken: "Sonraki dönem için başvur",
+    editorial: {
+      kicker: "Avrupa çapında liderlik ve eğitim programı",
+      vor: "Bilgi. Duruş. Avrupa’nın geleceği için ",
+      akzent: "sorumluluk",
+      nach: ".",
+      lead: "Toplumu, siyaseti ve medyayı aktif olarak şekillendiren 18–30 yaş arası genç Müslümanlar için.",
+      ctaProgramm: "Programı ve modülleri incele",
+      trust: ["10+ modül", "2 yıl", "Avrupa çapında ağ", "Köln ve Avrupa genelinde"],
+    },
     laufzeitLabel: "Program süresi",
     laufzeit: "Nisan 2026 – (tahminî) Haziran 2028",
     ortLabel: "Yer",
@@ -45,6 +55,7 @@ export const tr: Texte = {
     weitereTitel: "Diğer modüller planlama aşamasındadır",
     weitereText: "(Tahminî) Haziran 2028’e kadar seminerler, atölyeler ile kış ve yaz kampları – Köln’de ve Avrupa’nın çeşitli şehirlerinde.",
     details: "Detaylar",
+    spotlightCta: "Seminer detayları ve program",
     art: { auftakt: "Açılış", seminar: "Seminer", workshop: "Beceri Atölyesi", winterschool: "Winter School" },
   },
   kompetenzen: {
@@ -65,6 +76,7 @@ export const tr: Texte = {
     text: "Nisan 2026’daki açılışa Avrupa’nın birçok ülkesinden genç Müslümanlar Köln’e geldi – ana konuşmalar, paneller ve salondan gelen pek çok soruyla.",
     gaesteTitel: "Şimdiye kadarki konuklarımız",
     alle: "Bu modülün tüm konukları",
+    alleZeigen: "{n} konuğun tümünü göster",
   },
   ueber: {
     kicker: "Seminer Serisi Hakkında",
@@ -116,7 +128,7 @@ export const tr: Texte = {
       { frage: "Projenin taşıyıcısı kim?", antwort: ["Projenin taşıyıcısı Almanya İslam Konseyidir (Islamrat für die BRD). IGMG Gençlik ve Kadın Gençlik Teşkilatları, İslam Konseyi’nin iş birliği ortaklarıdır."] },
     ],
   },
-  kontakt: { titel: "Başka soruların mı var?", text: "Sana memnuniyetle yardımcı oluruz.", cta: "Bize yaz" },
+  kontakt: { titel: "Başka soruların mı var?", text: "Sana memnuniyetle yardımcı oluruz.", cta: "Bize yaz", aufruf: { titel: "Sesini Avrupa’da duyurmaya hazır mısın?", text: "SES Academy’nin bir sonraki dönemine başvur ya da Köln’deki ekibimizle iletişime geç.", bewerben: "Hemen online başvur", kontakt: "İletişime geç" } },
   footer: {
     claim: "Avrupa’daki Genç Müslümanlar İçin Siyasi Eğitim.",
     traeger: "Almanya İslam Konseyi’nin (Islamrat für die BRD), IGMG Gençlik ve Kadın Gençlik Teşkilatları ile iş birliği içinde yürüttüğü bir projedir.",
@@ -223,6 +235,7 @@ export const tr: Texte = {
     "filterModul": "Modül",
     "filterLand": "Ülke",
     "filterTyp": "Tür",
+    "filterSprache": "Dil",
     "alle": "Tümü",
     "typ": {
       "kommentar": "Yorum",
@@ -251,7 +264,10 @@ export const tr: Texte = {
     "hinweis": "Katkılar yazarlarının kişisel görüşlerini yansıtır.",
     "muster": "Örnek",
     "startseiteTitel": "Akademiden sesler",
-    "startseiteText": "Katılımcıların düşündükleri, yazdıkları ve ürettikleri."
+    "startseiteText": "Katılımcıların düşündükleri, yazdıkları ve ürettikleri.",
+    "startseiteAlle": "Tüm sesler",
+    "lesezeit": "{n} dk. okuma",
+    "artikelLesen": "Makaleyi oku"
   },
   presse: {
     "nav": "Basın ve konuşmacılar",

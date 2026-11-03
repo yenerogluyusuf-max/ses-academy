@@ -16,6 +16,16 @@ export const de: Texte = {
       "Die SES Academy (Abk. von „Sosyal ve Siyasal Eğitim Semineri“ – Seminar für soziale und politische Bildung) ist ein zweijähriges Bildungsprogramm, das junge Muslime in Europa dabei unterstützt, politische und gesellschaftliche Entwicklungen zu verstehen und sich verantwortungsbewusst sowie gemeinwohlorientiert einzubringen.",
     ctaProgramm: "Zum Programm",
     ctaFaq: "Häufige Fragen",
+    ctaVormerken: "Für nächsten Jahrgang bewerben",
+    editorial: {
+      kicker: "Europäisches Leadership- & Bildungsprogramm",
+      vor: "Wissen. Haltung. ",
+      akzent: "Verantwortung",
+      nach: " für Europas Zukunft.",
+      lead: "Für junge Musliminnen und Muslime zwischen 18 und 30 Jahren, die Gesellschaft, Politik und Medien aktiv mitgestalten.",
+      ctaProgramm: "Programm & Module ansehen",
+      trust: ["10+ Module", "2 Jahre", "Europäisches Netzwerk", "Köln & europaweit"],
+    },
     laufzeitLabel: "Programmlaufzeit",
     laufzeit: "April 2026 – Juni 2028 (vorauss.)",
     ortLabel: "Ort",
@@ -46,6 +56,7 @@ export const de: Texte = {
     weitereTitel: "Weitere Module in Planung",
     weitereText: "Seminare, Workshops sowie Winter- und Sommercamps bis voraussichtlich Juni 2028 – in Köln und weiteren Städten Europas.",
     details: "Details",
+    spotlightCta: "Seminar-Details & Programm",
     art: { auftakt: "Auftakt", seminar: "Seminar", workshop: "Skills Workshop", winterschool: "Winter School" },
   },
   kompetenzen: {
@@ -67,6 +78,7 @@ export const de: Texte = {
     text: "Zum Auftakt im April 2026 kamen junge Musliminnen und Muslime aus mehreren Ländern Europas nach Köln – mit Keynotes, Panels und vielen Fragen aus dem Saal.",
     gaesteTitel: "Bisher zu Gast",
     alle: "Alle Gäste dieses Moduls",
+    alleZeigen: "Alle {n} Gäste anzeigen",
   },
   ueber: {
     kicker: "Über die Seminarreihe",
@@ -119,7 +131,7 @@ export const de: Texte = {
       { frage: "Wer sind die Träger des Projekts?", antwort: ["Das Projekt wird vom Islamrat für die Bundesrepublik Deutschland getragen. Die IGMG Jugend- und Frauenjugendorganisationen sind Kooperationspartner des Islamrats."] },
     ],
   },
-  kontakt: { titel: "Hast du weitere Fragen?", text: "Wir helfen dir gerne weiter.", cta: "Schreib uns" },
+  kontakt: { titel: "Hast du weitere Fragen?", text: "Wir helfen dir gerne weiter.", cta: "Schreib uns", aufruf: { titel: "Bereit, deine Stimme in Europa einzubringen?", text: "Bewirb dich für die nächste Kohorte der SES Academy oder nimm Kontakt mit unserem Team in Köln auf.", bewerben: "Jetzt online bewerben", kontakt: "Kontakt aufnehmen" } },
   footer: {
     claim: "Politische Bildung für junge Muslime in Europa.",
     traeger: "Ein Projekt des Islamrats für die BRD in Kooperation mit den Jugend- und Frauenjugendorganisationen der IGMG.",
@@ -226,6 +238,7 @@ export const de: Texte = {
     "filterModul": "Modul",
     "filterLand": "Land",
     "filterTyp": "Format",
+    "filterSprache": "Sprache",
     "alle": "Alle",
     "typ": {
       "kommentar": "Kommentar",
@@ -254,7 +267,10 @@ export const de: Texte = {
     "hinweis": "Die Beiträge geben die persönliche Meinung der Autorinnen und Autoren wieder.",
     "muster": "Muster",
     "startseiteTitel": "Stimmen aus der Academy",
-    "startseiteText": "Was Teilnehmende denken, schreiben und produzieren."
+    "startseiteText": "Was Teilnehmende denken, schreiben und produzieren.",
+    "startseiteAlle": "Alle Stimmen",
+    "lesezeit": "{n} Min. Lesezeit",
+    "artikelLesen": "Artikel lesen"
   },
   presse: {
     "nav": "Presse & Referent:innen",
