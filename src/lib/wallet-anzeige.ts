@@ -11,19 +11,27 @@ export function walletEventName(m: { slug: string; titel: string }): string {
   return EVENT_NAMEN[m.slug] ?? m.titel.toUpperCase();
 }
 
-/** Englische Titel bekannter Module für Fußzeile und Rückseite der Karte. */
-const EVENT_TITEL: Record<string, string> = { demokratie: "Democracy in Europe" };
+/** Titel im Bildstreifen der Karte (Website-Schrift): Zeilen und das Wort mit Textmarker. */
+export type StreifenTitel = { zeilen: string[]; marker: string | null };
+
+const STREIFEN: Record<string, StreifenTitel> = { demokratie: { zeilen: ["Democracy", "in Europe"], marker: "Europe" } };
+
+/** Bekannte Module wie festgelegt, sonst der Titel auf höchstens zwei möglichst gleich lange Zeilen verteilt, Marker auf dem letzten Wort. */
+export function walletStreifenTitel(m: { slug: string; titel: string }): StreifenTitel {
+  if (STREIFEN[m.slug]) return STREIFEN[m.slug];
+  const woerter = m.titel.trim().split(/\s+/);
+  if (woerter.length === 1) return { zeilen: woerter, marker: woerter[0] };
+  let besser = 1;
+  for (let i = 1; i < woerter.length; i++) {
+    const laenge = (k: number) => Math.max(woerter.slice(0, k).join(" ").length, woerter.slice(k).join(" ").length);
+    if (laenge(i) < laenge(besser)) besser = i;
+  }
+  return { zeilen: [woerter.slice(0, besser).join(" "), woerter.slice(besser).join(" ")], marker: woerter.at(-1)! };
+}
 
 /** Name der Veranstaltung als Text (Rückseite, semantische Angaben), z. B. „Democracy in Europe“. */
 export function walletEventTitel(m: { slug: string; titel: string }): string {
-  return EVENT_TITEL[m.slug] ?? m.titel;
-}
-
-/** Kurzer Ort für die Poster-Karte: aus „Colonia-Allee 3, 51067 Köln“ wird „Köln“ (volle Anschrift auf der Rückseite). */
-export function walletOrtKurz(ort: string | null): string | null {
-  if (!ort) return null;
-  const letzter = ort.split(",").at(-1)!.trim().replace(/^\d{4,5}\s+/, "");
-  return letzter || ort;
+  return STREIFEN[m.slug]?.zeilen.join(" ") ?? m.titel;
 }
 
 /** Kurzes Datum für die Kopfzeile ohne Jahr, z. B. „14–15 Nov“. */
