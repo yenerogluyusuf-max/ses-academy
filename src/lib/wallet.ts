@@ -5,9 +5,24 @@ import { seitenUrl } from "./mail";
 import { portalTexte } from "./portal-texte";
 import type { TicketDaten } from "./teilnahme";
 import { kurzcodeAnzeige, qrInhalt } from "./codes";
+import { readFileSync } from "node:fs";
+import { join } from "node:path";
 import { walletBilder } from "./wallet-bilder";
-import { WALLET_SPRACHE, walletDatum, walletDatumKurz, walletEventName, walletEventTitel, walletStreifenTitel } from "./wallet-anzeige";
-import { walletStreifen } from "./wallet-streifen";
+import { WALLET_SPRACHE, walletDatum, walletDatumKurz, walletEventName, walletEventTitel, walletOrtKurz } from "./wallet-anzeige";
+
+/**
+ * Aufbau (11.11.2026, nach Apples Vorlage „Poster Generic“ aus Pass Designer):
+ * - iOS 27 und neuer: Poster-Karte (posterGeneric) mit vollflächigem Bild (assets/wallet/poster-*.png: Sirene,
+ *   Lichtschein, bei „Democracy in Europe“ ein Sternenkranz um den QR-Code). Datum oben rechts, unten auf dem Glasstreifen
+ *   Teilnehmer:in und Ort, in der Fußzeile die Veranstaltung. Kein Text im Bild (Apple-Richtlinien), Schrift von Apple.
+ * - Ältere iPhones: dieselbe Karte im einfachen Stil (generic) mit Vorschaubild der Sirene. Apple: Wallet bevorzugt
+ *   posterGeneric, ältere Geräte nehmen den Stil, den sie kennen.
+ * Farben gelten für beide Stile: Dunkelgrün, helle Schrift, Beschriftungen in Signalgrün.
+ */
+const POSTER = Object.fromEntries((["europa", "standard"] as const).flatMap((art) => ([2, 3] as const).map((s) =>
+  [`${art}@${s}x`, readFileSync(join(process.cwd(), `assets/wallet/poster-${art}@${s}x.png`))])));
+/** Module mit eigenem Motiv; alle anderen bekommen das Poster ohne Sternenkranz. */
+const POSTER_MOTIV: Record<string, "europa"> = { demokratie: "europa" };
 
 /**
  * Apple-Wallet-Pass (.pkpass) zum Ticket. Inhalt des Barcodes ist derselbe wie beim QR auf der Ticket-Seite
@@ -58,6 +73,16 @@ export async function erzeugeWalletPass(daten: TicketDaten): Promise<Buffer | nu
 
   const modulListe = aktiv.map((m) => `${walletEventName(m)}\n${walletDatum(m)} · ${m.ort ?? t.ortOffen} · ${t.status[m.status]}`).join("\n\n");
   const name = `${p.first_name} ${p.last_name}`.trim();
+  const rueckseite = [
+    ...(naechstes ? [{ key: "event-detail", label: "EVENT", value: `${walletEventTitel(naechstes)}\n${walletDatum(naechstes)}\n${naechstes.ort ?? t.ortOffen}` }] : []),
+    { key: "kurzcode", label: t.kurzcode, value: kurzcodeAnzeige(p.short_code ?? "") },
+    { key: "hinweis", label: t.ticketTitel, value: `${t.ticketIntro}\n\n${t.walletHinweis}` },
+    ...(modulListe ? [{ key: "module", label: t.moduleTitel, value: modulListe }] : []),
+    // Ticket-Seite über den QR-Token: zeigt alles, aber ohne Abmelden (das geht nur mit dem Link aus der Mail)
+    { key: "link", label: t.walletTicketSeite, value: seitenUrl(`/ticket/${p.checkin_token}/`), dataDetectorTypes: ["PKDataDetectorTypeLink" as const] },
+    // Apple verlangt auf der Rückseite einen Kontakt der ausgebenden Stelle
+    { key: "kontakt", label: "CONTACT", value: "SES Academy · ses@islamrat.de" },
+  ];
 
   const passJson = {
     formatVersion: 1,
@@ -66,37 +91,39 @@ export async function erzeugeWalletPass(daten: TicketDaten): Promise<Buffer | nu
     serialNumber: p.id,
     organizationName: "SES Academy",
     description: t.ticketTitel,
-    backgroundColor: "rgb(243, 239, 228)",
-    foregroundColor: "rgb(19, 32, 26)",
-    labelColor: "rgb(63, 110, 87)",
+    backgroundColor: "rgb(23, 50, 38)",
+    foregroundColor: "rgb(243, 239, 228)",
+    labelColor: "rgb(215, 243, 107)",
     sharingProhibited: true,
     // Maschinenlesbar für das System (z. B. Vorschläge, VoiceOver), nach Apples Richtlinien zusätzlich zu den Feldern
     semantics: { attendeeName: name, ...(naechstes ? { eventName: walletEventTitel(naechstes) } : {}) },
-    // Aufbau (Entwurf „B2 beige“, 11.11.2026): Datum in der Kopfzeile (auch bei gestapelten Karten sichtbar),
-    // Bildstreifen mit dem Titel des nächsten Moduls (wallet-streifen.tsx), darunter Teilnehmer:in und Ort.
-    eventTicket: {
+    // iOS 27+: Poster-Karte
+    posterGeneric: {
       headerFields: naechstes ? [{ key: "datum", label: "DATE", value: walletDatumKurz(naechstes) }] : [],
-      primaryFields: [],
-      secondaryFields: [{ key: "name", label: "PARTICIPANT", value: name }],
-      auxiliaryFields: naechstes
-        ? [{ key: "ort", label: "LOCATION", value: naechstes.ort ?? t.ortOffen }]
-        : [{ key: "modul", label: "EVENT", value: t.walletKeinTermin }],
-      backFields: [
-        // Titel aus dem Bild auch als Text (VoiceOver, Apple Watch)
-        ...(naechstes ? [{ key: "event", label: "EVENT", value: `${walletEventTitel(naechstes)}\n${walletDatum(naechstes)}` }] : []),
-        { key: "kurzcode", label: t.kurzcode, value: kurzcodeAnzeige(p.short_code ?? "") },
-        { key: "hinweis", label: t.ticketTitel, value: `${t.ticketIntro}\n\n${t.walletHinweis}` },
-        ...(modulListe ? [{ key: "module", label: t.moduleTitel, value: modulListe }] : []),
-        // Ticket-Seite über den QR-Token: zeigt alles, aber ohne Abmelden (das geht nur mit dem Link aus der Mail)
-        { key: "link", label: t.walletTicketSeite, value: seitenUrl(`/ticket/${p.checkin_token}/`), dataDetectorTypes: ["PKDataDetectorTypeLink"] },
+      primaryFields: [
+        { key: "name", label: "PARTICIPANT", value: name },
+        ...(naechstes ? [{ key: "ort", label: "LOCATION", value: walletOrtKurz(naechstes.ort) ?? t.ortOffen, textAlignment: "PKTextAlignmentRight" as const }] : []),
       ],
+      footerFields: [{ key: "event", value: naechstes ? walletEventTitel(naechstes) : t.walletKeinTermin }],
+      backFields: rueckseite,
+    },
+    // iOS 26 und älter: einfache Karte mit denselben Angaben
+    generic: {
+      headerFields: naechstes ? [{ key: "datum", label: "DATE", value: walletDatumKurz(naechstes) }] : [],
+      primaryFields: [{ key: "name", label: "PARTICIPANT", value: name }],
+      secondaryFields: [{ key: "event", label: "EVENT", value: naechstes ? walletEventTitel(naechstes) : t.walletKeinTermin }],
+      auxiliaryFields: naechstes ? [{ key: "ort", label: "LOCATION", value: naechstes.ort ?? t.ortOffen }] : [],
+      backFields: rueckseite,
     },
     ...(kommendeTage.length ? { relevantDates: kommendeTage.map((d) => ({ startDate: new Date(Date.parse(d.beginn) - 2 * 3600_000).toISOString(), endDate: d.ende })) } : {}),
   };
 
   const dateien: Record<string, Buffer> = { "pass.json": Buffer.from(JSON.stringify(passJson)) };
   for (const [datei, b64] of Object.entries(walletBilder)) dateien[datei] = Buffer.from(b64, "base64");
-  Object.assign(dateien, await walletStreifen(naechstes ? walletStreifenTitel(naechstes) : null));
+  // Poster-Bild (nur posterGeneric nutzt background.png; die einfache Karte zeigt stattdessen das Vorschaubild)
+  const motiv = (naechstes && POSTER_MOTIV[naechstes.slug]) || "standard";
+  dateien["background@2x.png"] = POSTER[`${motiv}@2x`];
+  dateien["background@3x.png"] = POSTER[`${motiv}@3x`];
 
   const pass = new PKPass(dateien, { wwdr: WWDR_G4, signerCert: k.signerCert, signerKey: k.signerKey, signerKeyPassphrase: k.signerKeyPassphrase });
   // Unter dem QR der Kurzcode: Damit geht der Einlass auch von Hand
