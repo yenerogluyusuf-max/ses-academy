@@ -6,7 +6,8 @@ import { portalTexte } from "./portal-texte";
 import type { TicketDaten } from "./teilnahme";
 import { kurzcodeAnzeige, qrInhalt } from "./codes";
 import { walletBilder } from "./wallet-bilder";
-import { WALLET_SPRACHE, walletDatum, walletEventName } from "./wallet-anzeige";
+import { WALLET_SPRACHE, walletDatum, walletDatumKurz, walletEventName, walletEventTitel, walletStreifenTitel } from "./wallet-anzeige";
+import { walletStreifen } from "./wallet-streifen";
 
 /**
  * Apple-Wallet-Pass (.pkpass) zum Ticket. Inhalt des Barcodes ist derselbe wie beim QR auf der Ticket-Seite
@@ -69,13 +70,20 @@ export async function erzeugeWalletPass(daten: TicketDaten): Promise<Buffer | nu
     foregroundColor: "rgb(19, 32, 26)",
     labelColor: "rgb(63, 110, 87)",
     sharingProhibited: true,
+    // Maschinenlesbar für das System (z. B. Vorschläge, VoiceOver), nach Apples Richtlinien zusätzlich zu den Feldern
+    semantics: { attendeeName: name, ...(naechstes ? { eventName: walletEventTitel(naechstes) } : {}) },
+    // Aufbau (Entwurf „B2 beige“, 11.11.2026): Datum in der Kopfzeile (auch bei gestapelten Karten sichtbar),
+    // Bildstreifen mit dem Titel des nächsten Moduls (wallet-streifen.tsx), darunter Teilnehmer:in und Ort.
     eventTicket: {
-      primaryFields: [{ key: "name", label: "PARTICIPANT", value: name }],
-      secondaryFields: naechstes
-        ? [{ key: "modul", label: "EVENT", value: walletEventName(naechstes) }, { key: "datum", label: "DATE", value: walletDatum(naechstes) }]
+      headerFields: naechstes ? [{ key: "datum", label: "DATE", value: walletDatumKurz(naechstes) }] : [],
+      primaryFields: [],
+      secondaryFields: [{ key: "name", label: "PARTICIPANT", value: name }],
+      auxiliaryFields: naechstes
+        ? [{ key: "ort", label: "LOCATION", value: naechstes.ort ?? t.ortOffen }]
         : [{ key: "modul", label: "EVENT", value: t.walletKeinTermin }],
-      auxiliaryFields: naechstes ? [{ key: "ort", label: "LOCATION", value: naechstes.ort ?? t.ortOffen }] : [],
       backFields: [
+        // Titel aus dem Bild auch als Text (VoiceOver, Apple Watch)
+        ...(naechstes ? [{ key: "event", label: "EVENT", value: `${walletEventTitel(naechstes)}\n${walletDatum(naechstes)}` }] : []),
         { key: "kurzcode", label: t.kurzcode, value: kurzcodeAnzeige(p.short_code ?? "") },
         { key: "hinweis", label: t.ticketTitel, value: `${t.ticketIntro}\n\n${t.walletHinweis}` },
         ...(modulListe ? [{ key: "module", label: t.moduleTitel, value: modulListe }] : []),
@@ -88,8 +96,10 @@ export async function erzeugeWalletPass(daten: TicketDaten): Promise<Buffer | nu
 
   const dateien: Record<string, Buffer> = { "pass.json": Buffer.from(JSON.stringify(passJson)) };
   for (const [datei, b64] of Object.entries(walletBilder)) dateien[datei] = Buffer.from(b64, "base64");
+  Object.assign(dateien, await walletStreifen(naechstes ? walletStreifenTitel(naechstes) : null));
 
   const pass = new PKPass(dateien, { wwdr: WWDR_G4, signerCert: k.signerCert, signerKey: k.signerKey, signerKeyPassphrase: k.signerKeyPassphrase });
-  pass.setBarcodes({ format: "PKBarcodeFormatQR", message: qrInhalt(p.checkin_token), messageEncoding: "iso-8859-1", altText: "CHECK-IN" });
+  // Unter dem QR der Kurzcode: Damit geht der Einlass auch von Hand
+  pass.setBarcodes({ format: "PKBarcodeFormatQR", message: qrInhalt(p.checkin_token), messageEncoding: "iso-8859-1", altText: kurzcodeAnzeige(p.short_code ?? "") });
   return pass.getAsBuffer();
 }
