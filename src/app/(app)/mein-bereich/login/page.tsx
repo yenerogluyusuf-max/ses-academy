@@ -16,13 +16,15 @@ export default async function Login({ searchParams }: PageProps<"/mein-bereich/l
   return (
     <main lang={l} className="mx-auto flex min-h-dvh max-w-md flex-col justify-center px-4 py-12">
       <div className="flex items-center justify-between gap-4">
-        <img src="/brand/ses-logo.png" alt="SES Academy" className="h-10 w-auto" />
+        <Link href="/" aria-label={t.zurWebsite} title={t.zurWebsite}><img src="/brand/ses-logo.png" alt="SES Academy" className="h-10 w-auto" /></Link>
         <Link href={`/mein-bereich/login/?sprache=${l === "tr" ? "de" : "tr"}`} hrefLang={l === "tr" ? "de" : "tr"} lang={l === "tr" ? "de" : "tr"} className="rounded-full px-3 py-1.5 text-sm font-semibold text-ink-soft ring-1 ring-line hover:bg-paper-deep">{t.andereSprache}</Link>
       </div>
       <h1 className="font-display mt-10 text-4xl leading-none font-extrabold">{t.loginTitel}</h1>
       <p className="mt-3 text-ink-soft">{t.loginIntro}</p>
       {fehler && <p role="alert" className="mt-6 rounded-2xl bg-rot-hell p-4 text-sm font-semibold text-rot">{t.loginLinkAbgelaufen}</p>}
       <div className="karte mt-8"><LoginFormular key={l} l={l} /></div>
+      {/* Teamkonten können auch hier per Code rein (landen dann im Team-Bereich), oder klassisch mit Passwort */}
+      <p className="mt-6 text-center text-sm text-ink-soft">{t.loginTeamFrage} <Link href="/team/login/" className="link">{t.loginTeamLink}</Link></p>
       <RechtlicheLinks {...rechtlicheTexte(l)} className="mt-10 justify-center text-ink-soft" />
     </main>
   );

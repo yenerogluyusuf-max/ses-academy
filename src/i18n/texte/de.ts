@@ -7,7 +7,7 @@ export const de: Texte = {
     beschreibung:
       "Die SES Academy ist ein Bildungsprogramm des Islamrats für junge Muslime zwischen 18 und 30 Jahren in Europa: Vorträge, Workshops, Ländergruppen – von April 2026 bis Juni 2028.",
   },
-  nav: { programm: "Programm", kompetenzen: "Was du lernst", rueckblick: "Rückblick", faq: "FAQ", kontakt: "Kontakt", menue: "Menü öffnen", schliessen: "Menü schließen" },
+  nav: { programm: "Programm", kompetenzen: "Was du lernst", rueckblick: "Rückblick", faq: "FAQ", kontakt: "Kontakt", menue: "Menü öffnen", schliessen: "Menü schließen", anmelden: "Anmelden" },
   hero: {
     kicker: "Seminar für soziale und politische Bildung",
     zeilen: ["Deine", "Stimme.", "Dein Europa."],

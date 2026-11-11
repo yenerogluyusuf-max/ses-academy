@@ -7,7 +7,7 @@ export const tr: Texte = {
     beschreibung:
       "SES Academy, Avrupa’daki 18–30 yaş arası genç Müslümanlar için İslam Konseyi’nin eğitim programıdır: konferanslar, atölyeler ve ülke grupları – Nisan 2026’dan Haziran 2028’e kadar.",
   },
-  nav: { programm: "Program", kompetenzen: "Neler öğreneceksin", rueckblick: "Geriye bakış", faq: "SSS", kontakt: "İletişim", menue: "Menüyü aç", schliessen: "Menüyü kapat" },
+  nav: { programm: "Program", kompetenzen: "Neler öğreneceksin", rueckblick: "Geriye bakış", faq: "SSS", kontakt: "İletişim", menue: "Menüyü aç", schliessen: "Menüyü kapat", anmelden: "Giriş yap" },
   hero: {
     kicker: "Sosyal ve Siyasal Eğitim Semineri",
     zeilen: ["Senin", "sesin.", "Senin Avrupan."],

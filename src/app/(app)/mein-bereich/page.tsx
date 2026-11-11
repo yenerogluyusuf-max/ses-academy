@@ -91,7 +91,7 @@ export default async function MeinBereich({ searchParams }: PageProps<"/mein-ber
     <div lang={l} className="min-h-dvh">
       <header className="border-b border-line">
         <div className="mx-auto flex max-w-5xl items-center justify-between px-4 py-3">
-          <img src="/brand/ses-logo.png" alt="SES Academy" className="h-8 w-auto" />
+          <Link href="/" aria-label={t.zurWebsite} title={t.zurWebsite}><img src="/brand/ses-logo.png" alt="SES Academy" className="h-8 w-auto" /></Link>
           <form action={portalAbmelden}><button className="rounded-full px-4 py-2 text-sm font-semibold text-ink-soft hover:bg-paper-deep">{t.abmelden}</button></form>
         </div>
       </header>

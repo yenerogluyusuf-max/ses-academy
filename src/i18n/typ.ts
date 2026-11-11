@@ -31,7 +31,7 @@ export type ModulSlug = "auftakt" | "verfassungen" | "skills-workshop" | "demokr
 
 export type Texte = {
   meta: { titel: string; beschreibung: string };
-  nav: { programm: string; kompetenzen: string; rueckblick: string; faq: string; kontakt: string; menue: string; schliessen: string };
+  nav: { programm: string; kompetenzen: string; rueckblick: string; faq: string; kontakt: string; menue: string; schliessen: string; anmelden: string };
   hero: {
     kicker: string;
     zeilen: [string, string, string];

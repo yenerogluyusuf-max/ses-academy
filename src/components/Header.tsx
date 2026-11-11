@@ -26,6 +26,10 @@ export function Header({ lang, start, nav, bewerben, stimmen }: Props) {
     return () => window.removeEventListener("scroll", onScroll);
   }, []);
 
+  // Volle Navigation erst ab xl (1280 px): mit Sprache, „Anmelden“ und „Bewerben“ ist darunter kein Platz, dann Menü-Knopf.
+  // Ein Einstieg für Teilnehmende und Team; /anmelden/ schickt Angemeldete gleich in ihren Bereich
+  const anmelden = `/anmelden/?sprache=${lang}`;
+
   const links = [
     { href: `${start}#programm`, label: nav.programm },
     { href: `${start}#kompetenzen`, label: nav.kompetenzen },
@@ -46,7 +50,7 @@ export function Header({ lang, start, nav, bewerben, stimmen }: Props) {
           <Image src="/brand/ses-logo.png" alt="SES Academy" fill sizes="140px" className="object-contain object-left" priority />
         </Link>
 
-        <nav className="hidden items-center gap-1 lg:flex" aria-label="Navigation">
+        <nav className="hidden items-center gap-1 xl:flex" aria-label="Navigation">
           {links.map((n) => (
             <a key={n.href} href={n.href} className="rounded-full px-3.5 py-2 text-[15px] font-medium text-ink transition-colors hover:bg-paper-deep">
               {n.label}
@@ -54,8 +58,11 @@ export function Header({ lang, start, nav, bewerben, stimmen }: Props) {
           ))}
         </nav>
 
-        <div className="ml-auto flex items-center gap-2 lg:ml-0">
+        <div className="ml-auto flex items-center gap-2 xl:ml-0">
           <SprachMenue lang={lang} />
+          <a href={anmelden} className="hidden rounded-full px-4 py-2.5 text-sm font-semibold text-ink ring-1 ring-line transition hover:bg-paper-deep sm:block">
+            {nav.anmelden}
+          </a>
           <a href={bewerben.href} className="hidden rounded-full bg-ink px-5 py-2.5 text-sm font-semibold text-paper transition hover:bg-forest sm:block">
             {bewerben.label}
           </a>
@@ -64,7 +71,7 @@ export function Header({ lang, start, nav, bewerben, stimmen }: Props) {
         <button
           type="button"
           onClick={() => setOffen((o) => !o)}
-          className="-mr-2 flex h-11 w-11 items-center justify-center rounded-full lg:hidden"
+          className="-mr-2 flex h-11 w-11 items-center justify-center rounded-full xl:hidden"
           aria-expanded={offen}
           aria-controls="mobilnav"
           aria-label={offen ? nav.schliessen : nav.menue}
@@ -76,7 +83,7 @@ export function Header({ lang, start, nav, bewerben, stimmen }: Props) {
         </button>
       </div>
 
-      <nav id="mobilnav" className={`border-t border-line lg:hidden ${offen ? "block" : "hidden"}`} aria-label="Navigation">
+      <nav id="mobilnav" className={`border-t border-line xl:hidden ${offen ? "block" : "hidden"}`} aria-label="Navigation">
         <ul className="px-4 py-3">
           {links.map((n) => (
             <li key={n.href}>
@@ -85,6 +92,11 @@ export function Header({ lang, start, nav, bewerben, stimmen }: Props) {
               </a>
             </li>
           ))}
+          <li>
+            <a href={anmelden} className="font-display block py-2.5 text-3xl font-bold">
+              {nav.anmelden}
+            </a>
+          </li>
           <li>
             <a href={bewerben.href} className="font-display mt-2 block rounded-2xl bg-signal px-4 py-3 text-3xl font-bold">
               {bewerben.label} <Pfeil className="ml-2" />

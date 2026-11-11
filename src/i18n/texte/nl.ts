@@ -7,7 +7,7 @@ export const nl: Texte = {
     beschreibung:
       "De SES Academy is een onderwijsprogramma van de Islamrat voor jonge moslims van 18 tot 30 jaar in Europa: lezingen, workshops en landengroepen – van april 2026 tot juni 2028.",
   },
-  nav: { programm: "Programma", kompetenzen: "Wat je leert", rueckblick: "Terugblik", faq: "FAQ", kontakt: "Contact", menue: "Menu openen", schliessen: "Menu sluiten" },
+  nav: { programm: "Programma", kompetenzen: "Wat je leert", rueckblick: "Terugblik", faq: "FAQ", kontakt: "Contact", menue: "Menu openen", schliessen: "Menu sluiten", anmelden: "Inloggen" },
   hero: {
     kicker: "Seminar voor sociale en politieke educatie",
     zeilen: ["Jouw", "stem.", "Jouw Europa."],

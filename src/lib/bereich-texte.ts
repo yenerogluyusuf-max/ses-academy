@@ -20,8 +20,11 @@ type Hinweis = { text: string; gut: boolean };
 
 const de = {
   // Login
-  loginTitel: "Mein Bereich",
-  loginIntro: "Dein QR-Code, deine Anwesenheit, deine Hausaufgaben und Beiträge. Ohne Passwort – wir schicken dir einen Link per E-Mail.",
+  loginTitel: "Anmelden",
+  loginIntro: "Für Teilnehmende und Team, ohne Passwort: Wir schicken dir einen Link per E-Mail. Danach bist du in deinem Bereich – mit QR-Code, Anwesenheit, Hausaufgaben und Beiträgen bzw. im Team-Bereich.",
+  loginTeamFrage: "Im Team?",
+  loginTeamLink: "Mit Passwort anmelden",
+  zurWebsite: "Zur Website",
   loginLinkAbgelaufen: "Der Anmeldelink ist abgelaufen oder wurde schon benutzt. Bitte fordere einen neuen an.",
   loginEmail: "E-Mail-Adresse",
   loginEmailHilfe: "Die Adresse, mit der du bei der SES Academy angemeldet bist.",
@@ -224,8 +227,11 @@ const de = {
 };
 
 const tr: typeof de = {
-  loginTitel: "Mein Bereich",
-  loginIntro: "QR kodun, katılımın, ödevlerin ve yazıların. Şifre yok – sana e-postayla bir bağlantı gönderiyoruz.",
+  loginTitel: "Giriş yap",
+  loginIntro: "Katılımcılar ve ekip için, şifre gerekmez: Sana e-postayla bir bağlantı gönderiyoruz. Ardından kendi alanına geçersin – QR kodun, katılımın, ödevlerin ve yazılarınla ya da ekip alanına.",
+  loginTeamFrage: "Ekipte misin?",
+  loginTeamLink: "Şifreyle giriş yap",
+  zurWebsite: "Web sitesine dön",
   loginLinkAbgelaufen: "Giriş bağlantısının süresi dolmuş ya da bağlantı zaten kullanılmış. Lütfen yeni bir bağlantı iste.",
   loginEmail: "E-posta adresi",
   loginEmailHilfe: "SES Academy'ye kayıtlı olduğun e-posta adresi.",
