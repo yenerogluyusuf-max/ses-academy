@@ -12,17 +12,14 @@ import { WALLET_SPRACHE, walletDatum, walletDatumKurz, walletEventName, walletEv
 
 /**
  * Aufbau (11.11.2026, nach Apples Vorlage „Poster Generic“ aus Pass Designer):
- * - iOS 27 und neuer: Poster-Karte (posterGeneric) mit vollflächigem Bild (assets/wallet/poster-*.png: Sirene,
- *   Lichtschein, bei „Democracy in Europe“ ein Sternenkranz um den QR-Code). Datum oben rechts, unten auf dem Glasstreifen
- *   Teilnehmer:in und Ort, in der Fußzeile die Veranstaltung. Kein Text im Bild (Apple-Richtlinien), Schrift von Apple.
+ * - iOS 27 und neuer: Poster-Karte (posterGeneric) mit vollflächigem Bild (assets/wallet/poster@*.png, Stil der Website:
+ *   Papierfarbe, ein Kreis in Signalgrün, die Sirene in Originalfarben und -richtung). Datum oben rechts, unten auf dem
+ *   Glasstreifen Teilnehmer:in und Ort, in der Fußzeile die Veranstaltung. Kein Text im Bild (Apple), Schrift von Apple.
  * - Ältere iPhones: dieselbe Karte im einfachen Stil (generic) mit Vorschaubild der Sirene. Apple: Wallet bevorzugt
  *   posterGeneric, ältere Geräte nehmen den Stil, den sie kennen.
- * Farben gelten für beide Stile: Dunkelgrün, helle Schrift, Beschriftungen in Signalgrün.
+ * Farben gelten für beide Stile, wie die Website: Papierfarbe, dunkle Schrift, Beschriftungen in Salbeigrün.
  */
-const POSTER = Object.fromEntries((["europa", "standard"] as const).flatMap((art) => ([2, 3] as const).map((s) =>
-  [`${art}@${s}x`, readFileSync(join(process.cwd(), `assets/wallet/poster-${art}@${s}x.png`))])));
-/** Module mit eigenem Motiv; alle anderen bekommen das Poster ohne Sternenkranz. */
-const POSTER_MOTIV: Record<string, "europa"> = { demokratie: "europa" };
+const POSTER = { 2: readFileSync(join(process.cwd(), "assets/wallet/poster@2x.png")), 3: readFileSync(join(process.cwd(), "assets/wallet/poster@3x.png")) };
 
 /**
  * Apple-Wallet-Pass (.pkpass) zum Ticket. Inhalt des Barcodes ist derselbe wie beim QR auf der Ticket-Seite
@@ -91,9 +88,9 @@ export async function erzeugeWalletPass(daten: TicketDaten): Promise<Buffer | nu
     serialNumber: p.id,
     organizationName: "SES Academy",
     description: t.ticketTitel,
-    backgroundColor: "rgb(23, 50, 38)",
-    foregroundColor: "rgb(243, 239, 228)",
-    labelColor: "rgb(215, 243, 107)",
+    backgroundColor: "rgb(243, 239, 228)",
+    foregroundColor: "rgb(19, 32, 26)",
+    labelColor: "rgb(63, 110, 87)",
     sharingProhibited: true,
     // Maschinenlesbar für das System (z. B. Vorschläge, VoiceOver), nach Apples Richtlinien zusätzlich zu den Feldern
     semantics: { attendeeName: name, ...(naechstes ? { eventName: walletEventTitel(naechstes) } : {}) },
@@ -121,9 +118,8 @@ export async function erzeugeWalletPass(daten: TicketDaten): Promise<Buffer | nu
   const dateien: Record<string, Buffer> = { "pass.json": Buffer.from(JSON.stringify(passJson)) };
   for (const [datei, b64] of Object.entries(walletBilder)) dateien[datei] = Buffer.from(b64, "base64");
   // Poster-Bild (nur posterGeneric nutzt background.png; die einfache Karte zeigt stattdessen das Vorschaubild)
-  const motiv = (naechstes && POSTER_MOTIV[naechstes.slug]) || "standard";
-  dateien["background@2x.png"] = POSTER[`${motiv}@2x`];
-  dateien["background@3x.png"] = POSTER[`${motiv}@3x`];
+  dateien["background@2x.png"] = POSTER[2];
+  dateien["background@3x.png"] = POSTER[3];
 
   const pass = new PKPass(dateien, { wwdr: WWDR_G4, signerCert: k.signerCert, signerKey: k.signerKey, signerKeyPassphrase: k.signerKeyPassphrase });
   // Unter dem QR der Kurzcode: Damit geht der Einlass auch von Hand
