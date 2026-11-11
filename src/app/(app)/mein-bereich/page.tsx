@@ -11,6 +11,7 @@ import { meinAbmelden, meinZuruecknehmen } from "@/lib/aktionen/ticket";
 import { naechte, nachtName } from "@/lib/uebernachtung";
 import { kurzcodeAnzeige, ticketQrSvg } from "@/lib/tickets";
 import { WalletKnoepfe } from "@/components/WalletKnoepfe";
+import { istInterneZimmerbezeichnung } from "@/lib/zimmer-anzeige";
 import { createClient } from "@/lib/supabase/server";
 import { bereichSprache, bereichTexte, datumsSprache, type BereichSprache } from "@/lib/bereich-texte";
 import { jetztMs } from "@/lib/zeit";
@@ -173,8 +174,13 @@ export default async function MeinBereich({ searchParams }: PageProps<"/mein-ber
                 const m = meineModule.find((x) => x.modules.id === z.module_id);
                 return (
                   <div key={z.module_id} className="karte bg-gruen-hell">
-                    <p className="font-semibold">{t.zimmer(m?.modules.title ?? t.modul, z.room_label)}</p>
-                    <p className="text-sm text-ink-soft">{z.hotel_name === "Hotel (Name folgt)" ? "" : z.hotel_name}{z.hotel_address ? ` · ${z.hotel_address}` : ""}</p>
+                    <p className="font-semibold">{m?.modules.title ?? t.modul}: {t.zimmerArt(z.capacity)}</p>
+                    {z.mates.length > 0 && <p className="mt-1">{t.zimmerMit}: <span className="font-semibold">{z.mates.join(", ")}</span></p>}
+                    <p className="mt-1 text-sm text-ink-soft">
+                      {[z.hotel_name === "Hotel (Name folgt)" ? "" : z.hotel_name, z.hotel_address].filter(Boolean).join(" · ")}
+                      {(z.hotel_name !== "Hotel (Name folgt)" && z.hotel_name) || z.hotel_address ? " · " : ""}
+                      {istInterneZimmerbezeichnung(z.room_label) ? t.zimmerNummerFolgt : t.zimmerNummer(z.room_label)}
+                    </p>
                   </div>
                 );
               })}

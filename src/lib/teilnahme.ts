@@ -19,9 +19,14 @@ export type TicketModul = {
   beginn: string | null;
 };
 
+/** Zimmer der Person in einem Modul, nur wenn das Team die Zimmer freigegeben hat (hotels.rooms_visible). */
+export type TicketZimmer = { moduleId: string; hotel: string | null; adresse: string | null; label: string; betten: number; mitbewohner: string[] };
+
 export type TicketDaten = {
   participant: Pick<Row<"participants">, "id" | "first_name" | "last_name" | "email" | "preferred_language" | "checkin_token" | "link_token" | "short_code">;
   module: TicketModul[];
+  /** Freigegebene Zimmer mit Zimmerpartner:innen. Die Ticket-Seite zeigt sie nur über den Mail-Link (perLink). */
+  zimmer: TicketZimmer[];
   /** Über den Mail-Link (link_token) geöffnet. Nur dann darf die Seite abmelden; der QR-Inhalt (checkin_token) zeigt nur das Ticket. */
   perLink: boolean;
 };
@@ -75,7 +80,7 @@ export async function ladeTicket(filter: { token: string } | { participantId: st
     };
   });
   liste.sort((a, b) => (a.beginn ?? "").localeCompare(b.beginn ?? ""));
-  return { participant, module: liste, perLink };
+  return { participant, module: liste, perLink, zimmer: await ladeZimmer(admin, participant.id) };
 }
 
 /** Datum eines Moduls lesbar, z. B. „14.–15. November 2026“. */
@@ -85,4 +90,29 @@ export function modulZeitraum(m: TicketModul, locale: string): string {
   const von = new Date(m.tage[0].beginn);
   const bis = new Date(m.tage[m.tage.length - 1].beginn);
   return m.tage.length === 1 ? f.format(von) : f.formatRange(von, bis);
+}
+
+/** Freigegebene Zimmer einer Person mit den Namen der anderen im selben Zimmer (wie get_my_rooms in der Datenbank). */
+async function ladeZimmer(admin: ReturnType<typeof createAdminClient>, participantId: string): Promise<TicketZimmer[]> {
+  const { data: eigene } = await admin
+    .from("room_assignments")
+    .select("room_id, room:rooms!inner(label, capacity), hotel:hotels!inner(module_id, name, address, rooms_visible)")
+    .eq("participant_id", participantId)
+    .eq("hotel.rooms_visible", true);
+  if (!eigene?.length) return [];
+  const { data: andere } = await admin
+    .from("room_assignments")
+    .select("room_id, participant:participants!inner(first_name, last_name)")
+    .in("room_id", eigene.map((e) => e.room_id))
+    .neq("participant_id", participantId);
+  return eigene.map((e) => ({
+    moduleId: e.hotel.module_id,
+    hotel: e.hotel.name === "Hotel (Name folgt)" ? null : e.hotel.name,
+    adresse: e.hotel.address,
+    label: e.room.label,
+    betten: e.room.capacity,
+    mitbewohner: (andere ?? []).filter((a) => a.room_id === e.room_id)
+      .map((a) => `${a.participant.first_name} ${a.participant.last_name}`.trim())
+      .sort((x, y) => x.localeCompare(y, "de")),
+  }));
 }

@@ -79,6 +79,10 @@ const de = {
 
   uebernachtung: "Übernachtung",
   zimmer: (modul: string, zimmer: string) => `${modul}: Zimmer ${zimmer}`,
+  zimmerArt: (n: number) => (n === 1 ? "Einzelzimmer" : n === 2 ? "Doppelzimmer" : `${n}-Bett-Zimmer`),
+  zimmerMit: "Mit im Zimmer",
+  zimmerNummer: (nr: string) => `Zimmer ${nr}`,
+  zimmerNummerFolgt: "Die Zimmernummer bekommst du im Hotel.",
   modul: "Modul",
   angabenGespeichert: "Angaben gespeichert",
   bitteAusfuellen: "bitte ausfüllen",
@@ -285,6 +289,10 @@ const tr: typeof de = {
 
   uebernachtung: "Konaklama",
   zimmer: (modul: string, zimmer: string) => `${modul}: Oda ${zimmer}`,
+  zimmerArt: (n: number) => (n === 1 ? "Tek kişilik oda" : n === 2 ? "Çift kişilik oda" : `${n} kişilik oda`),
+  zimmerMit: "Oda arkadaşın",
+  zimmerNummer: (nr: string) => `Oda ${nr}`,
+  zimmerNummerFolgt: "Oda numaranı otelde alacaksın.",
   modul: "Modül",
   angabenGespeichert: "bilgiler kaydedildi",
   bitteAusfuellen: "lütfen doldur",

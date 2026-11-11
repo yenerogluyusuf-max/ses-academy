@@ -1364,7 +1364,7 @@ isOneToOne: false
                            },
 "get_my_rooms":
 { Args: Record<PropertyKey, never>; Returns: {
-              "hotel_address": string,"hotel_name": string,"module_id": string,"room_label": string
+              "capacity": number,"hotel_address": string,"hotel_name": string,"mates": string[],"module_id": string,"room_label": string
             }[]
                            },
 "get_participant_analytics":

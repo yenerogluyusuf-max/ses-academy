@@ -64,6 +64,11 @@ export type PortalTexte = {
   walletKeinTermin: string;
   walletTicketSeite: string;
   walletHinweis: string;
+  zimmerTitel: string;
+  zimmerArt: (betten: number) => string;
+  zimmerMit: string;
+  zimmerNummer: (nr: string) => string;
+  zimmerNummerFolgt: string;
   mailAbmeldungBetreff: (titel: string) => string;
   mailAbmeldungText: (titel: string) => string;
   mailAbmeldungZurueck: string;
@@ -130,6 +135,11 @@ export const portalTexte: Record<Sprache, PortalTexte> = {
     walletKeinTermin: "Kein Termin geplant",
     walletTicketSeite: "Ticket-Seite",
     walletHinweis: "Dieser Pass gilt für alle deine Module. Neue Termine siehst du auf der Ticket-Seite; dort kannst du den Pass auch neu laden.",
+    zimmerTitel: "Dein Zimmer",
+    zimmerArt: (n) => (n === 1 ? "Einzelzimmer" : n === 2 ? "Doppelzimmer" : `${n}-Bett-Zimmer`),
+    zimmerMit: "Mit im Zimmer",
+    zimmerNummer: (nr) => `Zimmer ${nr}`,
+    zimmerNummerFolgt: "Die Zimmernummer bekommst du im Hotel.",
     mailAbmeldungBetreff: (t) => `Abmeldung gespeichert: ${t}`,
     mailAbmeldungText: (t) => `du hast dich von „${t}“ abgemeldet. Danke, dass du Bescheid gesagt hast.`,
     mailAbmeldungZurueck: "Falls das ein Versehen war oder du doch kommen kannst: Auf deiner Ticket-Seite kannst du die Abmeldung bis zum Beginn des Moduls zurücknehmen. Wenn du dich nicht selbst abgemeldet hast, antworte bitte auf diese Mail.",
@@ -194,6 +204,11 @@ export const portalTexte: Record<Sprache, PortalTexte> = {
     walletKeinTermin: "Planlanmış tarih yok",
     walletTicketSeite: "Bilet sayfası",
     walletHinweis: "Bu kart tüm modüllerin için geçerlidir. Yeni tarihleri bilet sayfasında görürsün; kartı orada yeniden de yükleyebilirsin.",
+    zimmerTitel: "Odan",
+    zimmerArt: (n) => (n === 1 ? "Tek kişilik oda" : n === 2 ? "Çift kişilik oda" : `${n} kişilik oda`),
+    zimmerMit: "Oda arkadaşın",
+    zimmerNummer: (nr) => `Oda ${nr}`,
+    zimmerNummerFolgt: "Oda numaranı otelde alacaksın.",
     mailAbmeldungBetreff: (t) => `Kaydın iptal edildi: ${t}`,
     mailAbmeldungText: (t) => `„${t}“ programına katılamayacağını bildirdin. Haber verdiğin için teşekkürler.`,
     mailAbmeldungZurueck: "Yanlışlıkla olduysa ya da yine de gelebileceksen: Bilet sayfanda modül başlayana kadar iptali geri alabilirsin. Kaydını sen iptal etmediysen lütfen bu e-postayı yanıtla.",
@@ -258,6 +273,11 @@ export const portalTexte: Record<Sprache, PortalTexte> = {
     walletKeinTermin: "No date scheduled",
     walletTicketSeite: "Ticket page",
     walletHinweis: "This pass is valid for all your modules. New dates appear on the ticket page, where you can also reload the pass.",
+    zimmerTitel: "Your room",
+    zimmerArt: (n) => (n === 1 ? "Single room" : n === 2 ? "Double room" : `${n}-bed room`),
+    zimmerMit: "Sharing with",
+    zimmerNummer: (nr) => `Room ${nr}`,
+    zimmerNummerFolgt: "You will get your room number at the hotel.",
     mailAbmeldungBetreff: (t) => `Cancellation saved: ${t}`,
     mailAbmeldungText: (t) => `you cancelled your place for “${t}”. Thanks for letting us know.`,
     mailAbmeldungZurueck: "If this was a mistake or you can come after all, you can undo the cancellation on your ticket page until the module begins. If you did not cancel yourself, please reply to this email.",
@@ -322,6 +342,11 @@ export const portalTexte: Record<Sprache, PortalTexte> = {
     walletKeinTermin: "Aucune date prévue",
     walletTicketSeite: "Page du billet",
     walletHinweis: "Ce pass est valable pour tous tes modules. Les nouvelles dates sont sur la page du billet, où tu peux aussi recharger le pass.",
+    zimmerTitel: "Ta chambre",
+    zimmerArt: (n) => (n === 1 ? "Chambre simple" : n === 2 ? "Chambre double" : `Chambre à ${n} lits`),
+    zimmerMit: "Avec",
+    zimmerNummer: (nr) => `Chambre ${nr}`,
+    zimmerNummerFolgt: "Tu recevras ton numéro de chambre à l’hôtel.",
     mailAbmeldungBetreff: (t) => `Désinscription enregistrée : ${t}`,
     mailAbmeldungText: (t) => `tu t’es désinscrit·e de « ${t} ». Merci de nous avoir prévenus.`,
     mailAbmeldungZurueck: "Si c’était une erreur ou si tu peux finalement venir, tu peux annuler la désinscription sur ta page de billet jusqu’au début du module. Si tu ne t’es pas désinscrit·e toi-même, réponds à cet e-mail.",
@@ -386,6 +411,11 @@ export const portalTexte: Record<Sprache, PortalTexte> = {
     walletKeinTermin: "Geen datum gepland",
     walletTicketSeite: "Ticketpagina",
     walletHinweis: "Deze pas geldt voor al je modules. Nieuwe data zie je op de ticketpagina; daar kun je de pas ook opnieuw laden.",
+    zimmerTitel: "Jouw kamer",
+    zimmerArt: (n) => (n === 1 ? "Eenpersoonskamer" : n === 2 ? "Tweepersoonskamer" : `${n}-persoonskamer`),
+    zimmerMit: "Samen met",
+    zimmerNummer: (nr) => `Kamer ${nr}`,
+    zimmerNummerFolgt: "Je kamernummer krijg je in het hotel.",
     mailAbmeldungBetreff: (t) => `Afmelding opgeslagen: ${t}`,
     mailAbmeldungText: (t) => `je hebt je afgemeld voor „${t}”. Bedankt voor het laten weten.`,
     mailAbmeldungZurueck: "Was dit een vergissing of kun je toch komen? Op je ticketpagina kun je de afmelding tot het begin van de module terugdraaien. Heb je je niet zelf afgemeld, beantwoord dan deze mail.",

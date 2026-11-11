@@ -9,6 +9,7 @@ import { portalTexte, sprachOder } from "@/lib/portal-texte";
 import { ladeTicket, modulZeitraum } from "@/lib/teilnahme";
 import { istToken, kurzcodeAnzeige, ticketQrSvg } from "@/lib/tickets";
 import { WalletKnoepfe } from "@/components/WalletKnoepfe";
+import { istInterneZimmerbezeichnung } from "@/lib/zimmer-anzeige";
 
 export const metadata: Metadata = { title: "Ticket | SES Academy", robots: { index: false, follow: false }, referrer: "same-origin" };
 
@@ -58,6 +59,8 @@ export default async function TicketSeite({ params, searchParams }: PageProps<"/
           const kommt = m.beginn !== null && Date.parse(m.beginn) > jetzt;
           const kannAbmelden = kommt && (m.status === "confirmed" || m.status === "waitlist" || m.status === "pending");
           const besuchteTage = m.tage.filter((d) => d.besucht).length;
+          // Zimmer mit Zimmerpartner:innen nur über den Mail-Link, nicht über den QR-Inhalt (der wird gezeigt und fotografiert)
+          const zimmer = perLink ? daten.zimmer.find((z) => z.moduleId === m.moduleId) : undefined;
           return (
             <li key={m.registrationId} className="rounded-3xl bg-white/80 p-5 ring-1 ring-line">
               <div className="flex flex-wrap items-start justify-between gap-2">
@@ -70,6 +73,17 @@ export default async function TicketSeite({ params, searchParams }: PageProps<"/
                 </span>
               </div>
               {!m.ticketNoetig && <p className="mt-2 text-sm text-ink-soft">{t.ohneTicket}</p>}
+              {zimmer && (
+                <div className="mt-3 rounded-2xl bg-gruen-hell p-4 text-sm">
+                  <p className="font-semibold">{t.zimmerTitel}: {t.zimmerArt(zimmer.betten)}</p>
+                  {zimmer.mitbewohner.length > 0 && <p className="mt-1">{t.zimmerMit}: <span className="font-semibold">{zimmer.mitbewohner.join(", ")}</span></p>}
+                  <p className="mt-1 text-ink-soft">
+                    {[zimmer.hotel, zimmer.adresse].filter(Boolean).join(" · ")}
+                    {zimmer.hotel || zimmer.adresse ? " · " : ""}
+                    {istInterneZimmerbezeichnung(zimmer.label) ? t.zimmerNummerFolgt : t.zimmerNummer(zimmer.label)}
+                  </p>
+                </div>
+              )}
               {kannAbmelden && perLink && (
                 <details className="mt-3">
                   <summary className="cursor-pointer text-sm font-semibold">{t.abmelden}</summary>
