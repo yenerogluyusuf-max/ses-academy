@@ -3,11 +3,12 @@ import type { TicketModul } from "./teilnahme";
 /** Wallet-Karten sind bewusst immer englisch (Veranstaltung ist international), unabhängig von der Sprache der Person. */
 export const WALLET_SPRACHE = "en" as const;
 
+/** Englische Namen nach der festen Kennung (slug) des Moduls: Der Titel heißt im Betrieb „Demokratie in Europa“, in der Entwicklung „Demokratie“. */
 const EVENT_NAMEN: Record<string, string> = { demokratie: "DEMOCRACY IN EUROPE" };
 
 /** Titel der Veranstaltung auf der Karte: bekannte Module mit englischem Namen, sonst der Titel in Großbuchstaben. */
-export function walletEventName(m: { titel: string }): string {
-  return EVENT_NAMEN[m.titel.trim().toLowerCase()] ?? m.titel.toUpperCase();
+export function walletEventName(m: { slug: string; titel: string }): string {
+  return EVENT_NAMEN[m.slug] ?? m.titel.toUpperCase();
 }
 
 /** Kurzes Datum wie „14-15 Nov 2026“ bzw. „14 Nov 2026“. */

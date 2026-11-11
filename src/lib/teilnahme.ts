@@ -8,6 +8,8 @@ type Row<T extends keyof Database["public"]["Tables"]> = Database["public"]["Tab
 export type TicketModul = {
   registrationId: string;
   moduleId: string;
+  /** feste Kennung des Moduls (z. B. „demokratie“), anders als der Titel nicht zum Umbenennen gedacht */
+  slug: string;
   titel: string;
   ort: string | null;
   status: Row<"registrations">["status"];
@@ -50,7 +52,7 @@ export async function ladeTicket(filter: { token: string } | { participantId: st
 
   const { data: regs } = await admin
     .from("registrations")
-    .select("id, status, module:modules!inner(id, title, location, status, ticket_required, cancelled_at, module_days(id, day, starts_at, ends_at)), attendances(module_day_id)")
+    .select("id, status, module:modules!inner(id, slug, title, location, status, ticket_required, cancelled_at, module_days(id, day, starts_at, ends_at)), attendances(module_day_id)")
     .eq("participant_id", participant.id)
     .eq("module.status", "published");
 
@@ -62,6 +64,7 @@ export async function ladeTicket(filter: { token: string } | { participantId: st
     return {
       registrationId: r.id,
       moduleId: r.module.id,
+      slug: r.module.slug,
       titel: r.module.title,
       ort: r.module.location,
       status: r.status,
