@@ -5,7 +5,7 @@ import { seitenUrl } from "./mail";
 import { portalTexte } from "./portal-texte";
 import type { TicketDaten } from "./teilnahme";
 import { kurzcodeAnzeige, qrInhalt } from "./codes";
-import { WALLET_SPRACHE, walletDatum, walletEventName, walletEventTitel } from "./wallet-anzeige";
+import { WALLET_SPRACHE, walletDatum, walletEventName } from "./wallet-anzeige";
 
 /**
  * Google-Wallet-Ticket. Gegenstück zum Apple-Pass (wallet.ts): derselbe Einlass-QR (checkin_token), ein Ticket pro
@@ -97,8 +97,9 @@ export function googleWalletInhalt(daten: TicketDaten, issuerId: string) {
   const klasse = {
     id: `${issuerId}.ses_academy_ticket`,
     issuerName: "SES Academy",
-    // Titel der Karte: das nächste Modul (die Klasse gilt für alle, die nächsten Module sind für alle gleich)
-    eventName: text(naechstes ? walletEventTitel(naechstes) : "SES Academy", "en"),
+    // Die Klasse gilt für alle Teilnehmenden: nichts Personenbezogenes und nichts, was je Person anders sein kann
+    // (das nächste Modul unterscheidet sich z. B. bei Entschuldigten). Der Modultitel steht je Person im Feld EVENT.
+    eventName: text("SES Academy", "en"),
     reviewStatus: "UNDER_REVIEW",
     // Wie die Apple-Karte (11.11.2026): Papierfarbe; Logo = Sirene auf Signalgrün (Google schneidet es rund zu);
     // Banner 1032×812 nach Googles Vorgaben, nur die Sirene, kein Text im Bild (der Titel steht als eventName darüber)
