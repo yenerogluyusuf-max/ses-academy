@@ -112,7 +112,7 @@ export function googleWalletInhalt(daten: TicketDaten, issuerId: string) {
     classId: klasse.id,
     state: "ACTIVE",
     ticketHolderName: `${p.first_name} ${p.last_name}`.trim(),
-    barcode: { type: "QR_CODE", value: qrInhalt(p.checkin_token), alternateText: "CHECK-IN" },
+    barcode: { type: "QR_CODE", value: qrInhalt(p.checkin_token), alternateText: kurzcode },   // wie bei Apple: Kurzcode für den Einlass von Hand
     textModulesData: [
       { id: "naechstes", header: "EVENT", body: naechstes ? walletEventName(naechstes) : t.walletKeinTermin },
       ...(naechstes ? [
