@@ -8,6 +8,7 @@ import { abmeldeLinkSenden, perTicketAbmelden, perTicketZuruecknehmen } from "@/
 import { portalTexte, sprachOder } from "@/lib/portal-texte";
 import { ladeTicket, modulZeitraum } from "@/lib/teilnahme";
 import { istToken, kurzcodeAnzeige, qrSvg } from "@/lib/tickets";
+import { WalletKnoepfe } from "@/components/WalletKnoepfe";
 
 export const metadata: Metadata = { title: "Ticket | SES Academy", robots: { index: false, follow: false }, referrer: "same-origin" };
 
@@ -46,6 +47,7 @@ export default async function TicketSeite({ params, searchParams }: PageProps<"/
         <p className="font-mono text-3xl font-bold tracking-[0.15em]">{kurzcodeAnzeige(p.short_code ?? "")}</p>
         <p className="mt-2 text-sm text-ink-soft">{t.kurzcodeHilfe}</p>
       </section>
+      <WalletKnoepfe token={token.toLowerCase()} sprache={p.preferred_language} />
       <p className="mt-3 text-center text-sm text-ink-soft">{t.lesezeichen}</p>
 
       <h2 className="mt-10 font-display text-2xl font-bold">{t.moduleTitel}</h2>

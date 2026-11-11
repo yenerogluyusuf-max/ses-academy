@@ -10,6 +10,7 @@ import { emailAendern, portalAbmelden } from "@/lib/aktionen/portal";
 import { meinAbmelden, meinZuruecknehmen } from "@/lib/aktionen/ticket";
 import { naechte, nachtName } from "@/lib/uebernachtung";
 import { kurzcodeAnzeige, qrSvg } from "@/lib/tickets";
+import { WalletKnoepfe } from "@/components/WalletKnoepfe";
 import { createClient } from "@/lib/supabase/server";
 import { bereichSprache, bereichTexte, datumsSprache, type BereichSprache } from "@/lib/bereich-texte";
 import { jetztMs } from "@/lib/zeit";
@@ -104,6 +105,7 @@ export default async function MeinBereich({ searchParams }: PageProps<"/mein-ber
             <div className="p-6">
               <div className="mx-auto w-full max-w-[240px] [&>svg]:h-auto [&>svg]:w-full" dangerouslySetInnerHTML={{ __html: svg }} role="img" aria-label={t.qrLabel} />
               <p className="mt-3 font-mono text-2xl font-bold tracking-[0.15em]">{kurzcodeAnzeige(ich.short_code ?? "")}</p>
+              <WalletKnoepfe token={ich.checkin_token} sprache={l} />
               <Link href={`/ticket/${ich.link_token}/`} className="link mt-3 inline-block text-sm">{t.ticketSeite}</Link>
             </div>
           </div>
