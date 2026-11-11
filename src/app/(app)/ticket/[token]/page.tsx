@@ -7,7 +7,7 @@ import { locale } from "@/i18n/typ";
 import { abmeldeLinkSenden, perTicketAbmelden, perTicketZuruecknehmen } from "@/lib/aktionen/ticket";
 import { portalTexte, sprachOder } from "@/lib/portal-texte";
 import { ladeTicket, modulZeitraum } from "@/lib/teilnahme";
-import { istToken, kurzcodeAnzeige, qrSvg } from "@/lib/tickets";
+import { istToken, kurzcodeAnzeige, ticketQrSvg } from "@/lib/tickets";
 import { WalletKnoepfe } from "@/components/WalletKnoepfe";
 
 export const metadata: Metadata = { title: "Ticket | SES Academy", robots: { index: false, follow: false }, referrer: "same-origin" };
@@ -22,7 +22,7 @@ export default async function TicketSeite({ params, searchParams }: PageProps<"/
   const p = daten.participant;
   const l = sprachOder(p.preferred_language);
   const t = portalTexte[l];
-  const svg = await qrSvg(p.checkin_token);
+  const svg = await ticketQrSvg(p.checkin_token);
   const jetzt = jetztMs();
   const meldungen: Record<string, string> = {
     abgemeldet: t.abgemeldet, "zu-spaet": t.zuSpaet, fehler: t.unbekannt, "link-gesendet": t.abmeldeLinkGesendet,

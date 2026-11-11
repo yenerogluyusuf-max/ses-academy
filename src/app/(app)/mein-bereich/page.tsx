@@ -9,7 +9,7 @@ import { uebernachtungSpeichern } from "@/lib/aktionen/hotel";
 import { emailAendern, portalAbmelden } from "@/lib/aktionen/portal";
 import { meinAbmelden, meinZuruecknehmen } from "@/lib/aktionen/ticket";
 import { naechte, nachtName } from "@/lib/uebernachtung";
-import { kurzcodeAnzeige, qrSvg } from "@/lib/tickets";
+import { kurzcodeAnzeige, ticketQrSvg } from "@/lib/tickets";
 import { WalletKnoepfe } from "@/components/WalletKnoepfe";
 import { createClient } from "@/lib/supabase/server";
 import { bereichSprache, bereichTexte, datumsSprache, type BereichSprache } from "@/lib/bereich-texte";
@@ -85,7 +85,7 @@ export default async function MeinBereich({ searchParams }: PageProps<"/mein-ber
     supabase.from("deletion_requests").select("status, requested_at, decision_note").order("requested_at", { ascending: false }).limit(1),
   ]);
   const loeschantrag = loeschantraege?.[0];
-  const svg = await qrSvg(ich.checkin_token);
+  const svg = await ticketQrSvg(ich.checkin_token);
 
   return (
     <div lang={l} className="min-h-dvh">
