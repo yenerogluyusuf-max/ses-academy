@@ -38,6 +38,7 @@ const texte = {
     keineAngabeZu: "Du hast keine Übernachtung angegeben. Falls du doch eine brauchst, antworte einfach auf diese Mail.",
     programm: "Tagesordnung",
     programmFolgt: "Das Programm für diesen Tag folgt.",
+    programmPdf: "Die Tagesordnung hängt auch als PDF an.",
     abmelden: "Falls du nicht teilnehmen kannst, melde dich bitte vorher über dein Ticket ab. Bei Fragen antworte einfach auf diese Mail.",
     gruss: "Viele Grüße\nDein Team der SES Academy",
   },
@@ -65,6 +66,7 @@ const texte = {
     keineAngabeZu: "Konaklama ihtiyacı belirtmedin. Yine de ihtiyacın olursa bu e-postayı yanıtlaman yeterli.",
     programm: "Program",
     programmFolgt: "Bu günün programı daha sonra bildirilecek.",
+    programmPdf: "Program PDF olarak da ekte.",
     abmelden: "Katılamayacaksan lütfen önceden biletin üzerinden bildir. Sorun olursa bu e-postayı yanıtlaman yeterli.",
     gruss: "Selamlarımızla\nSES Academy ekibi",
   },
@@ -92,6 +94,7 @@ const texte = {
     keineAngabeZu: "Tu n’as pas demandé d’hébergement. Si tu en as besoin malgré tout, réponds simplement à cet e-mail.",
     programm: "Programme",
     programmFolgt: "Le programme de cette journée suivra.",
+    programmPdf: "Le programme est aussi joint en PDF.",
     abmelden: "Si tu ne peux pas participer, merci de te désinscrire à l’avance depuis ton billet. Pour toute question, réponds simplement à cet e-mail.",
     gruss: "À très bientôt\nL’équipe de la SES Academy",
   },
@@ -165,7 +168,7 @@ function esc(text: string): string {
  * Betreff, Text- und HTML-Fassung. Das QR-Bild steckt im HTML als cid:ticket-qr (Anhang beim Versand).
  * wallet: Links „Zu Apple Wallet hinzufügen“ / „In Google Wallet speichern“, nur wenn die Wallets eingerichtet sind.
  */
-export function infoMailInhalt(d: InfoDaten, ticketLink: string, wallet: { apple: string | null; google: string | null; appleText: string; googleText: string } | null = null) {
+export function infoMailInhalt(d: InfoDaten, ticketLink: string, wallet: { apple: string | null; google: string | null; appleText: string; googleText: string } | null = null, pdfAnhang = false) {
   const l = infoMailSprache(d.p.preferred_language);
   const t = texte[l];
   const modulTitel = uebersetzt(d.modul.i18n, l, "title", d.modul.title) ?? d.modul.title;
@@ -226,7 +229,7 @@ export function infoMailInhalt(d: InfoDaten, ticketLink: string, wallet: { apple
     `${t.termin}:`, ...termine, d.modul.location ?? "", ...(karte ? [`${t.karte}: ${karte}`] : []), "",
     ...(d.modul.ticket_required ? [`${t.ticket}:`, t.ticketText, `${t.kurzcode}: ${code}`, `${t.ticketLink}: ${ticketLink}`, ...walletText, ""] : []),
     `${t.uebernachtung}:`, ...uebernachtung.text, "",
-    `${t.programm}:`, ...programmText, "",
+    `${t.programm}:`, ...(pdfAnhang ? [t.programmPdf] : []), ...programmText, "",
     t.abmelden, "", t.gruss,
   ].join("\n");
 
@@ -247,7 +250,7 @@ export function infoMailInhalt(d: InfoDaten, ticketLink: string, wallet: { apple
       <a href="${esc(ticketLink)}" style="display:inline-block;background:#13201a;color:#f3efe4;text-decoration:none;padding:12px 26px;border-radius:999px;font-weight:bold">${esc(t.ticketLink)}</a>${walletHtml}
     </div>`)}
   ${abschnitt(t.uebernachtung, uebernachtung.html)}
-  ${abschnitt(t.programm, programmHtml)}
+  ${abschnitt(t.programm, `${pdfAnhang ? `<p style="margin:0;font-size:14px;color:#3c4a42">${esc(t.programmPdf)}</p>` : ""}${programmHtml}`)}
   <p style="font-size:14px;line-height:1.6;color:#3c4a42;margin:8px 4px">${esc(t.abmelden)}</p>
   <p style="font-size:14px;line-height:1.6;white-space:pre-line;margin:8px 4px">${esc(t.gruss)}</p>
 </div></body></html>`;

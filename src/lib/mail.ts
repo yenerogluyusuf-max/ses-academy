@@ -6,7 +6,7 @@ import { DATENSCHUTZ_URL, IMPRESSUM_URL, rechtlicheTexte } from "@/lib/rechtlich
 import { bereichSprache, bereichTexte, datumsSprache } from "@/lib/bereich-texte";
 import { portalTexte, sprachOder } from "@/lib/portal-texte";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { infoMailInhalt, ladeInfoMail } from "@/lib/infomail";
+import { infoMailInhalt, infoMailSprache, ladeInfoMail } from "@/lib/infomail";
 import { ladeTicket, modulZeitraum } from "@/lib/teilnahme";
 import { kurzcodeAnzeige, qrPng } from "@/lib/tickets";
 import { googleWalletAktiv } from "@/lib/google-wallet";
@@ -405,6 +405,36 @@ export async function sendeNachricht(an: { participant_id: string | null; email:
   return ergebnis;
 }
 
+/** Sprachname am Ende der Dokumenttitel („Tagesordnung Teilnehmende · Deutsch“) je Mailsprache. */
+const tagesordnungSprache: Record<string, string> = { de: "Deutsch", tr: "Türkçe", fr: "Français", en: "English" };
+const tagesordnungCache = new Map<string, Buffer>();
+
+/**
+ * Tagesordnung als PDF-Anhang der Info-Mail, in der Sprache der Mail: Dokument des Moduls mit Schlagwort
+ * „Tagesordnung“, „Teilnehmende“ im Titel und dem Sprachnamen am Ende, nicht archiviert, aktuelle Version.
+ * Gibt es keine passende Fassung, geht die Mail ohne Anhang raus (das Programm steht ohnehin im Text).
+ */
+export async function tagesordnungAnhang(moduleId: string, sprache: string): Promise<{ filename: string; content: Buffer; contentType: string } | null> {
+  const name = tagesordnungSprache[sprache];
+  if (!name) return null;
+  const admin = createAdminClient();
+  const { data: dokumente } = await admin.from("documents").select("id, title, current_version")
+    .eq("module_id", moduleId).neq("status", "archiv").gt("current_version", 0).contains("tags", ["Tagesordnung"]);
+  const dok = (dokumente ?? []).find((d) => /teilnehmende/i.test(d.title) && d.title.trim().endsWith(name));
+  if (!dok) return null;
+  const { data: v } = await admin.from("document_versions").select("storage_path, file_name")
+    .eq("document_id", dok.id).eq("version", dok.current_version).maybeSingle();
+  if (!v || !/\.pdf$/i.test(v.file_name)) return null;
+  let inhalt = tagesordnungCache.get(v.storage_path);
+  if (!inhalt) {
+    const { data } = await admin.storage.from("dokumente").download(v.storage_path);
+    if (!data) return null;
+    inhalt = Buffer.from(await data.arrayBuffer());
+    tagesordnungCache.set(v.storage_path, inhalt);
+  }
+  return { filename: v.file_name, content: inhalt, contentType: "application/pdf" };
+}
+
 /** Wallet-Links für die Info-Mail (wie in der Ticket-Mail), nur wenn Apple bzw. Google Wallet eingerichtet ist. */
 export function infoMailWallet(p: { checkin_token: string; preferred_language: string | null }) {
   const t = portalTexte[sprachOder(p.preferred_language)];
@@ -425,13 +455,14 @@ export async function sendeInfoMail(participantId: string, moduleId: string, aus
   if (!d) return { ok: false, fehler: "Nicht für dieses Modul angemeldet." };
   const an = test ?? d.p.email;
   if (!an) return { ok: false, fehler: "Keine E-Mail-Adresse hinterlegt." };
-  const { betreff, text, html, sprache } = infoMailInhalt(d, seitenUrl(`/ticket/${d.p.link_token}/`), infoMailWallet(d.p));
+  const pdf = await tagesordnungAnhang(moduleId, infoMailSprache(d.p.preferred_language));
+  const { betreff, text, html, sprache } = infoMailInhalt(d, seitenUrl(`/ticket/${d.p.link_token}/`), infoMailWallet(d.p), pdf !== null);
   const ergebnis = await senden({
     to: an,
     subject: test ? `[Test] ${betreff}` : betreff,
     text,
     html,
-    attachments: [{ filename: "ticket-qr.png", content: await qrPng(d.p.checkin_token), cid: "ticket-qr" }],
+    attachments: [{ filename: "ticket-qr.png", content: await qrPng(d.p.checkin_token), cid: "ticket-qr" }, ...(pdf ? [pdf] : [])],
   }, sprache);
   if (!test) {
     // Enthält das Ticket: zählt auch als Ticket-Versand
