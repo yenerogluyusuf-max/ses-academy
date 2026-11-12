@@ -22,7 +22,8 @@ export type EinlassErgebnis = {
   window_end?: string;
 };
 
-export type Zaehler = { checked_in: number; expected: number; waitlist: number; excused: number };
+/** expected: zugesagt (bzw. alle Bestätigten, wenn das Modul keine Rückmeldung nutzt) plus schon Eingecheckte; no_reply: ohne Rückmeldung, noch nicht da. */
+export type Zaehler = { checked_in: number; expected: number; no_reply?: number; waitlist: number; excused: number };
 
 export type EinlassAntwort = { ergebnis: EinlassErgebnis; zaehler: Zaehler | null };
 

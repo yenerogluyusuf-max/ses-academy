@@ -297,7 +297,9 @@ export function Einlass({ tagId, modulTitel, ticketNoetig, zaehler: start, offli
       <div className="mx-auto mt-3 h-2 max-w-sm overflow-hidden rounded-full bg-paper-deep" aria-hidden>
         <div className="h-full rounded-full bg-forest" style={{ width: `${zaehler.expected ? Math.min(100, (zaehler.checked_in / zaehler.expected) * 100) : 0}%` }} />
       </div>
-      <p className="mt-2 text-sm text-ink-soft">{zaehler.waitlist} auf der Warteliste · {zaehler.excused} entschuldigt oder abgemeldet</p>
+      <p className="mt-2 text-sm text-ink-soft">
+        {zaehler.no_reply ? `${zaehler.no_reply} ohne Rückmeldung · ` : ""}{zaehler.waitlist} auf der Warteliste · {zaehler.excused} entschuldigt oder abgemeldet
+      </p>
     </section>
   );
 
