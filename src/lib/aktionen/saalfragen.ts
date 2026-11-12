@@ -18,8 +18,14 @@ export async function geraetLesen(): Promise<string> {
   return geraet();
 }
 
+/**
+ * Absender-IP für die Obergrenze je Adresse. Über die Domain (Cloudflare-Tunnel) setzt Cloudflare CF-Connecting-IP selbst;
+ * x-forwarded-for hängt dort nur an und der erste Eintrag käme vom Absender (fälschbar). Im WLAN überschreibt der eigene
+ * HTTPS-Zugang x-forwarded-for und entfernt ein mitgeschicktes CF-Connecting-IP. Die App selbst lauscht nur auf 127.0.0.1.
+ */
 async function ip(): Promise<string> {
-  return ipHash((await headers()).get("x-forwarded-for"));
+  const h = await headers();
+  return ipHash(h.get("cf-connecting-ip") ?? h.get("x-forwarded-for"));
 }
 
 const codeOk = (c: string) => /^[A-Za-z2-9]{5}$/.test(c);

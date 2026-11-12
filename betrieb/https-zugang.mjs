@@ -15,13 +15,18 @@ const port = Number(process.env.HTTPS_PORT ?? 8443);
 const server = https.createServer(
   { key: readFileSync(join(daten, "tls", "schluessel.pem")), cert: readFileSync(join(daten, "tls", "zertifikat.pem")) },
   (anfrage, antwort) => {
+    // CF-Connecting-IP setzt nur Cloudflare (Tunnel, direkt zur App). Hier im WLAN käme es vom Absender: entfernen,
+    // sonst ließe sich die Obergrenze je Adresse (Saalfragen) umgehen. x-forwarded-for wird unten überschrieben.
+    const kopf = { ...anfrage.headers };
+    delete kopf["cf-connecting-ip"];
+    delete kopf["true-client-ip"];
     const weiter = http.request(
       {
         ...ziel,
         method: anfrage.method,
         path: anfrage.url,
         headers: {
-          ...anfrage.headers,
+          ...kopf,
           "x-forwarded-proto": "https",
           "x-forwarded-host": anfrage.headers.host ?? "",
           "x-forwarded-for": anfrage.socket.remoteAddress ?? "",

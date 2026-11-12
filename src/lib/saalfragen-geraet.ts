@@ -28,9 +28,9 @@ export function geraeteHash(wert: string | undefined): string {
   return createHash("sha256").update(id).digest("hex").slice(0, 32);
 }
 
-/** IP-Adresse als Hash (für die Obergrenze je Adresse). Hinter dem eigenen HTTPS-Zugang setzt dieser x-forwarded-for. */
-export function ipHash(xForwardedFor: string | null): string {
-  const ip = (xForwardedFor ?? "").split(",")[0].trim();
+/** IP-Adresse als Hash (für die Obergrenze je Adresse). Eingabe: CF-Connecting-IP bzw. x-forwarded-for, siehe ip() in aktionen/saalfragen.ts. */
+export function ipHash(adresse: string | null): string {
+  const ip = (adresse ?? "").split(",")[0].trim();
   return ip ? createHmac("sha256", schluessel()).update(`ip:${ip}`).digest("hex").slice(0, 32) : "";
 }
 
