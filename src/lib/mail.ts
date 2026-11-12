@@ -228,6 +228,17 @@ const bewerbungStatusTexte = {
     },
     fragen: "Sorun olursa bu e-postayı yanıtlaman yeterli.",
   },
+  fr: {
+    abgelehnt: {
+      betreff: "Ta candidature à la SES Academy",
+      text: "merci beaucoup pour ta candidature et ton intérêt pour la SES Academy. Malheureusement, nous ne pouvons pas te proposer de place dans cette promotion. Le nombre de places est limité et nous avons reçu de nombreuses candidatures. Nous te souhaitons beaucoup de succès pour la suite.",
+    },
+    warteliste: {
+      betreff: "Ta candidature\u00a0: liste d’attente",
+      text: "merci beaucoup pour ta candidature à la SES Academy. Pour le moment, toutes les places sont prises, tu es donc sur notre liste d’attente. Dès qu’une place se libère, nous te contactons. Tu n’as rien d’autre à faire.",
+    },
+    fragen: "Pour toute question, réponds simplement à cet e-mail.",
+  },
 } as const;
 
 /** Betreff einer Mail zu Absage bzw. Warteliste (für die Rückfrage im Team-Bereich). */
@@ -394,6 +405,17 @@ export async function sendeNachricht(an: { participant_id: string | null; email:
   return ergebnis;
 }
 
+/** Wallet-Links für die Info-Mail (wie in der Ticket-Mail), nur wenn Apple bzw. Google Wallet eingerichtet ist. */
+export function infoMailWallet(p: { checkin_token: string; preferred_language: string | null }) {
+  const t = portalTexte[sprachOder(p.preferred_language)];
+  return {
+    apple: walletAktiv() ? seitenUrl(`/ticket/${p.checkin_token}/wallet/`) : null,
+    google: googleWalletAktiv() ? seitenUrl(`/ticket/${p.checkin_token}/google-wallet/`) : null,
+    appleText: t.walletHinzufuegen,
+    googleText: t.googleWalletHinzufuegen,
+  };
+}
+
 /**
  * Info-Mail zu einem Modul: Ticket, Termin und Ort, Übernachtung mit Hotel und Zimmer, Tagesordnung in EINER Mail.
  * test = an diese Adresse statt an die Person (Vorschau im eigenen Postfach); zählt dann nicht als versendet.
@@ -403,14 +425,14 @@ export async function sendeInfoMail(participantId: string, moduleId: string, aus
   if (!d) return { ok: false, fehler: "Nicht für dieses Modul angemeldet." };
   const an = test ?? d.p.email;
   if (!an) return { ok: false, fehler: "Keine E-Mail-Adresse hinterlegt." };
-  const { betreff, text, html } = infoMailInhalt(d, seitenUrl(`/ticket/${d.p.link_token}/`));
+  const { betreff, text, html, sprache } = infoMailInhalt(d, seitenUrl(`/ticket/${d.p.link_token}/`), infoMailWallet(d.p));
   const ergebnis = await senden({
     to: an,
     subject: test ? `[Test] ${betreff}` : betreff,
     text,
     html,
     attachments: [{ filename: "ticket-qr.png", content: await qrPng(d.p.checkin_token), cid: "ticket-qr" }],
-  }, d.p.preferred_language === "tr" ? "tr" : "de");
+  }, sprache);
   if (!test) {
     // Enthält das Ticket: zählt auch als Ticket-Versand
     await protokolliere({ participantId: d.p.id, art: "info", an, ergebnis, von: ausgeloestVon, moduleId });

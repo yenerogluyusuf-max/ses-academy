@@ -14,5 +14,5 @@ export async function GET(request: Request) {
   const { data } = await supabase.auth.getUser();
   if (data.user) redirect((await getStaff()) ? "/team/" : "/mein-bereich/");
   const sprache = new URL(request.url).searchParams.get("sprache");
-  redirect(`/mein-bereich/login/${sprache === "de" || sprache === "tr" ? `?sprache=${sprache}` : ""}`);
+  redirect(`/mein-bereich/login/${sprache === "de" || sprache === "tr" || sprache === "fr" ? `?sprache=${sprache}` : ""}`);
 }

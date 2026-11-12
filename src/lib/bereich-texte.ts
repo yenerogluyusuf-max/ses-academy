@@ -1,20 +1,25 @@
-// Texte für „Mein Bereich“, Login und Feedback-Umfrage in Deutsch und Türkisch (Ton wie die türkischen Ticket- und
-// Bewerbungstexte: du/sen, kurz und freundlich). Andere Profilsprachen sehen Deutsch.
+// Texte für „Mein Bereich“, Login und Feedback-Umfrage in Deutsch, Türkisch und Französisch (Ton wie die Ticket- und
+// Bewerbungstexte: du/sen/tu, kurz und freundlich). Andere Profilsprachen (en, nl) sehen Deutsch.
 
-export type BereichSprache = "de" | "tr";
+export const bereichSprachen = ["de", "tr", "fr"] as const;
+export type BereichSprache = (typeof bereichSprachen)[number];
 
-/** Türkisch für Konten mit Profilsprache „tr“, sonst Deutsch. */
+/** Name jeder Sprache in ihr selbst (für den Sprachwechsel auf der Login-Seite). */
+export const bereichSprachNamen: Record<BereichSprache, string> = { de: "Deutsch", tr: "Türkçe", fr: "Français" };
+
+/** Türkisch bzw. Französisch für Konten mit dieser Profilsprache, sonst Deutsch. */
 export function bereichSprache(wert: string | null | undefined): BereichSprache {
-  return wert === "tr" ? "tr" : "de";
+  return wert === "tr" || wert === "fr" ? wert : "de";
 }
 
-/** Sprache der Login-Seite: ?sprache=tr oder ein Browser auf Türkisch (vor der Anmeldung ist das Profil unbekannt). */
+/** Sprache der Login-Seite: ?sprache=tr|fr oder die Browsersprache (vor der Anmeldung ist das Profil unbekannt). */
 export function loginSprache(param: unknown, acceptLanguage: string | null): BereichSprache {
-  if (param === "tr" || param === "de") return param;
-  return /^\s*tr\b/i.test(acceptLanguage ?? "") ? "tr" : "de";
+  if (param === "tr" || param === "de" || param === "fr") return param;
+  if (/^\s*tr\b/i.test(acceptLanguage ?? "")) return "tr";
+  return /^\s*fr\b/i.test(acceptLanguage ?? "") ? "fr" : "de";
 }
 
-export const datumsSprache: Record<BereichSprache, string> = { de: "de-DE", tr: "tr-TR" };
+export const datumsSprache: Record<BereichSprache, string> = { de: "de-DE", tr: "tr-TR", fr: "fr-FR" };
 
 type Hinweis = { text: string; gut: boolean };
 
@@ -37,7 +42,7 @@ const de = {
   loginAnmelden: "Anmelden",
   loginPrueft: "Wird geprüft …",
   loginKeineMail: "Keine Mail bekommen?",
-  loginSpam: "Die Mail kann ein, zwei Minuten brauchen. Schau bitte auch im Spam- oder Werbung-Ordner nach (Absender: SES Academy, ses@islamrat.de). Kommt nichts an, ist die Adresse vielleicht nicht bei uns hinterlegt: Schreib uns dann an ses@islamrat.de.",
+  loginSpam: "Die Mail kann ein, zwei Minuten brauchen. Schau bitte auch im Spam- oder Werbung-Ordner nach (Absender: SES Academy, info@ses-academy.org). Kommt nichts an, ist die Adresse vielleicht nicht bei uns hinterlegt: Schreib uns dann an ses@islamrat.de.",
   loginErneut: "Code erneut senden",
   loginErneutIn: (s: number) => `Code erneut senden (in ${s} s)`,
   loginAndereAdresse: "Andere E-Mail-Adresse verwenden",
@@ -45,7 +50,6 @@ const de = {
   loginFehlerZuViele: "Zu viele Versuche. Bitte warte eine Minute.",
   loginFehlerZiffern: "Der Code hat 6 Ziffern.",
   loginFehlerCode: "Der Code stimmt nicht oder ist abgelaufen.",
-  andereSprache: "Türkçe",
 
   // Mein Bereich
   kicker: "Mein Bereich",
@@ -248,7 +252,7 @@ const tr: typeof de = {
   loginAnmelden: "Giriş yap",
   loginPrueft: "Kontrol ediliyor …",
   loginKeineMail: "E-posta gelmedi mi?",
-  loginSpam: "E-postanın gelmesi bir iki dakika sürebilir. Lütfen spam ya da reklam klasörüne de bak (gönderen: SES Academy, ses@islamrat.de). Hiçbir şey gelmezse adresin bizde kayıtlı olmayabilir: O zaman ses@islamrat.de adresine yaz.",
+  loginSpam: "E-postanın gelmesi bir iki dakika sürebilir. Lütfen spam ya da reklam klasörüne de bak (gönderen: SES Academy, info@ses-academy.org). Hiçbir şey gelmezse adresin bizde kayıtlı olmayabilir: O zaman ses@islamrat.de adresine yaz.",
   loginErneut: "Kodu tekrar gönder",
   loginErneutIn: (s: number) => `Kodu tekrar gönder (${s} sn sonra)`,
   loginAndereAdresse: "Başka bir e-posta adresi kullan",
@@ -256,7 +260,6 @@ const tr: typeof de = {
   loginFehlerZuViele: "Çok fazla deneme. Lütfen bir dakika bekle.",
   loginFehlerZiffern: "Kod 6 hanelidir.",
   loginFehlerCode: "Kod yanlış ya da süresi dolmuş.",
-  andereSprache: "Deutsch",
 
   kicker: "Mein Bereich",
   abmelden: "Çıkış yap",
@@ -438,6 +441,214 @@ const tr: typeof de = {
   feedbackMailBis: (bis: string) => `Anket ${bis} tarihine kadar açık.`,
 };
 
-export const bereichTexte: Record<BereichSprache, typeof de> = { de, tr };
+// Französisch (tu, wie die französische Tagesordnung „participantes et participants“ ohne Gendersternchen).
+// Vor ? ! : ; und in « » steht ein geschütztes Leerzeichen ( ), wie im Französischen üblich.
+const fr: typeof de = {
+  loginTitel: "Connexion",
+  loginIntro: "Pour les participantes, les participants et l’équipe, sans mot de passe : nous t’envoyons un lien par e-mail. Ensuite, tu arrives dans ton espace – avec ton QR code, ta présence, tes devoirs et tes contributions – ou dans l’espace de l’équipe.",
+  loginTeamFrage: "Membre de l’équipe ?",
+  loginTeamLink: "Se connecter avec un mot de passe",
+  zurWebsite: "Retour au site",
+  loginLinkAbgelaufen: "Le lien de connexion a expiré ou a déjà été utilisé. Merci d’en demander un nouveau.",
+  loginEmail: "Adresse e-mail",
+  loginEmailHilfe: "L’adresse que tu as donnée à la SES Academy.",
+  loginSenden: "Envoyer le lien de connexion",
+  loginSendet: "Envoi en cours …",
+  loginUnterwegs: (email: string) => `Si ${email} est enregistrée chez nous, un e-mail est en route.`,
+  loginNeuUnterwegs: "Un nouveau code est en route. Seul le code du dernier e-mail est valable.",
+  loginTippen: "Appuie sur « Me connecter » dans l’e-mail – ou saisis ici le code à 6 chiffres.",
+  loginCode: "Code reçu par e-mail",
+  loginAnmelden: "Se connecter",
+  loginPrueft: "Vérification …",
+  loginKeineMail: "Pas reçu d’e-mail ?",
+  loginSpam: "L’e-mail peut mettre une ou deux minutes à arriver. Regarde aussi dans tes spams ou dans l’onglet Promotions (expéditeur : SES Academy, info@ses-academy.org). Si rien n’arrive, ton adresse n’est peut-être pas enregistrée chez nous : écris-nous alors à ses@islamrat.de.",
+  loginErneut: "Renvoyer le code",
+  loginErneutIn: (s: number) => `Renvoyer le code (dans ${s} s)`,
+  loginAndereAdresse: "Utiliser une autre adresse e-mail",
+  loginFehlerEmail: "Merci de saisir une adresse e-mail valide.",
+  loginFehlerZuViele: "Trop de tentatives. Merci de patienter une minute.",
+  loginFehlerZiffern: "Le code comporte 6 chiffres.",
+  loginFehlerCode: "Le code est incorrect ou a expiré.",
+
+  kicker: "Mon espace",
+  abmelden: "Se déconnecter",
+  salam: (name: string) => `Salam, ${name} !`,
+  keinProfilTitel: "Aucun profil trouvé",
+  keinProfilText: "Aucun profil de participant n’est associé à ton adresse e-mail. Merci d’écrire à ses@islamrat.de.",
+  einlassCode: "Ton code d’entrée",
+  giltFuerAlle: "valable pour tous les modules",
+  qrLabel: "QR code personnel",
+  ticketSeite: "Ouvrir la page du billet",
+  kommendeModule: "Modules à venir",
+  terminFolgt: "Date à venir",
+  warteliste: "Liste d’attente : nous te recontactons dès qu’une place se libère.",
+  eingecheckt: "✓ présence enregistrée",
+  nichtTeilnehmen: "Je ne peux pas participer",
+  grund: "Motif (facultatif)",
+  abmeldungBestaetigen: "Confirmer l’annulation",
+  keinModul: "Pour le moment, tu n’as pas d’inscription à un module à venir.",
+  teamAbgesagt: "Ce module a été annulé. Ton billet n’est plus valable pour celui-ci.",
+  selbstAbgesagt: "Tu as annulé ta participation à ce module.",
+  dochTeilnehmen: "Finalement, je participe",
+  modulHinweise: {
+    abgemeldet: { text: "Merci de nous avoir prévenus. Ton annulation est enregistrée, une confirmation t’arrive par e-mail.", gut: true },
+    "zu-spaet": { text: "Le module a déjà commencé. Merci de contacter directement l’équipe.", gut: false },
+    "wieder-dabei": { text: "Nous sommes ravis que tu sois finalement des nôtres. Ton inscription est de nouveau valable.", gut: true },
+    "wieder-warteliste": { text: "Tu es de nouveau sur la liste d’attente. Nous te recontactons dès qu’une place se libère.", gut: true },
+    "nicht-moeglich": { text: "Ce n’est malheureusement plus possible ici. Merci d’écrire à ses@islamrat.de.", gut: false },
+    fehler: { text: "Cela n’a malheureusement pas fonctionné. Merci de réessayer.", gut: false },
+  } as Record<string, Hinweis>,
+
+  uebernachtung: "Hébergement",
+  zimmer: (modul: string, zimmer: string) => `${modul} : chambre ${zimmer}`,
+  zimmerArt: (n: number) => (n === 1 ? "Chambre individuelle" : n === 2 ? "Chambre double" : `Chambre pour ${n} personnes`),
+  zimmerMit: "Avec toi dans la chambre",
+  zimmerNummer: (nr: string) => `Chambre ${nr}`,
+  zimmerNummerFolgt: "Tu recevras ton numéro de chambre à l’hôtel.",
+  modul: "Module",
+  angabenGespeichert: "informations enregistrées",
+  bitteAusfuellen: "à compléter",
+  naechteFrage: "Pour quelles nuits as-tu besoin d’un lit ?",
+  keineNacht: "Aucune nuit sélectionnée = pas d’hébergement.",
+  ankunft: "Arrivée",
+  abreise: "Départ",
+  uhrzeit: "Heure",
+  anreiseMit: "Moyen de transport",
+  bitteWaehlen: "choisir",
+  anreise: { bahn: "Train", auto: "Voiture", flug: "Avion", bus: "Autocar", andere: "autre" } as Record<string, string>,
+  zimmerwunsch: "Souhait de chambre (avec qui ?)",
+  hinweiseTeam: "Remarques pour l’équipe (p. ex. alimentation, santé)",
+  speichern: "Enregistrer",
+  uebernachtungHinweise: {
+    saved: { text: "Merci ! Tes informations d’hébergement sont enregistrées. Tu peux les modifier tant que le formulaire est ouvert.", gut: true },
+    closed: { text: "Le formulaire d’hébergement est fermé. Merci d’écrire à ses@islamrat.de.", gut: false },
+    not_registered: { text: "Tu n’as pas d’inscription pour ce module.", gut: false },
+    abreise: { text: "La date de départ est avant la date d’arrivée. Merci de vérifier les dates ; rien n’a été modifié.", gut: false },
+    fehler: { text: "Cela n’a pas fonctionné. Merci de vérifier les informations.", gut: false },
+  } as Record<string, Hinweis>,
+
+  hausaufgaben: "Devoirs",
+  hausaufgabe: (nr: number, titel: string) => `Devoir ${nr} : ${titel}`,
+  frist: (d: string) => `Date limite : ${d}`,
+  eingegangen: (d: string | null) => (d ? `reçu le ${d}` : "reçu"),
+  nochNicht: "pas encore rendu",
+  link: "Lien",
+  datei: "Fichier (jusqu’à 100 Mo)",
+  oderLink: "ou lien (p. ex. YouTube, Drive)",
+  neueVersion: "Rendre une nouvelle version",
+  abgeben: "Rendre",
+  keineHausaufgaben: "Pas encore de devoirs.",
+  abgabeHinweise: {
+    puenktlich: { text: "Merci ! Ton devoir est bien arrivé. Une confirmation t’arrive par e-mail.", gut: true },
+    verspaetet: { text: "Ton devoir est bien arrivé, mais après la date limite.", gut: true },
+    leer: { text: "Merci de choisir un fichier ou d’indiquer un lien.", gut: false },
+    zu_gross: { text: "Le fichier dépasse 100 Mo. Merci de le rendre sous forme de lien (p. ex. YouTube « non répertorié » ou Drive).", gut: false },
+    link: { text: "Le lien doit commencer par https://.", gut: false },
+    fehler: { text: "L’envoi n’a pas fonctionné. Merci de réessayer ou d’écrire à ses@islamrat.de.", gut: false },
+  } as Record<string, Hinweis>,
+
+  profil: "Mon profil",
+  verzeichnis: "Annuaire des membres",
+  fotoAlt: "Ta photo de profil",
+  stammdaten: "Le nom, la région et la promotion sont gérés par l’équipe. En cas d’erreur, merci d’écrire à ses@islamrat.de.",
+  telefon: "Téléphone",
+  sprache: "Langue (e-mails et « Mon espace »)",
+  foto: "Photo de profil (JPG, PNG ou WebP, jusqu’à 5 Mo)",
+  kontaktFrei: "Rendre mon e-mail et mon téléphone visibles pour les autres membres",
+  kontaktFreiHilfe: "Sans cette case, les autres membres voient seulement ton nom, ta photo, ta région et tes badges.",
+  fotoErlaubt: "Les photos de moi prises pendant les modules peuvent paraître sur le site et sur Instagram",
+  fotoErlaubtHilfe: "Tu peux retirer ton accord ici à tout moment.",
+  profilSpeichern: "Enregistrer le profil",
+  emailAdresse: "Adresse e-mail",
+  adresseAendern: "Modifier l’adresse",
+  profilHinweise: {
+    gespeichert: { text: "Profil enregistré.", gut: true },
+    "foto-art": { text: "Merci de télécharger une photo au format JPG, PNG ou WebP.", gut: false },
+    "foto-gross": { text: "La photo dépasse 5 Mo.", gut: false },
+    "email-gesendet": { text: "Nous avons envoyé un lien de confirmation à ton ancienne et à ta nouvelle adresse. La nouvelle adresse n’est valable qu’une fois les deux confirmées.", gut: true },
+    "email-bestaetigt": { text: "Confirmé. Si ce n’est pas encore fait, confirme aussi le lien de l’autre e-mail.", gut: true },
+    "email-ungueltig": { text: "Merci de saisir une adresse e-mail valide.", gut: false },
+    "email-vergeben": { text: "Cette adresse e-mail appartient déjà à un autre compte.", gut: false },
+    fehler: { text: "Cela n’a pas fonctionné.", gut: false },
+  } as Record<string, Hinweis>,
+
+  anwesenheit: "Ma présence",
+  entschuldigt: "absence excusée",
+  tage: (da: number, alle: number) => `${da}/${alle} jours`,
+  keineVergangenen: "Pas encore de modules passés.",
+  beitraege: "Mes contributions",
+  beitragTypen: { kommentar: "Commentaire", video: "Vidéo", grafik: "Graphique", podcast: "Podcast", rede: "Discours", artikel: "Article" } as Record<string, string>,
+  keineBeitraege: "Tu as publié quelque chose – un article, un discours, une vidéo ? Envoie le lien à ses@islamrat.de, il apparaîtra ici et sur le site.",
+
+  datenschutzTitel: "Tes données",
+  verzeichnisDrin: "Tu figures dans l’annuaire des membres. Les autres membres voient ton nom, ta photo, ta région et tes badges ; ton e-mail et ton téléphone seulement si tu les rends visibles ci-dessus.",
+  verzeichnisDraussen: "Tu ne figures plus dans l’annuaire des membres. Les autres membres ne t’y voient pas.",
+  verzeichnisAustragen: "Me retirer de l’annuaire",
+  verzeichnisEintragen: "Réapparaître dans l’annuaire",
+  loeschenTitel: "Supprimer le compte",
+  loeschenText: "Tu peux demander la suppression de ton compte et de tes données. Un administrateur traite la demande et te contacte en cas de question. Seront supprimés : ton accès, tes coordonnées, ta photo, les notes et les informations d’hébergement. Tes présences et tes devoirs sont conservés sans ton nom pour l’évaluation de l’Academy.",
+  loeschenGrund: "Veux-tu nous dire quelque chose à ce sujet ? (facultatif)",
+  loeschenKnopf: "Demander la suppression",
+  loeschenFrage: "Veux-tu vraiment demander la suppression de ton compte ? Une fois la demande traitée, tu ne pourras plus te connecter et ton billet ne sera plus valable.",
+  loeschenJa: "Oui, demander la suppression",
+  abbrechen: "Annuler",
+  loeschenOffen: (datum: string) => `Ta demande de suppression du ${datum} est en cours de traitement.`,
+  loeschenZurueckziehen: "Retirer la demande",
+  loeschenAbgelehnt: (notiz: string) => `Ta dernière demande de suppression n’a pas été exécutée : « ${notiz} » Pour toute question, écris à ses@islamrat.de.`,
+  datenschutzHinweise: {
+    "verzeichnis-raus": { text: "Tu ne figures plus dans l’annuaire des membres.", gut: true },
+    "verzeichnis-rein": { text: "Tu figures de nouveau dans l’annuaire des membres.", gut: true },
+    beantragt: { text: "Ta demande de suppression est bien arrivée. Un administrateur va la traiter.", gut: true },
+    already_open: { text: "Une demande de suppression est déjà en cours.", gut: false },
+    zurueckgezogen: { text: "Ta demande de suppression a été retirée.", gut: true },
+    bestaetigen: { text: "Merci de confirmer. Aucune demande n’a été envoyée.", gut: false },
+    fehler: { text: "Cela n’a pas fonctionné.", gut: false },
+  } as Record<string, Hinweis>,
+
+  zurueck: "← Mon espace",
+  mitglieder: "Membres",
+  personen: (n: number) => `${n} personnes`,
+  vonAllen: (n: number, alle: number) => `${n} sur ${alle}`,
+  regionen: (n: number) => `${n} régions`,
+  kontaktNurFrei: "L’e-mail et le téléphone apparaissent seulement si la personne les a rendus visibles dans son profil.",
+  nameSuchen: "Rechercher un nom",
+  region: "Région",
+  alleRegionen: "toutes les régions",
+  abzeichen: "Badge",
+  alleAbzeichen: "tous les badges",
+  suchen: "Rechercher",
+  zuruecksetzen: "Réinitialiser",
+  ohneRegion: "sans région",
+  emailAn: (n: string) => `E-mail à ${n}`,
+  anrufen: (n: string) => `Appeler ${n}`,
+  whatsappAn: (n: string) => `WhatsApp à ${n}`,
+  niemand: "Aucun résultat.",
+
+  feedbackTitel: "Ton avis",
+  feedbackHallo: (name: string, da: boolean) => `Bonjour ${name}${da ? ", merci d’avoir participé" : ""}. L’équipe voit les réponses uniquement de manière groupée, jamais une par une avec ton nom.`,
+  feedbackNichtDa: "Seules les personnes enregistrées à l’entrée du module peuvent répondre. Si tu y étais, écris-nous à ses@islamrat.de.",
+  feedbackOeffnet: "Le questionnaire ouvre à la fin du module.",
+  feedbackBeendet: "Le questionnaire est terminé. Merci !",
+  feedbackSchonGespeichert: "Ta réponse est déjà enregistrée. Tu peux la modifier ici.",
+  feedbackFreiwillig: "Toutes les questions sont facultatives. Merci de répondre au moins à une.",
+  feedbackSkala: ["très mauvais", "mauvais", "correct", "bien", "très bien"],
+  feedbackAbsenden: "Envoyer ma réponse",
+  feedbackAktualisieren: "Mettre à jour ma réponse",
+  feedbackSpeichert: "Enregistrement …",
+  feedbackMeldungen: {
+    saved: { text: "Merci ! Ta réponse est enregistrée. Tu peux encore la modifier jusqu’à la fin du questionnaire.", gut: true },
+    empty: { text: "Merci de répondre au moins à une question. Rien n’a été enregistré.", gut: false },
+    closed: { text: "Le questionnaire n’est pas ouvert en ce moment.", gut: false },
+    not_attended: { text: "Seules les personnes enregistrées à l’entrée du module peuvent répondre.", gut: false },
+    not_found: { text: "Ce lien n’est pas valable.", gut: false },
+    fehler: { text: "Cela n’a pas fonctionné. Merci de réessayer plus tard.", gut: false },
+  } as Record<string, Hinweis>,
+  feedbackMailBetreff: (titel: string) => `Ton avis sur « ${titel} » – SES Academy`,
+  feedbackMailText: (titel: string) => `merci d’avoir participé au module « ${titel} ». Qu’en as-tu pensé ? Le questionnaire prend environ trois minutes et nous aide à améliorer le prochain module.`,
+  feedbackMailLink: "Vers le questionnaire",
+  feedbackMailBis: (bis: string) => `Le questionnaire est ouvert jusqu’au ${bis}.`,
+};
+
+export const bereichTexte: Record<BereichSprache, typeof de> = { de, tr, fr };
 
 export type BereichTexte = typeof de;

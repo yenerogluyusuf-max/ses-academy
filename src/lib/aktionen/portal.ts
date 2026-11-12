@@ -13,13 +13,15 @@ import { createClient } from "@/lib/supabase/server";
 export type PortalLogin = { schritt: "mail" | "code"; email?: string; fehler?: "email" | "zuViele" | "ziffern" | "code"; gesendetUm?: number; erneut?: boolean };
 
 /**
- * Sprache der Login-Mail (GoTrue-Vorlage anmeldung.html liest user_metadata.sprache): Türkisch, wenn das Profil der
- * Person oder die Login-Seite Türkisch ist, sonst Deutsch. Bestehende Konten bekommen den Wert vor dem Versand,
- * neue beim Anlegen. Teamkonten bleiben Deutsch.
+ * Sprache der Login-Mail (GoTrue-Vorlage anmeldung.html liest user_metadata.sprache): die Profilsprache der Person,
+ * wenn es Türkisch oder Französisch ist, sonst die Sprache der Login-Seite, sonst Deutsch. Bestehende Konten bekommen
+ * den Wert vor dem Versand, neue beim Anlegen. Teamkonten bleiben Deutsch.
  */
-async function mailSprache(email: string, seite: string): Promise<{ sprache: "de" | "tr"; userId: string | null }> {
+async function mailSprache(email: string, seite: string): Promise<{ sprache: "de" | "tr" | "fr"; userId: string | null }> {
   const { data: p } = await createAdminClient().from("participants").select("preferred_language, user_id").eq("email", email).maybeSingle();
-  return { sprache: p?.preferred_language === "tr" || seite === "tr" ? "tr" : "de", userId: p?.user_id ?? null };
+  const profil = p?.preferred_language;
+  const sprache = profil === "tr" || profil === "fr" ? profil : seite === "tr" || seite === "fr" ? seite : "de";
+  return { sprache, userId: p?.user_id ?? null };
 }
 
 export async function codeAnfordern(_: PortalLogin, formData: FormData): Promise<PortalLogin> {

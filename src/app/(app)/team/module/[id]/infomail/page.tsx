@@ -9,7 +9,7 @@ import { infoMailAnAlle, infoMailTest } from "@/lib/aktionen/infomail";
 import { requireStaff } from "@/lib/auth";
 import { istToken } from "@/lib/codes";
 import { infoMailInhalt, ladeInfoMail } from "@/lib/infomail";
-import { mailBereit, seitenUrl } from "@/lib/mail";
+import { infoMailWallet, mailBereit, seitenUrl } from "@/lib/mail";
 import { createClient } from "@/lib/supabase/server";
 import { qrPng } from "@/lib/tickets";
 
@@ -43,7 +43,7 @@ export default async function InfoMail({ params, searchParams }: PageProps<"/tea
   const gewaehlt = typeof sp.person === "string" && istToken(sp.person) ? sp.person : undefined;
   const person = liste.find((z) => z.participant_id === gewaehlt) ?? liste.find((z) => z.rsvp === "zugesagt" && z.email) ?? liste.find((z) => z.email) ?? liste[0];
   const daten = person ? await ladeInfoMail(person.participant_id, id) : null;
-  const inhalt = daten ? infoMailInhalt(daten, seitenUrl(`/ticket/${daten.p.link_token}/`)) : null;
+  const inhalt = daten ? infoMailInhalt(daten, seitenUrl(`/ticket/${daten.p.link_token}/`), infoMailWallet(daten.p)) : null;
   // In der Vorschau steckt der QR-Code direkt im HTML (in der echten Mail als Anhang)
   const vorschau = inhalt && daten ? inhalt.html.replace("cid:ticket-qr", `data:image/png;base64,${(await qrPng(daten.p.checkin_token)).toString("base64")}`) : null;
 

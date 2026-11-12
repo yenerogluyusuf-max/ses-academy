@@ -1,7 +1,8 @@
-{{- /* Sprache aus den Kontodaten (user_metadata.sprache, setzt die App vor dem Versand): „tr“ = Türkisch, sonst Deutsch. */ -}}
+{{- /* Sprache aus den Kontodaten (user_metadata.sprache, setzt die App vor dem Versand): „tr“ = Türkisch, „fr“ = Französisch, sonst Deutsch. */ -}}
 {{- $tr := false -}}{{- if .Data -}}{{- if .Data.sprache -}}{{- if eq (printf "%v" .Data.sprache) "tr" -}}{{- $tr = true -}}{{- end -}}{{- end -}}{{- end -}}
+{{- $fr := false -}}{{- if .Data -}}{{- if .Data.sprache -}}{{- if eq (printf "%v" .Data.sprache) "fr" -}}{{- $fr = true -}}{{- end -}}{{- end -}}{{- end -}}
 <!doctype html>
-<html lang="{{ if $tr }}tr{{ else }}de{{ end }}">
+<html lang="{{ if $tr }}tr{{ else if $fr }}fr{{ else }}de{{ end }}">
   <body style="margin:0;background:#f3efe4;font-family:Arial,Helvetica,sans-serif;color:#13201a">
     <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="padding:32px 16px">
       <tr><td align="center">
@@ -15,6 +16,13 @@
             <p style="margin:0 0 6px;font-size:14px;color:#4a564f">Ya da bu kodu giriş sayfasına yaz:</p>
             <p style="margin:0 0 24px;font-size:30px;font-weight:bold;letter-spacing:.2em">{{ .Token }}</p>
             <p style="margin:0;font-size:13px;color:#4a564f">Bağlantı ve kod bir saat geçerlidir. Giriş yapmak istemediysen bu e-postayı dikkate alma.</p>
+            {{ else if $fr }}
+            <h1 style="margin:0 0 16px;font-size:26px;line-height:1.2">Ton accès à «&nbsp;Mon espace&nbsp;»</h1>
+            <p style="margin:0 0 24px;font-size:16px;line-height:1.5">Appuie sur le bouton pour te connecter. Tu y trouveras ton QR code pour les modules, ta présence et tes devoirs.</p>
+            <p style="margin:0 0 28px"><a href="{{ .SiteURL }}/auth/bestaetigen/?token_hash={{ .TokenHash }}&type=email" style="display:inline-block;background:#13201a;color:#f3efe4;text-decoration:none;font-weight:bold;padding:14px 28px;border-radius:999px">Me connecter</a></p>
+            <p style="margin:0 0 6px;font-size:14px;color:#4a564f">Ou saisis ce code sur la page de connexion&nbsp;:</p>
+            <p style="margin:0 0 24px;font-size:30px;font-weight:bold;letter-spacing:.2em">{{ .Token }}</p>
+            <p style="margin:0;font-size:13px;color:#4a564f">Le lien et le code sont valables une heure. Si tu n’as pas demandé à te connecter, tu peux ignorer cet e-mail.</p>
             {{ else }}
             <h1 style="margin:0 0 16px;font-size:26px;line-height:1.2">Dein Zugang zu „Mein Bereich“</h1>
             <p style="margin:0 0 24px;font-size:16px;line-height:1.5">Tippe auf den Knopf, um dich anzumelden. Dort findest du deinen QR-Code für die Module, deine Anwesenheit und deine Hausaufgaben.</p>
@@ -25,7 +33,7 @@
             {{ end }}
           </td></tr>
         </table>
-        <p style="font-size:12px;color:#4a564f;margin-top:16px">SES Academy · Islamrat für die Bundesrepublik Deutschland · ses@islamrat.de<br><a href="https://www.islamrat.de/disclaimer/" style="color:#4a564f">{{ if $tr }}Gizlilik{{ else }}Datenschutz{{ end }}</a> · <a href="https://www.islamrat.de/impressum/" style="color:#4a564f">{{ if $tr }}Künye{{ else }}Impressum{{ end }}</a></p>
+        <p style="font-size:12px;color:#4a564f;margin-top:16px">SES Academy · Islamrat für die Bundesrepublik Deutschland · ses@islamrat.de<br><a href="https://www.islamrat.de/disclaimer/" style="color:#4a564f">{{ if $tr }}Gizlilik{{ else if $fr }}Confidentialité{{ else }}Datenschutz{{ end }}</a> · <a href="https://www.islamrat.de/impressum/" style="color:#4a564f">{{ if $tr }}Künye{{ else if $fr }}Mentions légales{{ else }}Impressum{{ end }}</a></p>
       </td></tr>
     </table>
   </body>

@@ -765,14 +765,14 @@ isOneToOne: false
                   ]
                 },"modules": {
                   Row: {
-                    "cancellation_reason": string | null,"cancelled_at": string | null,"capacity": number | null,"cohort_id": string | null,"counts_for_streak": boolean,"created_at": string,"description": string,"id": string,"kind": Database["public"]['Enums']["module_kind"],"location": string | null,"open_registration": boolean,"slug": string,"status": Database["public"]['Enums']["module_status"],"stay_form_open": boolean,"subtitle": string,"ticket_required": boolean,"title": string,"updated_at": string
+                    "cancellation_reason": string | null,"cancelled_at": string | null,"capacity": number | null,"cohort_id": string | null,"counts_for_streak": boolean,"created_at": string,"description": string,"i18n": Json,"id": string,"kind": Database["public"]['Enums']["module_kind"],"location": string | null,"open_registration": boolean,"slug": string,"status": Database["public"]['Enums']["module_status"],"stay_form_open": boolean,"subtitle": string,"ticket_required": boolean,"title": string,"updated_at": string
                   }
                   ComputedFields: never
                   Insert: {
-                    "cancellation_reason"?: string | null,"cancelled_at"?: string | null,"capacity"?: number | null,"cohort_id"?: string | null,"counts_for_streak"?: boolean,"created_at"?: string,"description"?: string,"id"?: string,"kind"?: Database["public"]['Enums']["module_kind"],"location"?: string | null,"open_registration"?: boolean,"slug": string,"status"?: Database["public"]['Enums']["module_status"],"stay_form_open"?: boolean,"subtitle"?: string,"ticket_required"?: boolean,"title": string,"updated_at"?: string
+                    "cancellation_reason"?: string | null,"cancelled_at"?: string | null,"capacity"?: number | null,"cohort_id"?: string | null,"counts_for_streak"?: boolean,"created_at"?: string,"description"?: string,"i18n"?: Json,"id"?: string,"kind"?: Database["public"]['Enums']["module_kind"],"location"?: string | null,"open_registration"?: boolean,"slug": string,"status"?: Database["public"]['Enums']["module_status"],"stay_form_open"?: boolean,"subtitle"?: string,"ticket_required"?: boolean,"title": string,"updated_at"?: string
                   }
                   Update: {
-                    "cancellation_reason"?: string | null,"cancelled_at"?: string | null,"capacity"?: number | null,"cohort_id"?: string | null,"counts_for_streak"?: boolean,"created_at"?: string,"description"?: string,"id"?: string,"kind"?: Database["public"]['Enums']["module_kind"],"location"?: string | null,"open_registration"?: boolean,"slug"?: string,"status"?: Database["public"]['Enums']["module_status"],"stay_form_open"?: boolean,"subtitle"?: string,"ticket_required"?: boolean,"title"?: string,"updated_at"?: string
+                    "cancellation_reason"?: string | null,"cancelled_at"?: string | null,"capacity"?: number | null,"cohort_id"?: string | null,"counts_for_streak"?: boolean,"created_at"?: string,"description"?: string,"i18n"?: Json,"id"?: string,"kind"?: Database["public"]['Enums']["module_kind"],"location"?: string | null,"open_registration"?: boolean,"slug"?: string,"status"?: Database["public"]['Enums']["module_status"],"stay_form_open"?: boolean,"subtitle"?: string,"ticket_required"?: boolean,"title"?: string,"updated_at"?: string
                   }
                   Relationships: [
                     {
@@ -837,14 +837,14 @@ isOneToOne: false
                   ]
                 },"program_items": {
                   Row: {
-                    "created_at": string,"ends_at": string | null,"id": string,"module_day_id": string,"note": string,"responsible": string | null,"room": string | null,"starts_at": string,"status": Database["public"]['Enums']["program_item_status"],"title": string,"updated_at": string,"updated_by": string | null
+                    "created_at": string,"ends_at": string | null,"i18n": Json,"id": string,"module_day_id": string,"note": string,"responsible": string | null,"room": string | null,"starts_at": string,"status": Database["public"]['Enums']["program_item_status"],"title": string,"updated_at": string,"updated_by": string | null
                   }
                   ComputedFields: never
                   Insert: {
-                    "created_at"?: string,"ends_at"?: string | null,"id"?: string,"module_day_id": string,"note"?: string,"responsible"?: string | null,"room"?: string | null,"starts_at": string,"status"?: Database["public"]['Enums']["program_item_status"],"title": string,"updated_at"?: string,"updated_by"?: string | null
+                    "created_at"?: string,"ends_at"?: string | null,"i18n"?: Json,"id"?: string,"module_day_id": string,"note"?: string,"responsible"?: string | null,"room"?: string | null,"starts_at": string,"status"?: Database["public"]['Enums']["program_item_status"],"title": string,"updated_at"?: string,"updated_by"?: string | null
                   }
                   Update: {
-                    "created_at"?: string,"ends_at"?: string | null,"id"?: string,"module_day_id"?: string,"note"?: string,"responsible"?: string | null,"room"?: string | null,"starts_at"?: string,"status"?: Database["public"]['Enums']["program_item_status"],"title"?: string,"updated_at"?: string,"updated_by"?: string | null
+                    "created_at"?: string,"ends_at"?: string | null,"i18n"?: Json,"id"?: string,"module_day_id"?: string,"note"?: string,"responsible"?: string | null,"room"?: string | null,"starts_at"?: string,"status"?: Database["public"]['Enums']["program_item_status"],"title"?: string,"updated_at"?: string,"updated_by"?: string | null
                   }
                   Relationships: [
                     {
