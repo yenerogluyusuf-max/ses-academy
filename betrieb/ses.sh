@@ -272,9 +272,10 @@ ingress:
   - service: http_status:404
 YML
     chmod 600 "$DATEN/tunnel.yml"
-    # -f: vorhandene Einträge (z. B. A/AAAA auf einen alten Webspace) durch den Tunnel ersetzen; Mail-Einträge bleiben
-    cloudflared tunnel route dns -f "$name" "$host"
-    cloudflared tunnel route dns -f "$name" "www.$host"
+    # Ohne -f: Das Überschreiben löscht einen beliebigen Eintrag gleichen Namens (am 12.11. den MX!). Zeigen Hauptadresse
+    # oder www noch per A/AAAA auf einen alten Webspace, diese Einträge vorher in Cloudflare von Hand löschen.
+    cloudflared tunnel route dns "$name" "$host"
+    cloudflared tunnel route dns "$name" "www.$host"
     stoppe_dienst tunnel
     starte_dienst tunnel cloudflared tunnel --no-autoupdate --config "$DATEN/tunnel.yml" run
     echo "Tunnel für $host läuft. Weiter: ./ses.sh domain https://$host"
