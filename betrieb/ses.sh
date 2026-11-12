@@ -39,6 +39,16 @@ lade_env() {
   export DB_URL="postgresql://postgres:${POSTGRES_PASSWORD}@127.0.0.1:${DB_PORT:-56322}/postgres?sslmode=disable"
 }
 
+# Nach einem Neustart läuft Docker Desktop oft noch nicht, wenn der Autostart kommt (3.11.: Start gescheitert).
+# Dann Docker öffnen und bis zu drei Minuten warten.
+warte_auf_docker() {
+  docker info >/dev/null 2>&1 && return 0
+  open -ga Docker 2>/dev/null || true
+  for _ in $(seq 1 90); do docker info >/dev/null 2>&1 && return 0; sleep 2; done
+  echo "Docker läuft nach drei Minuten noch nicht. Bitte Docker Desktop starten und ./ses.sh start wiederholen."
+  exit 1
+}
+
 warte_auf_db() {
   for _ in $(seq 1 60); do
     if "${COMPOSE[@]}" exec -T db pg_isready -U postgres -h localhost >/dev/null 2>&1; then return 0; fi
@@ -108,6 +118,7 @@ case "$befehl" in
 
   start)
     lade_env
+    warte_auf_docker
     "${COMPOSE[@]}" up -d
     warte_auf_db
     migrieren
