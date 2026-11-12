@@ -1,6 +1,7 @@
 import "server-only";
 
 import nodemailer, { type SendMailOptions } from "nodemailer";
+import MailComposer from "nodemailer/lib/mail-composer";
 import { locale, type Sprache } from "@/i18n/typ";
 import { DATENSCHUTZ_URL, IMPRESSUM_URL, rechtlicheTexte } from "@/lib/rechtliches";
 import { bereichSprache, bereichTexte, datumsSprache } from "@/lib/bereich-texte";
@@ -28,6 +29,26 @@ function transport() {
     secure: process.env.SMTP_SECURE === "true",
     auth: process.env.SMTP_USER ? { user: process.env.SMTP_USER, pass: process.env.SMTP_PASS } : undefined,
   });
+}
+
+/**
+ * Antwort aus dem Postfach im Team-Bereich, als info@ (Wunsch 12.11.2026): reiner Text, ohne Fußzeile, mit
+ * In-Reply-To/References, damit sie beim Empfänger im selben Verlauf landet. Gibt die fertige Mail zurück, damit
+ * sie als Kopie in „Gesendet“ abgelegt werden kann (lib/postfach.ts).
+ */
+export async function sendeAntwortMail(n: { an: string; betreff: string; text: string; inReplyTo: string | null; references: string[] }): Promise<{ ok: true; roh: Buffer } | { ok: false; fehler: string }> {
+  if (!mailBereit()) return { ok: false, fehler: "Mailversand nicht eingerichtet (SMTP-Zugangsdaten fehlen)." };
+  const absender = process.env.SMTP_FROM_ADDRESS ?? "info@ses-academy.org";
+  try {
+    const roh = await new MailComposer({
+      from: process.env.MAIL_FROM ?? `SES Academy <${absender}>`, to: n.an, subject: n.betreff, text: n.text, date: new Date(),
+      ...(n.inReplyTo ? { inReplyTo: n.inReplyTo, references: [...n.references, n.inReplyTo] } : {}),
+    }).compile().build();
+    await transport().sendMail({ envelope: { from: absender, to: [n.an] }, raw: roh });
+    return { ok: true, roh };
+  } catch (e) {
+    return { ok: false, fehler: e instanceof Error ? e.message : String(e) };
+  }
 }
 
 export function seitenUrl(pfad: string): string {
