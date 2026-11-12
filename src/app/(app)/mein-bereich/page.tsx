@@ -16,6 +16,8 @@ import { createClient } from "@/lib/supabase/server";
 import { bereichSprache, bereichTexte, datumsSprache, type BereichSprache } from "@/lib/bereich-texte";
 import { offeneUmfragen } from "@/lib/feedback";
 import { FeedbackKarte } from "@/components/FeedbackKarte";
+import { ModulProgramm } from "@/components/ModulProgramm";
+import { ladeModulProgramm, tagesordnungFassung } from "@/lib/modul-programm";
 import { jetztMs } from "@/lib/zeit";
 
 export const metadata: Metadata = { title: "Mein Bereich | SES Academy", robots: { index: false, follow: false } };
@@ -85,6 +87,9 @@ export default async function MeinBereich({ searchParams }: PageProps<"/mein-ber
   const vorbei = meineModule.filter((m) => m.tage.length && m.tage.every((t) => t.ends_at < jetzt)).reverse();
   const abgaben = (subs ?? []) as unknown as Sub[];
   const umfragen = await offeneUmfragen(ich.id, l);
+  // Programm, PDF und Karte für das nächste Modul
+  const naechstesId = kommend[0]?.modules.id ?? null;
+  const [programm, pdf] = naechstesId ? await Promise.all([ladeModulProgramm(naechstesId, l), tagesordnungFassung(naechstesId, l, true)]) : [[], null];
   const mitAbfrage = meineModule.filter((m) => m.modules.stay_form_open && !m.modules.cancelled_at && (m.status === "confirmed" || m.status === "waitlist") && m.tage.some((t) => t.ends_at >= jetzt) && nichtSpaeter(m));
   const [{ data: angaben }, { data: zimmer }, { data: mitgliedschaften }, { data: loeschantraege }] = await Promise.all([
     mitAbfrage.length ? supabase.from("stay_requests").select("*") : Promise.resolve({ data: [] }),
@@ -128,6 +133,10 @@ export default async function MeinBereich({ searchParams }: PageProps<"/mein-ber
                   <li key={m.modules.id} className="karte">
                     <p className="font-display text-xl font-bold">{m.modules.title}</p>
                     <p className="text-sm text-ink-soft">{zeitraum(m.tage)}{m.modules.location ? ` · ${m.modules.location}` : ""}</p>
+                    {m.modules.id === naechstesId && (
+                      <ModulProgramm tage={programm} locale={datumsSprache[l]} ort={m.modules.location} pdfHref={pdf ? `/programm/${naechstesId}/${l}/` : null}
+                        texte={{ ansehen: t.programmAnsehen, pdf: t.programmPdf, karte: t.ortKarte, fragen: t.fragenMail }} />
+                    )}
                     {m.status === "waitlist" && <p className="mt-2 chip bg-gelb-hell">{t.warteliste}</p>}
                     {m.attendances.length > 0 && <p className="mt-2 chip bg-gruen-hell">{t.eingecheckt}</p>}
                     {m.tage[0].starts_at > jetzt && (

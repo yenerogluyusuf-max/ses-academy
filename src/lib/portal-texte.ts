@@ -15,6 +15,10 @@ export type PortalTexte = {
   feedbackGeben: string;
   feedbackDanke: string;
   feedbackAendern: string;
+  programmAnsehen: string;
+  programmPdf: string;
+  ortKarte: string;
+  fragenMail: string;
   moduleTitel: string;
   ortOffen: string;
   status: Record<Anmeldestatus, string>;
@@ -91,6 +95,10 @@ export const portalTexte: Record<Sprache, PortalTexte> = {
     feedbackGeben: "Feedback geben",
     feedbackDanke: "Danke für dein Feedback!",
     feedbackAendern: "Antworten ansehen oder ändern",
+    programmAnsehen: "Programm ansehen",
+    programmPdf: "Tagesordnung als PDF",
+    ortKarte: "Ort auf der Karte",
+    fragenMail: "Fragen? Schreib uns an",
     moduleTitel: "Deine Module",
     ortOffen: "Ort folgt",
     status: { confirmed: "Angemeldet", pending: "Wird geprüft", waitlist: "Warteliste", cancelled: "Abgemeldet", excused: "Entschuldigt", rejected: "Abgelehnt" },
@@ -165,6 +173,10 @@ export const portalTexte: Record<Sprache, PortalTexte> = {
     feedbackGeben: "Geri bildirim ver",
     feedbackDanke: "Geri bildirimin için teşekkürler!",
     feedbackAendern: "Cevaplarını gör veya değiştir",
+    programmAnsehen: "Programı gör",
+    programmPdf: "Program (PDF)",
+    ortKarte: "Haritada göster",
+    fragenMail: "Sorun mu var? Bize yaz:",
     moduleTitel: "Modüllerin",
     ortOffen: "Yer daha sonra bildirilecek",
     status: { confirmed: "Kayıtlı", pending: "İnceleniyor", waitlist: "Bekleme listesi", cancelled: "Kayıt iptal", excused: "Mazeretli", rejected: "Reddedildi" },
@@ -239,6 +251,10 @@ export const portalTexte: Record<Sprache, PortalTexte> = {
     feedbackGeben: "Give feedback",
     feedbackDanke: "Thank you for your feedback!",
     feedbackAendern: "View or change your answers",
+    programmAnsehen: "View programme",
+    programmPdf: "Programme (PDF)",
+    ortKarte: "Show on map",
+    fragenMail: "Questions? Write to us at",
     moduleTitel: "Your modules",
     ortOffen: "Venue to be announced",
     status: { confirmed: "Registered", pending: "Under review", waitlist: "Waiting list", cancelled: "Cancelled", excused: "Excused", rejected: "Declined" },
@@ -313,6 +329,10 @@ export const portalTexte: Record<Sprache, PortalTexte> = {
     feedbackGeben: "Donner mon avis",
     feedbackDanke: "Merci pour ton avis\u00a0!",
     feedbackAendern: "Voir ou modifier mes réponses",
+    programmAnsehen: "Voir le programme",
+    programmPdf: "Programme en PDF",
+    ortKarte: "Voir sur la carte",
+    fragenMail: "Des questions\u00a0? Écris-nous à",
     moduleTitel: "Tes modules",
     ortOffen: "Lieu à venir",
     status: { confirmed: "Inscrit·e", pending: "En cours d’examen", waitlist: "Liste d’attente", cancelled: "Désinscrit·e", excused: "Excusé·e", rejected: "Refusé" },
@@ -387,6 +407,10 @@ export const portalTexte: Record<Sprache, PortalTexte> = {
     feedbackGeben: "Feedback geven",
     feedbackDanke: "Bedankt voor je feedback!",
     feedbackAendern: "Antwoorden bekijken of wijzigen",
+    programmAnsehen: "Programma bekijken",
+    programmPdf: "Programma (PDF)",
+    ortKarte: "Op de kaart",
+    fragenMail: "Vragen? Schrijf ons op",
     moduleTitel: "Je modules",
     ortOffen: "Locatie volgt",
     status: { confirmed: "Aangemeld", pending: "Wordt beoordeeld", waitlist: "Wachtlijst", cancelled: "Afgemeld", excused: "Afgemeld met reden", rejected: "Afgewezen" },

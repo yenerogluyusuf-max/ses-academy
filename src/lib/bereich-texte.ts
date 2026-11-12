@@ -236,6 +236,10 @@ const de = {
   feedbackGeben: "Feedback geben",
   feedbackDanke: "Danke für dein Feedback!",
   feedbackAendern: "Antworten ansehen oder ändern",
+  programmAnsehen: "Programm ansehen",
+  programmPdf: "Tagesordnung als PDF",
+  ortKarte: "Ort auf der Karte",
+  fragenMail: "Fragen? Schreib uns an",
 };
 
 const tr: typeof de = {
@@ -447,6 +451,10 @@ const tr: typeof de = {
   feedbackGeben: "Geri bildirim ver",
   feedbackDanke: "Geri bildirimin için teşekkürler!",
   feedbackAendern: "Cevaplarını gör veya değiştir",
+  programmAnsehen: "Programı gör",
+  programmPdf: "Program (PDF)",
+  ortKarte: "Haritada göster",
+  fragenMail: "Sorun mu var? Bize yaz:",
 };
 
 // Französisch (tu, wie die französische Tagesordnung „participantes et participants“ ohne Gendersternchen).
@@ -659,6 +667,10 @@ const fr: typeof de = {
   feedbackGeben: "Donner mon avis",
   feedbackDanke: "Merci pour ton avis\u00a0!",
   feedbackAendern: "Voir ou modifier mes réponses",
+  programmAnsehen: "Voir le programme",
+  programmPdf: "Programme en PDF",
+  ortKarte: "Voir sur la carte",
+  fragenMail: "Des questions\u00a0? Écris-nous à",
 };
 
 export const bereichTexte: Record<BereichSprache, typeof de> = { de, tr, fr };

@@ -9,6 +9,8 @@ import { portalTexte, sprachOder } from "@/lib/portal-texte";
 import { ladeTicket, modulZeitraum } from "@/lib/teilnahme";
 import { offeneUmfragen } from "@/lib/feedback";
 import { FeedbackKarte } from "@/components/FeedbackKarte";
+import { ModulProgramm } from "@/components/ModulProgramm";
+import { ladeModulProgramm, tagesordnungFassung } from "@/lib/modul-programm";
 import { istToken, kurzcodeAnzeige, ticketQrSvg } from "@/lib/tickets";
 import { WalletKnoepfe } from "@/components/WalletKnoepfe";
 import { istInterneZimmerbezeichnung } from "@/lib/zimmer-anzeige";
@@ -36,6 +38,9 @@ export default async function TicketSeite({ params, searchParams }: PageProps<"/
   const perLink = daten.perLink;
   // Offene Feedback-Umfragen (nur Anwesende), siehe lib/feedback.ts
   const umfragen = perLink ? await offeneUmfragen(p.id, l) : [];
+  // Programm, PDF und Karte für das nächste (bzw. laufende) Modul
+  const naechstes = daten.module.find((m) => !m.abgesagt && m.tage.some((d) => Date.parse(d.ende) >= jetzt)) ?? null;
+  const [programm, pdf] = naechstes ? await Promise.all([ladeModulProgramm(naechstes.moduleId, l), tagesordnungFassung(naechstes.moduleId, l, true)]) : [[], null];
 
   return (
     <main lang={l} className="mx-auto max-w-lg px-4 py-10">
@@ -81,6 +86,10 @@ export default async function TicketSeite({ params, searchParams }: PageProps<"/
                 </span>
               </div>
               {!m.ticketNoetig && <p className="mt-2 text-sm text-ink-soft">{t.ohneTicket}</p>}
+              {naechstes?.moduleId === m.moduleId && (
+                <ModulProgramm tage={programm} locale={locale[l]} ort={m.ort} pdfHref={pdf ? `/programm/${m.moduleId}/${l}/` : null}
+                  texte={{ ansehen: t.programmAnsehen, pdf: t.programmPdf, karte: t.ortKarte, fragen: t.fragenMail }} />
+              )}
               {zimmer && (
                 <div className="mt-3 rounded-2xl bg-gruen-hell p-4 text-sm">
                   <p className="font-semibold">{t.zimmerTitel}: {t.zimmerArt(zimmer.betten)}</p>
