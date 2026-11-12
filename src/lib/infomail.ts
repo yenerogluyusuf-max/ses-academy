@@ -171,6 +171,8 @@ export function infoMailInhalt(d: InfoDaten, ticketLink: string, wallet: { apple
   const modulTitel = uebersetzt(d.modul.i18n, l, "title", d.modul.title) ?? d.modul.title;
   const modulUntertitel = uebersetzt(d.modul.i18n, l, "subtitle", d.modul.subtitle);
   const punktTitel = (pk: { title: string; i18n: unknown }) => uebersetzt(pk.i18n, l, "title", pk.title) ?? pk.title;
+  // Doppelpunkt nach Beschriftungen: im Französischen mit geschütztem Leerzeichen davor („Hôtel :“)
+  const dp = l === "fr" ? "\u00a0:" : ":";
   const tagLang = new Intl.DateTimeFormat(locale[l], { weekday: "long", day: "numeric", month: "long", year: "numeric", timeZone: "Europe/Berlin" });
   const uhr = new Intl.DateTimeFormat(locale[l], { hour: "2-digit", minute: "2-digit", timeZone: "Europe/Berlin" });
   const zeit = (von: string, bis: string | null) => `${uhr.format(new Date(von))}${bis ? `–${uhr.format(new Date(bis))}` : ""}`;
@@ -191,8 +193,8 @@ export function infoMailInhalt(d: InfoDaten, ticketLink: string, wallet: { apple
       : t.zimmerFolgt]);
     if (d.zimmer?.mitbewohner.length) zeilen.push([t.mitImZimmer, d.zimmer.mitbewohner.join(", ")]);
     return {
-      text: zeilen.map(([k, v]) => `${k}: ${v}`),
-      html: zeilen.map(([k, v]) => `<p style="margin:0 0 6px"><span style="color:#3c4a42">${esc(k)}:</span> <strong>${esc(v)}</strong></p>`).join(""),
+      text: zeilen.map(([k, v]) => `${k}${dp} ${v}`),
+      html: zeilen.map(([k, v]) => `<p style="margin:0 0 6px"><span style="color:#3c4a42">${esc(k)}${dp}</span> <strong>${esc(v)}</strong></p>`).join(""),
     };
   })();
 
