@@ -76,6 +76,24 @@ body::before {
   box-decoration-break: clone;
   -webkit-box-decoration-break: clone;
 }
+/* Druck/PDF (One-Pager): Chrome legt den Verlauf als Shading mit Transparenz ins PDF, und Apples PDF-Darstellung
+   (iPhone, Mac-Vorschau) zeichnet ihn schwarz (12.11.2026, Rückmeldung zum Referenten-One-Pager). Im Druck deshalb
+   eine einfarbige Fläche hinter dem Text an derselben Stelle (58–92 % der Zeilenhöhe); die zeichnet jedes PDF-Programm
+   gleich. Nur für einzeilige Marker gedacht (One-Pager-Überschrift). */
+@media print {
+  .marker {
+    background-image: none;
+    position: relative;
+    isolation: isolate;
+  }
+  .marker::before {
+    content: "";
+    position: absolute;
+    inset: 58% 0 8% 0;
+    background-color: var(--signal);
+    z-index: -1;
+  }
+}
 
 /* Laufband */
 @keyframes laufband {
