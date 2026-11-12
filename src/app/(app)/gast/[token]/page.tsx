@@ -67,7 +67,7 @@ export default async function Gast({ params, searchParams }: PageProps<"/gast/[t
         <div><label className="etikett" htmlFor="bio">Kurzprofil (3 bis 5 Sätze)</label><textarea id="bio" name="bio" rows={5} maxLength={3000} defaultValue={b.bio} className="feld" /></div>
         <button type="submit" className="knopf justify-self-start">Speichern</button>
       </form>
-      <p className="mt-6 text-sm text-ink-soft">Fragen? Schreiben Sie an ses@islamrat.de. Diesen Link bitte nicht weitergeben.</p>
+      <p className="mt-6 text-sm text-ink-soft">Fragen? Schreiben Sie an info@ses-academy.org. Diesen Link bitte nicht weitergeben.</p>
     </main>
   );
 }

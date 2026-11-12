@@ -69,7 +69,7 @@ services:
       GOTRUE_SMTP_PORT: ${SMTP_PORT:-587}
       GOTRUE_SMTP_USER: ${SMTP_USER:-}
       GOTRUE_SMTP_PASS: ${SMTP_PASS:-}
-      GOTRUE_SMTP_ADMIN_EMAIL: ${SMTP_FROM_ADDRESS:-ses@islamrat.de}
+      GOTRUE_SMTP_ADMIN_EMAIL: ${SMTP_FROM_ADDRESS:-info@ses-academy.org}
       GOTRUE_SMTP_SENDER_NAME: SES Academy
       GOTRUE_SMTP_MAX_FREQUENCY: 1s
       # Betreff wie die Vorlagen: Türkisch bzw. Französisch, wenn user_metadata.sprache = „tr“ bzw. „fr“ (setzt die App vor dem Versand)

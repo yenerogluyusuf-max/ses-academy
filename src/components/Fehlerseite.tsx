@@ -30,7 +30,7 @@ export function Fehlerseite({ code, titel, text, andere = [], verweise, kennung,
         {children}
         {verweise.map((v, i) => <Link key={v.href} href={v.href} className={i === 0 && !children ? "knopf" : "knopf-hell"}>{v.label}</Link>)}
       </div>
-      {kennung && <p className="mt-6 text-xs text-ink-soft">Fehlernummer für Rückfragen an ses@islamrat.de: <span className="font-mono">{kennung}</span></p>}
+      {kennung && <p className="mt-6 text-xs text-ink-soft">Fehlernummer für Rückfragen an info@ses-academy.org: <span className="font-mono">{kennung}</span></p>}
     </div>
   );
 }
@@ -46,7 +46,7 @@ export const nichtGefunden = {
 
 export const schiefgelaufen = {
   titel: "Da ist etwas schiefgelaufen.",
-  text: "Bitte versuch es gleich noch einmal. Passiert es wieder, schreib uns an ses@islamrat.de.",
+  text: "Bitte versuch es gleich noch einmal. Passiert es wieder, schreib uns an info@ses-academy.org.",
   andere: [
     { lang: "tr", text: "Bir sorun oluştu. Lütfen biraz sonra tekrar dene." },
     { lang: "en", text: "Something went wrong. Please try again in a moment." },

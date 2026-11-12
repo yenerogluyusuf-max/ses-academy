@@ -31,7 +31,7 @@ export const fr: Texte = {
   bewerbung: {
     titel: "La promotion actuelle est en cours.",
     text: "Les candidatures ont été clôturées le 15 janvier 2026. Tu veux être informé·e des prochaines promotions ? Écris-nous.",
-    cta: "ses@islamrat.de",
+    cta: "info@ses-academy.org",
   },
   naechstes: { kicker: "Prochainement", mehr: "En savoir plus", inKoeln: "à Cologne" },
   programm: {
@@ -213,9 +213,9 @@ export const fr: Texte = {
     "senden": "Envoyer la candidature",
     "hinweis": "Après l’envoi, tu recevras un accusé de réception par e-mail.",
     "danke": "Merci ! Nous avons bien reçu ta candidature. Une confirmation arrive dans ta boîte mail.",
-    "fehler": "Une erreur s’est produite. Vérifie tes informations ou écris-nous à ses@islamrat.de.",
+    "fehler": "Une erreur s’est produite. Vérifie tes informations ou écris-nous à info@ses-academy.org.",
     "doppelt": "Une candidature existe déjà pour cette promotion avec cette adresse e-mail.",
-    "geschlossen": "Les candidatures pour la promotion actuelle sont closes. Nous n’en acceptons de nouvelles qu’à l’ouverture d’une nouvelle phase. Tu veux être informé·e ? Écris-nous à ses@islamrat.de.",
+    "geschlossen": "Les candidatures pour la promotion actuelle sont closes. Nous n’en acceptons de nouvelles qu’à l’ouverture d’une nouvelle phase. Tu veux être informé·e ? Écris-nous à info@ses-academy.org.",
     "mailBetreff": "Candidature SES Academy"
   },
   stimmen: {

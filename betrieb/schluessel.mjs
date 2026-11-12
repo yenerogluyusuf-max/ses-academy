@@ -56,14 +56,14 @@ DB_PORT=56322
 WEB_PORT=3200
 HTTPS_PORT=8443
 
-# Mailversand über ses@islamrat.de: Zugangsdaten hier selbst eintragen (Postausgangsserver des Islamrat-Postfachs)
+# Mailversand über info@ses-academy.org: Zugangsdaten hier selbst eintragen (Postausgangsserver des Postfachs, Hetzner: mail.your-server.de, Port 587)
 SMTP_HOST=
 SMTP_PORT=587
 SMTP_SECURE=false
-SMTP_USER=ses@islamrat.de
+SMTP_USER=info@ses-academy.org
 SMTP_PASS=
-SMTP_FROM_ADDRESS=ses@islamrat.de
-MAIL_FROM="SES Academy <ses@islamrat.de>"
+SMTP_FROM_ADDRESS=info@ses-academy.org
+MAIL_FROM="SES Academy <info@ses-academy.org>"
 
 # Tägliche Sicherung: Ordner auf einem zweiten Gerät (z. B. /Volumes/SES-Sicherung). Leer = nur lokal.
 SICHERUNG_ZIEL=

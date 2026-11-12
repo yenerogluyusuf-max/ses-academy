@@ -306,12 +306,12 @@ function Kontakt({ l, t }: { l: Sprache; t: Texte }) {
           </a>
         </div>
         <a
-          href="mailto:ses@islamrat.de?subject=SES%20Academy"
+          href="mailto:info@ses-academy.org?subject=SES%20Academy"
           className="font-display group flex items-center justify-between gap-4 rounded-3xl bg-signal p-6 text-2xl font-bold text-ink transition hover:bg-paper sm:text-3xl"
         >
           <span>
             {t.kontakt.cta}
-            <span className="mt-1 block font-sans text-base font-medium">ses@islamrat.de</span>
+            <span className="mt-1 block font-sans text-base font-medium">info@ses-academy.org</span>
           </span>
           <Pfeil className="text-3xl" />
         </a>
@@ -679,7 +679,7 @@ export function Presseseite({ l }: { l: Sprache }) {
             <p>{p.kontaktRolle}</p>
           </div>
           <div className="text-lg">
-            <a href="mailto:ses@islamrat.de" className="block font-semibold underline underline-offset-4">ses@islamrat.de</a>
+            <a href="mailto:info@ses-academy.org" className="block font-semibold underline underline-offset-4">info@ses-academy.org</a>
             <a href="tel:+492219422402210" className="block">+49 221 942 240-210</a>
           </div>
         </div>

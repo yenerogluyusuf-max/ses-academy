@@ -19,8 +19,8 @@ export function Footer({ t, presse }: { t: Texte; presse: string }) {
           <div>
             <p className="text-xs font-semibold tracking-[0.18em] text-paper/50 uppercase">{t.footer.kontakt}</p>
             <p className="mt-3 text-paper/85">
-              <a href="mailto:ses@islamrat.de" className="underline decoration-paper/30 underline-offset-4 hover:decoration-signal">
-                ses@islamrat.de
+              <a href="mailto:info@ses-academy.org" className="underline decoration-paper/30 underline-offset-4 hover:decoration-signal">
+                info@ses-academy.org
               </a>
               <br />
               Colonia-Allee 3, 51067 Köln

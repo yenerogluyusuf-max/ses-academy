@@ -21,7 +21,7 @@ export function MailHinweis({ knapp = false, className = "" }: { knapp?: boolean
         <p className="font-semibold">Mailversand ist noch nicht eingerichtet.</p>
         <p className="mt-1 text-sm">
           Es gehen keine Mails raus: keine Tickets, Info-Mails, Willkommens- und Absagemails und auch keine Login-Codes für „Mein Bereich“.
-          Die Zugangsdaten für das Postfach ses@islamrat.de müssen noch auf dem Server eingetragen werden.
+          Die Zugangsdaten für das Postfach info@ses-academy.org müssen noch auf dem Server eingetragen werden.
         </p>
       </div>
     </div>

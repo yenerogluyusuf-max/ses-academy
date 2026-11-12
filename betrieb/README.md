@@ -24,7 +24,7 @@ Das legt `~/SES_ACADEMY/betrieb-daten/.env` mit neuen Passwörtern und Schlüsse
 
 Danach in `~/SES_ACADEMY/betrieb-daten/.env` selbst eintragen, nicht im Chat:
 
-- `SMTP_HOST`, `SMTP_PORT`, `SMTP_SECURE`, `SMTP_USER`, `SMTP_PASS`: Postausgangsserver des Postfachs ses@islamrat.de. Ohne diese Angaben gehen keine Tickets und keine Login-Codes raus (siehe „Mailversand einrichten“).
+- `SMTP_HOST`, `SMTP_PORT`, `SMTP_SECURE`, `SMTP_USER`, `SMTP_PASS`: Postausgangsserver des Postfachs info@ses-academy.org. Ohne diese Angaben gehen keine Tickets und keine Login-Codes raus (siehe „Mailversand einrichten“).
 - `SICHERUNG_ZIEL`: Ordner auf einem zweiten Gerät, zum Beispiel einer externen SSD unter `/Volumes/SES-Sicherung`.
 
 Dann bauen, starten und das erste Admin-Konto anlegen:
@@ -47,16 +47,16 @@ Zum Schluss den Autostart einrichten. Damit startet die Plattform beim Anmelden 
 
 Solange `SMTP_HOST` leer ist, geht keine Mail raus: keine Tickets und Info-Mails, und die Anmeldung (GoTrue) verschickt keine Login-Codes („Noop mail client“ im Log). Der Team-Bereich zeigt das auf der Startseite und an jedem Versandknopf rot an.
 
-In `~/SES_ACADEMY/betrieb-daten/.env` diese Zeilen ausfüllen (Werte vom Postausgangsserver des Postfachs ses@islamrat.de):
+In `~/SES_ACADEMY/betrieb-daten/.env` diese Zeilen ausfüllen (Werte vom Postausgangsserver des Postfachs info@ses-academy.org):
 
 ```bash
 SMTP_HOST=smtp.beispiel.de          # Postausgangsserver
 SMTP_PORT=587                       # 587 mit STARTTLS (üblich) oder 465 mit TLS
 SMTP_SECURE=false                   # false bei 587, true bei 465
-SMTP_USER=ses@islamrat.de           # Benutzername des Postfachs
+SMTP_USER=info@ses-academy.org           # Benutzername des Postfachs
 SMTP_PASS=…                         # Passwort des Postfachs
-SMTP_FROM_ADDRESS=ses@islamrat.de   # Absender der Login-Codes (GoTrue)
-MAIL_FROM="SES Academy <ses@islamrat.de>"   # Absender aller anderen Mails
+SMTP_FROM_ADDRESS=info@ses-academy.org   # Absender der Login-Codes (GoTrue)
+MAIL_FROM="SES Academy <info@ses-academy.org>"   # Absender aller anderen Mails
 ```
 
 Absender (`SMTP_FROM_ADDRESS`, Adresse in `MAIL_FROM`) und `SMTP_USER` sollten dieselbe Adresse sein; viele Mailserver lehnen fremde Absender ab. GoTrue kennt kein `SMTP_SECURE`: Bei Port 465 nutzt es TLS von selbst, sonst STARTTLS.
@@ -121,4 +121,4 @@ docker compose -f betrieb/docker-compose.yml --env-file ~/SES_ACADEMY/betrieb-da
 ./betrieb/ses.sh wiederherstellen-test
 ```
 
-Für den Server ändern sich nur `SITE_URL` (Portal-Adresse unter der SES-Domain mit echtem Zertifikat statt `https-zugang.mjs`) und der Mailversand (Freigabe des Servers als Absender für ses@islamrat.de durch die Islamrat-IT: SPF, DKIM, DMARC). Die Anzahl der Personen, Anwesenheiten und Abgaben vorher und nachher vergleichen, dann den Rechner auf Notfallsystem umstellen und die Daten dort löschen.
+Für den Server ändern sich nur `SITE_URL` (Portal-Adresse unter der SES-Domain mit echtem Zertifikat statt `https-zugang.mjs`) und der Mailversand (Freigabe des Servers als Absender für info@ses-academy.org durch die Islamrat-IT: SPF, DKIM, DMARC). Die Anzahl der Personen, Anwesenheiten und Abgaben vorher und nachher vergleichen, dann den Rechner auf Notfallsystem umstellen und die Daten dort löschen.

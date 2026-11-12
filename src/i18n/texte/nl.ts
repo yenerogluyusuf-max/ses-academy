@@ -31,7 +31,7 @@ export const nl: Texte = {
   bewerbung: {
     titel: "De huidige lichting is bezig.",
     text: "De aanmelding sloot op 15 januari 2026. Wil je op de hoogte blijven van toekomstige lichtingen? Schrijf ons.",
-    cta: "ses@islamrat.de",
+    cta: "info@ses-academy.org",
   },
   naechstes: { kicker: "Hierna", mehr: "Meer informatie", inKoeln: "in Keulen" },
   programm: {
@@ -206,9 +206,9 @@ export const nl: Texte = {
     "senden": "Aanmelding versturen",
     "hinweis": "Na het versturen ontvang je een ontvangstbevestiging per e-mail.",
     "danke": "Bedankt! We hebben je aanmelding ontvangen. Er is een bevestiging onderweg naar je inbox.",
-    "fehler": "Er ging iets mis. Controleer je gegevens of schrijf ons op ses@islamrat.de.",
+    "fehler": "Er ging iets mis. Controleer je gegevens of schrijf ons op info@ses-academy.org.",
     "doppelt": "Met dit e-mailadres is er al een aanmelding voor deze lichting.",
-    "geschlossen": "De aanmelding voor de huidige lichting is gesloten. We nemen pas weer aanmeldingen aan als er een nieuwe ronde start. Wil je op de hoogte blijven? Schrijf ons op ses@islamrat.de.",
+    "geschlossen": "De aanmelding voor de huidige lichting is gesloten. We nemen pas weer aanmeldingen aan als er een nieuwe ronde start. Wil je op de hoogte blijven? Schrijf ons op info@ses-academy.org.",
     "mailBetreff": "Aanmelding SES Academy"
   },
   stimmen: {

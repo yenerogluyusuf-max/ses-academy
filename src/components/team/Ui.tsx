@@ -32,7 +32,7 @@ const hinweise: Record<string, string> = {
   bewertet: "Bewertung gespeichert.",
   "ticket-gesendet": "QR-Code per Mail verschickt.",
   "ticket-fehler": "Die Mail konnte nicht verschickt werden: Der Mailserver hat sie abgelehnt oder war nicht erreichbar.",
-  "mail-aus": "Mailversand ist noch nicht eingerichtet: Die Zugangsdaten für ses@islamrat.de fehlen noch.",
+  "mail-aus": "Mailversand ist noch nicht eingerichtet: Die Zugangsdaten für info@ses-academy.org fehlen noch.",
 };
 
 /** Rückmeldung aus ?hinweis= bzw. ?fehler= */

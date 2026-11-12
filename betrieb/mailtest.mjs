@@ -18,7 +18,7 @@ const port = Number(env.SMTP_PORT || 587);
 const secure = env.SMTP_SECURE === "true";
 const user = (env.SMTP_USER ?? "").trim();
 const pass = env.SMTP_PASS ?? "";
-const from = env.MAIL_FROM || "SES Academy <ses@islamrat.de>";
+const from = env.MAIL_FROM || "SES Academy <info@ses-academy.org>";
 const absender = (from.match(/<([^>]+)>/)?.[1] ?? from).trim().toLowerCase();
 const gotrueAbsender = (env.SMTP_FROM_ADDRESS ?? "").trim().toLowerCase();
 
@@ -36,7 +36,7 @@ if (!host) fehlerAus("SMTP_HOST ist leer. In ~/SES_ACADEMY/betrieb-daten/.env de
 if (user && !pass) fehlerAus("SMTP_USER ist gesetzt, SMTP_PASS aber leer. Passwort des Postfachs eintragen.");
 if (port === 465 && !secure) hinweis("Port 465 erwartet normalerweise SMTP_SECURE=true.");
 if (port === 587 && secure) hinweis("Port 587 erwartet normalerweise SMTP_SECURE=false (STARTTLS).");
-if (!gotrueAbsender) hinweis("SMTP_FROM_ADDRESS ist leer: GoTrue nimmt dann ses@islamrat.de als Absender der Login-Codes.");
+if (!gotrueAbsender) hinweis("SMTP_FROM_ADDRESS ist leer: GoTrue nimmt dann info@ses-academy.org als Absender der Login-Codes.");
 else if (gotrueAbsender !== absender) hinweis(`MAIL_FROM (${absender}) und SMTP_FROM_ADDRESS (${gotrueAbsender}) sind verschieden. Viele Mailserver lassen nur die eigene Adresse als Absender zu.`);
 if (user && user.includes("@") && user.toLowerCase() !== absender) hinweis(`Angemeldet wird als ${user}, Absender ist ${absender}. Klappt der Versand nicht, beide gleich setzen.`);
 

@@ -31,7 +31,7 @@ export const en: Texte = {
   bewerbung: {
     titel: "The current cohort is underway.",
     text: "Applications closed on 15 January 2026. Want to hear about future cohorts? Write to us.",
-    cta: "ses@islamrat.de",
+    cta: "info@ses-academy.org",
   },
   naechstes: { kicker: "Up next", mehr: "Learn more", inKoeln: "in Cologne" },
   programm: {
@@ -206,9 +206,9 @@ export const en: Texte = {
     "senden": "Send application",
     "hinweis": "After submitting, you will receive a confirmation by email.",
     "danke": "Thank you! We have received your application. A confirmation is on its way to your inbox.",
-    "fehler": "Something went wrong. Please check your details or write to us at ses@islamrat.de.",
+    "fehler": "Something went wrong. Please check your details or write to us at info@ses-academy.org.",
     "doppelt": "There is already an application for this year with this email address.",
-    "geschlossen": "Applications for the current cohort are closed. We will only accept applications again once a new phase opens. Want to be kept informed? Write to ses@islamrat.de.",
+    "geschlossen": "Applications for the current cohort are closed. We will only accept applications again once a new phase opens. Want to be kept informed? Write to info@ses-academy.org.",
     "mailBetreff": "Application SES Academy"
   },
   stimmen: {

@@ -31,7 +31,7 @@ export const tr: Texte = {
   bewerbung: {
     titel: "Mevcut dönem devam ediyor.",
     text: "Başvurular 15 Ocak 2026’da sona erdi. Gelecek dönemlerden haberdar olmak ister misin? Bize yaz.",
-    cta: "ses@islamrat.de",
+    cta: "info@ses-academy.org",
   },
   naechstes: { kicker: "Sıradaki", mehr: "Daha fazla", inKoeln: "Köln’de" },
   programm: {
@@ -206,9 +206,9 @@ export const tr: Texte = {
     "senden": "Başvuruyu gönder",
     "hinweis": "Gönderdikten sonra e-posta ile bir alındı onayı alacaksın.",
     "danke": "Teşekkürler! Başvurun bize ulaştı. Onay e-postası yolda.",
-    "fehler": "Maalesef bir sorun oluştu. Lütfen bilgilerini kontrol et veya ses@islamrat.de adresine yaz.",
+    "fehler": "Maalesef bir sorun oluştu. Lütfen bilgilerini kontrol et veya info@ses-academy.org adresine yaz.",
     "doppelt": "Bu e-posta adresiyle bu dönem için zaten bir başvuru var.",
-    "geschlossen": "Mevcut dönem için başvuru süreci sona erdi. Yeni başvuru dönemi başlayana kadar başvuru kabul etmiyoruz. Haberdar olmak ister misin? ses@islamrat.de adresine yaz.",
+    "geschlossen": "Mevcut dönem için başvuru süreci sona erdi. Yeni başvuru dönemi başlayana kadar başvuru kabul etmiyoruz. Haberdar olmak ister misin? info@ses-academy.org adresine yaz.",
     "mailBetreff": "SES Academy Başvurusu"
   },
   stimmen: {

@@ -84,7 +84,7 @@ export default async function OnePager({ params }: PageProps<"/onepager/[lang]">
           <p className="text-[8pt] text-signal">{p.kontaktTitel}</p>
           <p className="font-display text-[14pt] font-extrabold">Murat Gümüş</p>
           <p className="text-[8.5pt] text-paper/80">{p.kontaktRolle}</p>
-          <p className="mt-[1.5mm] text-[9pt]">ses@islamrat.de · +49 221 942 240-210</p>
+          <p className="mt-[1.5mm] text-[9pt]">info@ses-academy.org · +49 221 942 240-210</p>
         </div>
         <div className="text-right text-[8.5pt] leading-snug">
           <p className="font-display text-[13pt] font-bold text-signal">ses.islamrat.de</p>

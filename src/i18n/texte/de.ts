@@ -31,7 +31,7 @@ export const de: Texte = {
   bewerbung: {
     titel: "Der aktuelle Jahrgang läuft.",
     text: "Die Bewerbungsphase endete am 15. Januar 2026. Du willst über künftige Jahrgänge informiert werden? Schreib uns.",
-    cta: "ses@islamrat.de",
+    cta: "info@ses-academy.org",
   },
   naechstes: { kicker: "Als Nächstes", mehr: "Mehr erfahren", inKoeln: "in Köln" },
   programm: {
@@ -209,9 +209,9 @@ export const de: Texte = {
     "senden": "Bewerbung absenden",
     "hinweis": "Nach dem Absenden bekommst du eine Eingangsbestätigung per E-Mail.",
     "danke": "Danke! Deine Bewerbung ist bei uns eingegangen. Eine Bestätigung ist unterwegs in dein Postfach.",
-    "fehler": "Das hat leider nicht geklappt. Bitte prüfe deine Angaben oder schreib uns an ses@islamrat.de.",
+    "fehler": "Das hat leider nicht geklappt. Bitte prüfe deine Angaben oder schreib uns an info@ses-academy.org.",
     "doppelt": "Mit dieser E-Mail-Adresse liegt bereits eine Bewerbung für diesen Jahrgang vor.",
-    "geschlossen": "Die Bewerbungsphase für den aktuellen Jahrgang ist beendet. Bewerbungen nehmen wir erst wieder an, wenn eine neue Phase startet. Du willst informiert werden? Schreib uns an ses@islamrat.de.",
+    "geschlossen": "Die Bewerbungsphase für den aktuellen Jahrgang ist beendet. Bewerbungen nehmen wir erst wieder an, wenn eine neue Phase startet. Du willst informiert werden? Schreib uns an info@ses-academy.org.",
     "mailBetreff": "Bewerbung SES Academy"
   },
   stimmen: {

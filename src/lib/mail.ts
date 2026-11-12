@@ -65,7 +65,7 @@ function mitFuss(nachricht: SendMailOptions, l: Sprache): SendMailOptions {
 async function senden(nachricht: SendMailOptions, l: Sprache = "de"): Promise<Ergebnis> {
   if (!mailBereit()) return { ok: false, fehler: "Mailversand nicht eingerichtet (SMTP-Zugangsdaten fehlen)." };
   try {
-    await transport().sendMail({ from: process.env.MAIL_FROM ?? "SES Academy <ses@islamrat.de>", ...mitFuss(nachricht, l) });
+    await transport().sendMail({ from: process.env.MAIL_FROM ?? "SES Academy <info@ses-academy.org>", ...mitFuss(nachricht, l) });
     return { ok: true };
   } catch (e) {
     return { ok: false, fehler: e instanceof Error ? e.message : String(e) };
@@ -178,7 +178,7 @@ export async function sendeTeamWillkommen(an: { email: string; name: string; rol
     `2. deine E-Mail-Adresse ${an.email} eingeben`,
     "3. den 6-stelligen Code aus der Mail eintippen, die dann kommt (ein Passwort brauchst du nicht)",
     ...(an.zweiterFaktor ? ["4. einmalig einen zweiten Faktor mit einer Authenticator-App auf dem Handy einrichten"] : []), "",
-    "Kommt keine Mail an, schau bitte auch im Spam-Ordner nach oder schreib an ses@islamrat.de.", "",
+    "Kommt keine Mail an, schau bitte auch im Spam-Ordner nach oder schreib an info@ses-academy.org.", "",
     "Viele Grüße", "Dein Team der SES Academy",
   ].join("\n");
   const ergebnis = await senden({
