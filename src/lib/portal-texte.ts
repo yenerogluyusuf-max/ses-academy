@@ -10,6 +10,11 @@ export type PortalTexte = {
   kurzcode: string;
   kurzcodeHilfe: string;
   lesezeichen: string;
+  feedbackTitel: string;
+  feedbackText: (modul: string) => string;
+  feedbackGeben: string;
+  feedbackDanke: string;
+  feedbackAendern: string;
   moduleTitel: string;
   ortOffen: string;
   status: Record<Anmeldestatus, string>;
@@ -81,6 +86,11 @@ export const portalTexte: Record<Sprache, PortalTexte> = {
     kurzcode: "Kurzcode",
     kurzcodeHilfe: "Falls der Scan nicht klappt, nenne am Einlass diesen Code.",
     lesezeichen: "Speichere diese Seite als Lesezeichen. Den Link findest du auch in deiner E-Mail.",
+    feedbackTitel: "Dein Feedback",
+    feedbackText: (modul: string) => `Wie war „${modul}“? Deine Antworten helfen uns, das nächste Modul besser zu machen. Es dauert etwa drei Minuten.`,
+    feedbackGeben: "Feedback geben",
+    feedbackDanke: "Danke für dein Feedback!",
+    feedbackAendern: "Antworten ansehen oder ändern",
     moduleTitel: "Deine Module",
     ortOffen: "Ort folgt",
     status: { confirmed: "Angemeldet", pending: "Wird geprüft", waitlist: "Warteliste", cancelled: "Abgemeldet", excused: "Entschuldigt", rejected: "Abgelehnt" },
@@ -150,6 +160,11 @@ export const portalTexte: Record<Sprache, PortalTexte> = {
     kurzcode: "Kısa kod",
     kurzcodeHilfe: "Tarama çalışmazsa girişte bu kodu söyle.",
     lesezeichen: "Bu sayfayı yer imlerine ekle. Bağlantıyı e-postanda da bulabilirsin.",
+    feedbackTitel: "Geri bildirimin",
+    feedbackText: (modul: string) => `„${modul}“ nasıldı? Cevapların bir sonraki modülü daha iyi yapmamıza yardım ediyor. Yaklaşık üç dakika sürüyor.`,
+    feedbackGeben: "Geri bildirim ver",
+    feedbackDanke: "Geri bildirimin için teşekkürler!",
+    feedbackAendern: "Cevaplarını gör veya değiştir",
     moduleTitel: "Modüllerin",
     ortOffen: "Yer daha sonra bildirilecek",
     status: { confirmed: "Kayıtlı", pending: "İnceleniyor", waitlist: "Bekleme listesi", cancelled: "Kayıt iptal", excused: "Mazeretli", rejected: "Reddedildi" },
@@ -219,6 +234,11 @@ export const portalTexte: Record<Sprache, PortalTexte> = {
     kurzcode: "Short code",
     kurzcodeHilfe: "If scanning does not work, tell the team this code at the entrance.",
     lesezeichen: "Bookmark this page. You will also find the link in your email.",
+    feedbackTitel: "Your feedback",
+    feedbackText: (modul: string) => `How was “${modul}”? Your answers help us make the next module better. It takes about three minutes.`,
+    feedbackGeben: "Give feedback",
+    feedbackDanke: "Thank you for your feedback!",
+    feedbackAendern: "View or change your answers",
     moduleTitel: "Your modules",
     ortOffen: "Venue to be announced",
     status: { confirmed: "Registered", pending: "Under review", waitlist: "Waiting list", cancelled: "Cancelled", excused: "Excused", rejected: "Declined" },
@@ -288,6 +308,11 @@ export const portalTexte: Record<Sprache, PortalTexte> = {
     kurzcode: "Code court",
     kurzcodeHilfe: "Si le scan ne fonctionne pas, donne ce code à l’entrée.",
     lesezeichen: "Ajoute cette page à tes favoris. Tu trouveras aussi le lien dans ton e-mail.",
+    feedbackTitel: "Ton avis",
+    feedbackText: (modul: string) => `Comment as-tu trouvé «\u00a0${modul}\u00a0»\u00a0? Tes réponses nous aident à améliorer le prochain module. Cela prend environ trois minutes.`,
+    feedbackGeben: "Donner mon avis",
+    feedbackDanke: "Merci pour ton avis\u00a0!",
+    feedbackAendern: "Voir ou modifier mes réponses",
     moduleTitel: "Tes modules",
     ortOffen: "Lieu à venir",
     status: { confirmed: "Inscrit·e", pending: "En cours d’examen", waitlist: "Liste d’attente", cancelled: "Désinscrit·e", excused: "Excusé·e", rejected: "Refusé" },
@@ -357,6 +382,11 @@ export const portalTexte: Record<Sprache, PortalTexte> = {
     kurzcode: "Korte code",
     kurzcodeHilfe: "Lukt het scannen niet, noem dan deze code bij de ingang.",
     lesezeichen: "Bewaar deze pagina als bladwijzer. De link staat ook in je e-mail.",
+    feedbackTitel: "Jouw feedback",
+    feedbackText: (modul: string) => `Hoe was „${modul}”? Met jouw antwoorden maken we de volgende module beter. Het duurt ongeveer drie minuten.`,
+    feedbackGeben: "Feedback geven",
+    feedbackDanke: "Bedankt voor je feedback!",
+    feedbackAendern: "Antwoorden bekijken of wijzigen",
     moduleTitel: "Je modules",
     ortOffen: "Locatie volgt",
     status: { confirmed: "Aangemeld", pending: "Wordt beoordeeld", waitlist: "Wachtlijst", cancelled: "Afgemeld", excused: "Afgemeld met reden", rejected: "Afgewezen" },

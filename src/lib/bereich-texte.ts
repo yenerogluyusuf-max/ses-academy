@@ -232,6 +232,10 @@ const de = {
   feedbackMailText: (titel: string) => `danke, dass du beim Modul „${titel}“ dabei warst. Wie fandest du es? Die Umfrage dauert etwa drei Minuten und hilft uns, das nächste Modul besser zu machen.`,
   feedbackMailLink: "Zur Umfrage",
   feedbackMailBis: (bis: string) => `Die Umfrage ist bis ${bis} offen.`,
+  feedbackKarte: (modul: string) => `Wie war „${modul}“? Deine Antworten helfen uns, das nächste Modul besser zu machen. Es dauert etwa drei Minuten.`,
+  feedbackGeben: "Feedback geben",
+  feedbackDanke: "Danke für dein Feedback!",
+  feedbackAendern: "Antworten ansehen oder ändern",
 };
 
 const tr: typeof de = {
@@ -439,6 +443,10 @@ const tr: typeof de = {
   feedbackMailText: (titel: string) => `„${titel}“ modülüne katıldığın için teşekkürler. Nasıl buldun? Anket yaklaşık üç dakika sürüyor ve bir sonraki modülü daha iyi yapmamıza yardım ediyor.`,
   feedbackMailLink: "Ankete git",
   feedbackMailBis: (bis: string) => `Anket ${bis} tarihine kadar açık.`,
+  feedbackKarte: (modul: string) => `„${modul}“ nasıldı? Cevapların bir sonraki modülü daha iyi yapmamıza yardım ediyor. Yaklaşık üç dakika sürüyor.`,
+  feedbackGeben: "Geri bildirim ver",
+  feedbackDanke: "Geri bildirimin için teşekkürler!",
+  feedbackAendern: "Cevaplarını gör veya değiştir",
 };
 
 // Französisch (tu, wie die französische Tagesordnung „participantes et participants“ ohne Gendersternchen).
@@ -647,6 +655,10 @@ const fr: typeof de = {
   feedbackMailText: (titel: string) => `merci d’avoir participé au module « ${titel} ». Qu’en as-tu pensé ? Le questionnaire prend environ trois minutes et nous aide à améliorer le prochain module.`,
   feedbackMailLink: "Vers le questionnaire",
   feedbackMailBis: (bis: string) => `Le questionnaire est ouvert jusqu’au ${bis}.`,
+  feedbackKarte: (modul: string) => `Comment as-tu trouvé «\u00a0${modul}\u00a0»\u00a0? Tes réponses nous aident à améliorer le prochain module. Cela prend environ trois minutes.`,
+  feedbackGeben: "Donner mon avis",
+  feedbackDanke: "Merci pour ton avis\u00a0!",
+  feedbackAendern: "Voir ou modifier mes réponses",
 };
 
 export const bereichTexte: Record<BereichSprache, typeof de> = { de, tr, fr };

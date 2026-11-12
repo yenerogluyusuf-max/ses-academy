@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import { bereichSprache, bereichTexte } from "@/lib/bereich-texte";
 import { istToken } from "@/lib/codes";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { feedbackText } from "@/lib/feedback";
 import { jetztMs } from "@/lib/zeit";
 import { FeedbackFormular } from "./FeedbackFormular";
 
@@ -15,7 +16,7 @@ export default async function FeedbackSeite({ params }: PageProps<"/feedback/[to
   const db = createAdminClient();
   const [{ data: person }, { data: u }] = await Promise.all([
     db.from("participants").select("id, first_name, preferred_language").eq("link_token", token.toLowerCase()).maybeSingle(),
-    db.from("feedback_surveys").select("id, module_id, opens_at, closes_at, module:modules(title), feedback_questions(id, position, kind, prompt)").eq("id", umfrage).maybeSingle(),
+    db.from("feedback_surveys").select("id, module_id, opens_at, closes_at, module:modules(title, i18n), feedback_questions(id, position, kind, prompt, i18n)").eq("id", umfrage).maybeSingle(),
   ]);
   if (!person || !u) notFound();
   // Schon geantwortet? Dann vorausfüllen. War die Person gar nicht da, gleich sagen statt erst nach dem Ausfüllen.
@@ -28,13 +29,16 @@ export default async function FeedbackSeite({ params }: PageProps<"/feedback/[to
   const t = bereichTexte[l];
   const jetzt = jetztMs();
   const offen = jetzt >= Date.parse(u.opens_at) && jetzt <= Date.parse(u.closes_at);
-  const fragen = [...u.feedback_questions].sort((a, b) => a.position - b.position);
+  // Fragen und Modultitel in der Sprache der Person (Übersetzungen in i18n, sonst Deutsch)
+  const fragen = [...u.feedback_questions].sort((a, b) => a.position - b.position)
+    .map((f) => ({ id: f.id, kind: f.kind, prompt: feedbackText(f.i18n, l, "prompt", f.prompt) }));
+  const modulTitel = feedbackText(u.module?.i18n, l, "title", u.module?.title ?? "");
 
   return (
     <main lang={l} className="mx-auto max-w-lg px-4 py-10">
       <img src="/brand/ses-logo.png" alt="SES Academy" className="h-10 w-auto" />
       <h1 className="font-display mt-8 text-3xl font-bold">{t.feedbackTitel}</h1>
-      <p className="mt-1 text-lg">{u.module?.title}</p>
+      <p className="mt-1 text-lg">{modulTitel}</p>
       <p className="mt-4 text-ink-soft">{t.feedbackHallo(person.first_name, Boolean(anwesend))}</p>
       {offen && !anwesend ? (
         <p className="karte mt-6">{t.feedbackNichtDa}</p>

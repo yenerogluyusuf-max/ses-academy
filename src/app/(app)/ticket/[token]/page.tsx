@@ -7,6 +7,8 @@ import { locale } from "@/i18n/typ";
 import { abmeldeLinkSenden, perTicketAbmelden, perTicketZuruecknehmen } from "@/lib/aktionen/ticket";
 import { portalTexte, sprachOder } from "@/lib/portal-texte";
 import { ladeTicket, modulZeitraum } from "@/lib/teilnahme";
+import { offeneUmfragen } from "@/lib/feedback";
+import { FeedbackKarte } from "@/components/FeedbackKarte";
 import { istToken, kurzcodeAnzeige, ticketQrSvg } from "@/lib/tickets";
 import { WalletKnoepfe } from "@/components/WalletKnoepfe";
 import { istInterneZimmerbezeichnung } from "@/lib/zimmer-anzeige";
@@ -32,6 +34,8 @@ export default async function TicketSeite({ params, searchParams }: PageProps<"/
   const meldung = typeof hinweis === "string" ? meldungen[hinweis] ?? null : null;
   // Abmelden und „Doch teilnehmen“ nur über den Link aus der Mail, nicht mit dem Inhalt des QR-Codes
   const perLink = daten.perLink;
+  // Offene Feedback-Umfragen (nur Anwesende), siehe lib/feedback.ts
+  const umfragen = perLink ? await offeneUmfragen(p.id, l) : [];
 
   return (
     <main lang={l} className="mx-auto max-w-lg px-4 py-10">
@@ -41,6 +45,10 @@ export default async function TicketSeite({ params, searchParams }: PageProps<"/
       <p className="mt-3 text-ink-soft">{t.ticketIntro}</p>
 
       {meldung && <p role="status" className="mt-6 rounded-2xl bg-white/80 p-4 ring-1 ring-line">{meldung}</p>}
+      {perLink && (
+        <FeedbackKarte umfragen={umfragen} token={token.toLowerCase()}
+          texte={{ titel: t.feedbackTitel, text: t.feedbackText, geben: t.feedbackGeben, danke: t.feedbackDanke, aendern: t.feedbackAendern }} />
+      )}
 
       <section className="mt-6 rounded-3xl bg-white p-6 text-center shadow-sm ring-1 ring-line">
         <div className="mx-auto w-full max-w-[260px] [&>svg]:h-auto [&>svg]:w-full" dangerouslySetInnerHTML={{ __html: svg }} />

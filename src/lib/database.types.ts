@@ -383,14 +383,14 @@ isOneToOne: false
                   ]
                 },"feedback_questions": {
                   Row: {
-                    "id": string,"kind": string,"position": number,"prompt": string,"survey_id": string
+                    "i18n": Json,"id": string,"kind": string,"position": number,"prompt": string,"survey_id": string
                   }
                   ComputedFields: never
                   Insert: {
-                    "id"?: string,"kind": string,"position": number,"prompt": string,"survey_id": string
+                    "i18n"?: Json,"id"?: string,"kind": string,"position": number,"prompt": string,"survey_id": string
                   }
                   Update: {
-                    "id"?: string,"kind"?: string,"position"?: number,"prompt"?: string,"survey_id"?: string
+                    "i18n"?: Json,"id"?: string,"kind"?: string,"position"?: number,"prompt"?: string,"survey_id"?: string
                   }
                   Relationships: [
                     {

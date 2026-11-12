@@ -7,7 +7,8 @@ import { ModulFormular } from "@/components/team/ModulFormular";
 import { ModulReiter } from "@/components/team/ModulReiter";
 import { TeamKopf } from "@/components/team/TeamKopf";
 import { MailHinweis } from "@/components/team/MailHinweis";
-import { feedbackEinladen, frageEntfernen, frageHinzufuegen, umfrageAnlegen } from "@/lib/aktionen/feedback";
+import { feedbackEinladen, frageEntfernen, frageHinzufuegen, umfrageAnlegen, umfrageJetztOeffnen } from "@/lib/aktionen/feedback";
+import { jetztMs } from "@/lib/zeit";
 import { absageZuruecknehmen, modulAbsagen, modulSpeichern, tagEntfernen, tagHinzufuegen } from "@/lib/aktionen/module";
 import { requireStaff } from "@/lib/auth";
 import { anmeldestatus } from "@/lib/einlass";
@@ -30,6 +31,7 @@ const hinweise: Record<string, { text: string; gut: boolean }> = {
   "absage-bestaetigen": { text: "Bitte das Absagen ausdrücklich bestätigen. Es wurde nichts geändert.", gut: false },
   reaktiviert: { text: "Absage zurückgenommen.", gut: true },
   "feedback-angelegt": { text: "Umfrage mit Standardfragen angelegt. Fragen prüfen, dann nach dem Modul die Einladung senden.", gut: true },
+  "feedback-offen": { text: "Umfrage ist freigeschaltet. Anwesende sehen sie jetzt auf der Ticket-Seite und in „Mein Bereich“; die Einladung per Mail geht mit dem Knopf darunter.", gut: true },
   "feedback-ohne-termin": { text: "Zuerst Termine eintragen, die Umfrage öffnet am letzten Modultag.", gut: false },
   "frage-gespeichert": { text: "Frage hinzugefügt.", gut: true },
   "frage-entfernt": { text: "Frage entfernt.", gut: true },
@@ -170,6 +172,15 @@ export default async function ModulDetail({ params, searchParams }: PageProps<"/
                 Offen {tagFormat.format(new Date(umfrage.opens_at))}, {zeitFormat.format(new Date(umfrage.opens_at))} Uhr bis {tagFormat.format(new Date(umfrage.closes_at))}
                 {umfrage.sent_at ? ` · Einladung zuletzt am ${tagFormat.format(new Date(umfrage.sent_at))} verschickt` : ""} · {antworten} Antworten
               </p>
+              {Date.parse(umfrage.opens_at) > jetztMs() ? (
+                <form action={umfrageJetztOeffnen} className="mt-3">
+                  <input type="hidden" name="module_id" value={m.id} /><input type="hidden" name="survey_id" value={umfrage.id} />
+                  <button type="submit" className="rounded-full bg-signal px-5 py-3 font-semibold text-ink ring-1 ring-forest/30">Jetzt freischalten</button>
+                  <span className="ml-3 text-sm text-ink-soft">Sonst öffnet sie automatisch zur oben genannten Zeit.</span>
+                </form>
+              ) : Date.parse(umfrage.closes_at) > jetztMs() ? (
+                <p className="mt-3 inline-block rounded-full bg-gruen-hell px-4 py-2 text-sm font-semibold">Offen: Anwesende sehen die Umfrage auf der Ticket-Seite und in „Mein Bereich“</p>
+              ) : null}
               <form action={feedbackEinladen} className="mt-3">
                 <input type="hidden" name="module_id" value={m.id} /><input type="hidden" name="survey_id" value={umfrage.id} />
                 <button type="submit" disabled={!anwesende} className="rounded-full bg-ink px-5 py-3 font-semibold text-paper disabled:opacity-50">

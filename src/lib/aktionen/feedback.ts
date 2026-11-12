@@ -43,6 +43,18 @@ export async function frageHinzufuegen(formData: FormData) {
   zurModulseite(modulId, error ? "fehler" : "frage-gespeichert");
 }
 
+/** Umfrage sofort öffnen (statt erst am letzten Modultag um 13 Uhr), z. B. am Sonntag zum Abschluss. */
+export async function umfrageJetztOeffnen(formData: FormData) {
+  await requireStaff("alles");
+  const modulId = String(formData.get("module_id"));
+  const umfrage = String(formData.get("survey_id"));
+  if (!istToken(umfrage)) zurModulseite(modulId, "eingabe");
+  const supabase = await createClient();
+  const jetzt = new Date().toISOString();
+  const { error } = await supabase.from("feedback_surveys").update({ opens_at: jetzt }).eq("id", umfrage).gt("opens_at", jetzt);
+  zurModulseite(modulId, error ? "fehler" : "feedback-offen");
+}
+
 /** Frage entfernen geht nur, solange noch niemand geantwortet hat (sonst wären Antworten ohne Frage). */
 export async function frageEntfernen(formData: FormData) {
   await requireStaff("alles");

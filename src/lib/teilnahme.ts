@@ -80,7 +80,18 @@ export async function ladeTicket(filter: { token: string } | { participantId: st
     };
   });
   liste.sort((a, b) => (a.beginn ?? "").localeCompare(b.beginn ?? ""));
-  return { participant, module: liste, perLink, zimmer: await ladeZimmer(admin, participant.id) };
+  return { participant, module: nurNaechstesKommendes(liste), perLink, zimmer: await ladeZimmer(admin, participant.id) };
+}
+
+/**
+ * Teilnehmende sehen vergangene Module und nur das NÄCHSTE kommende (Wunsch Yusuf 12.11.2026: spätere Module wie die
+ * Winter School noch nicht zeigen; der QR-Code gilt ohnehin nur für das kommende Modul). Gilt für Ticket-Seite,
+ * Ticket-Mail und Wallet; „Mein Bereich“ filtert genauso.
+ */
+export function nurNaechstesKommendes(liste: TicketModul[], jetzt = Date.now()): TicketModul[] {
+  const vorbei = (m: TicketModul) => m.tage.length > 0 && m.tage.every((t) => Date.parse(t.ende) < jetzt);
+  const naechstes = liste.filter((m) => !vorbei(m) && !m.abgesagt && m.beginn !== null).sort((a, b) => a.beginn!.localeCompare(b.beginn!))[0];
+  return liste.filter((m) => vorbei(m) || m === naechstes || (m.abgesagt && naechstes !== undefined && (m.beginn ?? "") <= naechstes.beginn!));
 }
 
 /** Datum eines Moduls lesbar, z. B. „14.–15. November 2026“. */

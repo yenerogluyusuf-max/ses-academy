@@ -14,6 +14,8 @@ import { WalletKnoepfe } from "@/components/WalletKnoepfe";
 import { istInterneZimmerbezeichnung } from "@/lib/zimmer-anzeige";
 import { createClient } from "@/lib/supabase/server";
 import { bereichSprache, bereichTexte, datumsSprache, type BereichSprache } from "@/lib/bereich-texte";
+import { offeneUmfragen } from "@/lib/feedback";
+import { FeedbackKarte } from "@/components/FeedbackKarte";
 import { jetztMs } from "@/lib/zeit";
 
 export const metadata: Metadata = { title: "Mein Bereich | SES Academy", robots: { index: false, follow: false } };
@@ -71,14 +73,19 @@ export default async function MeinBereich({ searchParams }: PageProps<"/mein-ber
     .map((r) => ({ ...r, tage: [...r.modules.module_days].sort((a, b) => a.starts_at.localeCompare(b.starts_at)) }))
     .sort((a, b) => (a.tage[0]?.starts_at ?? "").localeCompare(b.tage[0]?.starts_at ?? ""));
   // Auch Warteliste zeigen (mit Vermerk), sonst heißt es fälschlich „für kein Modul angemeldet“
-  const kommend = meineModule.filter((m) => !m.modules.cancelled_at && m.tage.some((t) => t.ends_at >= jetzt) && (m.status === "confirmed" || m.status === "waitlist"));
+  // Nur das NÄCHSTE kommende Modul zeigen (Wunsch 12.11.2026), spätere wie die Winter School noch nicht
+  const alleKommend = meineModule.filter((m) => !m.modules.cancelled_at && m.tage.some((t) => t.ends_at >= jetzt) && (m.status === "confirmed" || m.status === "waitlist"));
+  const kommend = alleKommend.slice(0, 1);
+  const naechsterBeginn = kommend[0]?.tage[0]?.starts_at ?? null;
+  const nichtSpaeter = (m: { tage: { starts_at: string }[] }) => naechsterBeginn === null || (m.tage[0]?.starts_at ?? "") <= naechsterBeginn;
   // Vom Team abgesagt: nicht unter „Kommende Module“, aber als Hinweis sichtbar (bis zum ursprünglichen Termin)
-  const vomTeamAbgesagt = meineModule.filter((m) => m.modules.cancelled_at && m.tage.some((t) => t.ends_at >= jetzt) && (m.status === "confirmed" || m.status === "waitlist"));
+  const vomTeamAbgesagt = meineModule.filter((m) => m.modules.cancelled_at && m.tage.some((t) => t.ends_at >= jetzt) && (m.status === "confirmed" || m.status === "waitlist") && nichtSpaeter(m));
   // Selbst abgesagt, Modul noch nicht begonnen: mit „Doch teilnehmen“
-  const abgesagtKommend = meineModule.filter((m) => !m.modules.cancelled_at && m.tage.length > 0 && m.tage[0].starts_at > jetzt && (m.status === "excused" || m.status === "cancelled"));
+  const abgesagtKommend = meineModule.filter((m) => !m.modules.cancelled_at && m.tage.length > 0 && m.tage[0].starts_at > jetzt && (m.status === "excused" || m.status === "cancelled") && nichtSpaeter(m));
   const vorbei = meineModule.filter((m) => m.tage.length && m.tage.every((t) => t.ends_at < jetzt)).reverse();
   const abgaben = (subs ?? []) as unknown as Sub[];
-  const mitAbfrage = meineModule.filter((m) => m.modules.stay_form_open && !m.modules.cancelled_at && (m.status === "confirmed" || m.status === "waitlist") && m.tage.some((t) => t.ends_at >= jetzt));
+  const umfragen = await offeneUmfragen(ich.id, l);
+  const mitAbfrage = meineModule.filter((m) => m.modules.stay_form_open && !m.modules.cancelled_at && (m.status === "confirmed" || m.status === "waitlist") && m.tage.some((t) => t.ends_at >= jetzt) && nichtSpaeter(m));
   const [{ data: angaben }, { data: zimmer }, { data: mitgliedschaften }, { data: loeschantraege }] = await Promise.all([
     mitAbfrage.length ? supabase.from("stay_requests").select("*") : Promise.resolve({ data: [] }),
     supabase.rpc("get_my_rooms"),
@@ -99,6 +106,8 @@ export default async function MeinBereich({ searchParams }: PageProps<"/mein-ber
       <main className="mx-auto max-w-5xl px-4 py-8">
         <p className="text-sm font-semibold tracking-wide text-sage uppercase">{t.kicker}</p>
         <h1 className="font-display mt-1 text-5xl leading-none font-extrabold">{t.salam(ich.first_name.split(" ")[0])}</h1>
+        <FeedbackKarte umfragen={umfragen} token={ich.link_token}
+          texte={{ titel: t.feedbackTitel, text: t.feedbackKarte, geben: t.feedbackGeben, danke: t.feedbackDanke, aendern: t.feedbackAendern }} />
 
         <section className="mt-10 grid gap-6 md:grid-cols-[1fr_1.2fr]">
           <div className="overflow-hidden rounded-[2rem] bg-weiss text-center ring-1 ring-line">
