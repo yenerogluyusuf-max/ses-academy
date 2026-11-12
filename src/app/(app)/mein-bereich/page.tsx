@@ -14,6 +14,8 @@ import { WalletKnoepfe } from "@/components/WalletKnoepfe";
 import { istInterneZimmerbezeichnung } from "@/lib/zimmer-anzeige";
 import { createClient } from "@/lib/supabase/server";
 import { bereichSprache, bereichTexte, datumsSprache, type BereichSprache } from "@/lib/bereich-texte";
+import { SprachUmschalter } from "@/components/SprachUmschalter";
+import { meineSpracheSetzen } from "@/lib/aktionen/sprache";
 import { offeneUmfragen } from "@/lib/feedback";
 import { FeedbackKarte } from "@/components/FeedbackKarte";
 import { ModulProgramm } from "@/components/ModulProgramm";
@@ -103,8 +105,9 @@ export default async function MeinBereich({ searchParams }: PageProps<"/mein-ber
   return (
     <div lang={l} className="min-h-dvh">
       <header className="border-b border-line">
-        <div className="mx-auto flex max-w-5xl items-center justify-between px-4 py-3">
+        <div className="mx-auto flex max-w-5xl flex-wrap items-center justify-between gap-x-4 gap-y-3 px-4 py-3">
           <Link href="/" aria-label={t.zurWebsite} title={t.zurWebsite}><img src="/brand/ses-logo.png" alt="SES Academy" className="h-8 w-auto" /></Link>
+          <SprachUmschalter aktiv={l} action={meineSpracheSetzen} className="order-last w-full sm:order-none sm:ml-auto sm:w-auto" />
           <form action={portalAbmelden}><button className="rounded-full px-4 py-2 text-sm font-semibold text-ink-soft hover:bg-paper-deep">{t.abmelden}</button></form>
         </div>
       </header>

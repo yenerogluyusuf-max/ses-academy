@@ -114,4 +114,15 @@ SELECT pg_temp.ok('Amina liest keine fremden Zimmercodes', (SELECT count(*)::tex
 SELECT pg_temp.login('yusuf@example.test');
 SELECT pg_temp.ok('Yusuf ohne Zimmer sieht keinen Code', (SELECT count(*)::text FROM public.get_my_rooms()), '0');
 
+-- 6) Sprache umschalten (20261207090000_sprache_umschalten.sql): nur die eigene Profilsprache
+SELECT pg_temp.login('amina@example.test');
+SELECT pg_temp.ok('Amina stellt auf Französisch', public.set_my_language('fr'), 'saved');
+SELECT pg_temp.ok('Ungültige Sprache abgelehnt', public.set_my_language('xx'), 'invalid');
+SELECT pg_temp.login('helfer@ses.test');
+SELECT pg_temp.ok('Teamkonto ohne Profil: nichts geändert', public.set_my_language('tr'), 'no_participant');
+RESET ROLE;
+SELECT pg_temp.ok('Amina jetzt Französisch, Yusuf unverändert',
+  (SELECT string_agg(preferred_language, ',' ORDER BY email) FROM public.participants WHERE email IN ('amina@example.test', 'yusuf@example.test')),
+  'fr,' || (SELECT preferred_language FROM public.participants WHERE email = 'yusuf@example.test'));
+
 ROLLBACK;

@@ -14,18 +14,21 @@ import { ladeModulProgramm, tagesordnungFassung } from "@/lib/modul-programm";
 import { istToken, kurzcodeAnzeige, ticketQrSvg } from "@/lib/tickets";
 import { WalletKnoepfe } from "@/components/WalletKnoepfe";
 import { istInterneZimmerbezeichnung } from "@/lib/zimmer-anzeige";
+import { SprachUmschalter } from "@/components/SprachUmschalter";
+import { linkSpracheSetzen } from "@/lib/aktionen/sprache";
 
 export const metadata: Metadata = { title: "Ticket | SES Academy", robots: { index: false, follow: false }, referrer: "same-origin" };
 
 export default async function TicketSeite({ params, searchParams }: PageProps<"/ticket/[token]">) {
   const { token } = await params;
-  const { hinweis } = await searchParams;
+  const { hinweis, sprache } = await searchParams;
   if (!istToken(token)) notFound();
   const daten = await ladeTicket({ token: token.toLowerCase() });
   if (!daten) notFound();
 
   const p = daten.participant;
-  const l = sprachOder(p.preferred_language);
+  // Über den Mail-Link speichert der Umschalter die Sprache im Profil; mit dem QR-Inhalt wechselt nur die Anzeige (?sprache=)
+  const l = !daten.perLink && (sprache === "de" || sprache === "tr" || sprache === "fr") ? sprache : sprachOder(p.preferred_language);
   const t = portalTexte[l];
   const svg = await ticketQrSvg(p.checkin_token);
   const jetzt = jetztMs();
@@ -44,7 +47,12 @@ export default async function TicketSeite({ params, searchParams }: PageProps<"/
 
   return (
     <main lang={l} className="mx-auto max-w-lg px-4 py-10">
-      <img src="/brand/ses-logo.png" alt="SES Academy" className="h-10 w-auto" />
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <img src="/brand/ses-logo.png" alt="SES Academy" className="h-10 w-auto" />
+        {daten.perLink
+          ? <SprachUmschalter aktiv={l} action={linkSpracheSetzen} felder={{ token: token.toLowerCase() }} />
+          : <SprachUmschalter aktiv={l} href={(x) => `/ticket/${token.toLowerCase()}/?sprache=${x}`} />}
+      </div>
       <h1 className="mt-8 font-display text-4xl font-bold">{t.ticketTitel}</h1>
       <p className="mt-1 text-lg">{p.first_name} {p.last_name}</p>
       <p className="mt-3 text-ink-soft">{t.ticketIntro}</p>
@@ -61,7 +69,7 @@ export default async function TicketSeite({ params, searchParams }: PageProps<"/
         <p className="font-mono text-3xl font-bold tracking-[0.15em]">{kurzcodeAnzeige(p.short_code ?? "")}</p>
         <p className="mt-2 text-sm text-ink-soft">{t.kurzcodeHilfe}</p>
       </section>
-      <WalletKnoepfe token={token.toLowerCase()} sprache={p.preferred_language} />
+      <WalletKnoepfe token={token.toLowerCase()} sprache={l} />
       <p className="mt-3 text-center text-sm text-ink-soft">{t.lesezeichen}</p>
 
       <h2 className="mt-10 font-display text-2xl font-bold">{t.moduleTitel}</h2>

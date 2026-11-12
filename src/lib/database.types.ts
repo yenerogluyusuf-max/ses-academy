@@ -1508,6 +1508,9 @@ isOneToOne: false
 "set_my_directory_opt_out":
 { Args: { "p_opt_out": boolean }; Returns: string
                            },
+"set_my_language":
+{ Args: { "p_language": string }; Returns: string
+                           },
 "set_rsvp":
 { Args: { "p_module_id": string,"p_participant_id": string,"p_rsvp": string }; Returns: undefined
                            },

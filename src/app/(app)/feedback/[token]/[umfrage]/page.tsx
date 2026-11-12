@@ -6,6 +6,8 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { feedbackText } from "@/lib/feedback";
 import { jetztMs } from "@/lib/zeit";
 import { FeedbackFormular } from "./FeedbackFormular";
+import { SprachUmschalter } from "@/components/SprachUmschalter";
+import { linkSpracheSetzen } from "@/lib/aktionen/sprache";
 
 export const metadata: Metadata = { title: "Feedback | SES Academy", robots: { index: false, follow: false }, referrer: "same-origin" };
 
@@ -36,7 +38,10 @@ export default async function FeedbackSeite({ params }: PageProps<"/feedback/[to
 
   return (
     <main lang={l} className="mx-auto max-w-lg px-4 py-10">
-      <img src="/brand/ses-logo.png" alt="SES Academy" className="h-10 w-auto" />
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <img src="/brand/ses-logo.png" alt="SES Academy" className="h-10 w-auto" />
+        <SprachUmschalter aktiv={l} action={linkSpracheSetzen} felder={{ token: token.toLowerCase(), umfrage: u.id }} />
+      </div>
       <h1 className="font-display mt-8 text-3xl font-bold">{t.feedbackTitel}</h1>
       <p className="mt-1 text-lg">{modulTitel}</p>
       <p className="mt-4 text-ink-soft">{t.feedbackHallo(person.first_name, Boolean(anwesend))}</p>
