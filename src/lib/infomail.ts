@@ -17,7 +17,7 @@ const texte = {
   de: {
     betreff: (modul: string) => `${modul}: Ticket, Programm und Übernachtung`,
     anrede: (vorname: string) => `Hallo ${vorname},`,
-    einleitung: (modul: string) => `wir freuen uns auf dich bei „${modul}“! Hier ist alles, was du dafür brauchst, in einer Mail.`,
+    einleitung: (modul: string) => `wir freuen uns, dass du bei „${modul}“ dabei bist! Hier ist alles, was du dafür brauchst, in einer Mail.`,
     termin: "Termin und Ort",
     karte: "Ort auf der Karte",
     ticket: "Dein Ticket",
@@ -119,6 +119,11 @@ function nachtText(nacht: string, l: Sprache): string {
   return abend.getUTCMonth() === morgen.getUTCMonth() ? `du ${abend.getUTCDate()} au ${f.format(morgen)}` : `du ${f.format(abend)} au ${f.format(morgen)}`;
 }
 
+/** Modultitel in der Sprache der Mail (auch für das Kopfbild, cid:info-kopf). */
+export function infoMailTitel(d: InfoDaten): string {
+  return uebersetzt(d.modul.i18n, infoMailSprache(d.p.preferred_language), "title", d.modul.title) ?? d.modul.title;
+}
+
 /** Sprache der Info-Mail nach der Profilsprache: Türkisch, Französisch, sonst Deutsch. */
 export function infoMailSprache(preferred: string | null | undefined): Sprache {
   return preferred === "tr" || preferred === "fr" ? preferred : "de";
@@ -171,7 +176,7 @@ function esc(text: string): string {
 export function infoMailInhalt(d: InfoDaten, ticketLink: string, wallet: { apple: string | null; google: string | null; appleText: string; googleText: string } | null = null, pdfAnhang = false) {
   const l = infoMailSprache(d.p.preferred_language);
   const t = texte[l];
-  const modulTitel = uebersetzt(d.modul.i18n, l, "title", d.modul.title) ?? d.modul.title;
+  const modulTitel = infoMailTitel(d);
   const modulUntertitel = uebersetzt(d.modul.i18n, l, "subtitle", d.modul.subtitle);
   const punktTitel = (pk: { title: string; i18n: unknown }) => uebersetzt(pk.i18n, l, "title", pk.title) ?? pk.title;
   // Doppelpunkt nach Beschriftungen: im Französischen mit geschütztem Leerzeichen davor („Hôtel :“)
@@ -182,6 +187,8 @@ export function infoMailInhalt(d: InfoDaten, ticketLink: string, wallet: { apple
   const code = kurzcodeAnzeige(d.p.short_code ?? "");
   const karte = d.modul.location ? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(d.modul.location)}` : null;
   const termine = d.tage.map((x) => `${tagLang.format(new Date(x.starts_at))}, ${zeit(x.starts_at, x.ends_at)}`);
+  // Uhrzeit nicht mitten in „09:30–20:30“ umbrechen (schmale Handys)
+  const terminHtml = d.tage.map((x) => `${esc(tagLang.format(new Date(x.starts_at)))}, <span style="white-space:nowrap">${esc(zeit(x.starts_at, x.ends_at))}</span>`);
 
   const uebernachtung: { text: string[]; html: string } = (() => {
     // Ohne Angabe: in „Mein Bereich“ nachtragen geht nur, solange die Abfrage offen ist
@@ -233,15 +240,14 @@ export function infoMailInhalt(d: InfoDaten, ticketLink: string, wallet: { apple
     t.abmelden, "", t.gruss,
   ].join("\n");
 
-  const html = `<!doctype html><html lang="${l}"><body style="margin:0;background:#f3efe4;font-family:Arial,Helvetica,sans-serif;color:#13201a">
+  const html = `<!doctype html><html lang="${l}"><body style="margin:0;background:#f3efe4;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;color:#13201a">
 <div style="max-width:580px;margin:0 auto;padding:28px 16px">
-  <div style="background:#3d7a61;color:#ffffff;border-radius:20px;padding:24px 22px;margin:0 0 16px">
-    <p style="margin:0;font-size:12px;letter-spacing:.3em;font-weight:bold">SES ACADEMY</p>
-    <p style="margin:10px 0 0;font-family:Georgia,serif;font-size:26px;line-height:1.2">${esc(modulTitel)}</p>
-    ${modulUntertitel ? `<p style="margin:6px 0 0;font-family:Georgia,serif;font-size:16px;opacity:.9">${esc(modulUntertitel)}</p>` : ""}
+  <div style="background:#ffffff;border:1px solid #e4e1d8;border-radius:20px;overflow:hidden;margin:0 0 16px">
+    <img src="cid:info-kopf" width="548" alt="SES Academy – ${esc(modulTitel)}" style="display:block;width:100%;height:auto;border:0">
+    ${modulUntertitel ? `<p style="margin:0;padding:14px 22px 18px;font-size:15px;line-height:1.45;color:#3c4a42">${esc(modulUntertitel)}</p>` : ""}
   </div>
   <p style="font-size:16px;line-height:1.6;margin:0 0 16px">${esc(t.anrede(d.p.first_name))}<br>${esc(t.einleitung(modulTitel))}</p>
-  ${abschnitt(t.termin, `${termine.map((z) => `<p style="margin:0 0 4px;font-weight:bold">${esc(z)}</p>`).join("")}${d.modul.location ? `<p style="margin:8px 0 0">${esc(d.modul.location)}${karte ? ` · <a href="${esc(karte)}" style="color:#3d7a61;font-weight:bold">${esc(t.karte)}</a>` : ""}</p>` : ""}`)}
+  ${abschnitt(t.termin, `${terminHtml.map((z) => `<p style="margin:0 0 4px;font-weight:bold">${z}</p>`).join("")}${d.modul.location ? `<p style="margin:8px 0 0">${esc(d.modul.location)}${karte ? ` · <a href="${esc(karte)}" style="color:#3d7a61;font-weight:bold">${esc(t.karte)}</a>` : ""}</p>` : ""}`)}
   ${!d.modul.ticket_required ? "" : abschnitt(t.ticket, `<p style="margin:0 0 12px;font-size:14px;line-height:1.5">${esc(t.ticketText)}</p>
     <div style="text-align:center">
       <img src="cid:ticket-qr" width="220" height="220" alt="QR-Code" style="display:block;margin:0 auto">

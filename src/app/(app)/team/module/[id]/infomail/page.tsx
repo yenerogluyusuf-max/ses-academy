@@ -8,8 +8,8 @@ import { MailHinweis } from "@/components/team/MailHinweis";
 import { infoMailAnAlle, infoMailTest } from "@/lib/aktionen/infomail";
 import { requireStaff } from "@/lib/auth";
 import { istToken } from "@/lib/codes";
-import { infoMailInhalt, infoMailSprache, ladeInfoMail } from "@/lib/infomail";
-import { infoMailWallet, mailBereit, seitenUrl, tagesordnungAnhang } from "@/lib/mail";
+import { infoMailInhalt, infoMailSprache, infoMailTitel, ladeInfoMail } from "@/lib/infomail";
+import { infoMailKopf, infoMailWallet, mailBereit, seitenUrl, tagesordnungAnhang } from "@/lib/mail";
 import { createClient } from "@/lib/supabase/server";
 import { qrPng } from "@/lib/tickets";
 
@@ -46,7 +46,9 @@ export default async function InfoMail({ params, searchParams }: PageProps<"/tea
   const pdf = daten ? await tagesordnungAnhang(daten.modul.id, infoMailSprache(daten.p.preferred_language)) : null;
   const inhalt = daten ? infoMailInhalt(daten, seitenUrl(`/ticket/${daten.p.link_token}/`), infoMailWallet(daten.p), pdf !== null) : null;
   // In der Vorschau steckt der QR-Code direkt im HTML (in der echten Mail als Anhang)
-  const vorschau = inhalt && daten ? inhalt.html.replace("cid:ticket-qr", `data:image/png;base64,${(await qrPng(daten.p.checkin_token)).toString("base64")}`) : null;
+  const vorschau = inhalt && daten ? inhalt.html
+    .replace("cid:ticket-qr", `data:image/png;base64,${(await qrPng(daten.p.checkin_token)).toString("base64")}`)
+    .replace("cid:info-kopf", `data:image/png;base64,${(await infoMailKopf(infoMailTitel(daten))).toString("base64")}`) : null;
 
   const zahl = (s: string) => liste.filter((z) => z.info_status === s).length;
   const empfaenger = (nurZugesagt: boolean) => liste.filter((z) => (z.info_status === "offen" || z.info_status === "fehlgeschlagen") && z.rsvp !== "abgesagt" && (!nurZugesagt || z.rsvp === "zugesagt")).length;

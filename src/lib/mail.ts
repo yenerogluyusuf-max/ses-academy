@@ -6,7 +6,9 @@ import { DATENSCHUTZ_URL, IMPRESSUM_URL, rechtlicheTexte } from "@/lib/rechtlich
 import { bereichSprache, bereichTexte, datumsSprache } from "@/lib/bereich-texte";
 import { portalTexte, sprachOder } from "@/lib/portal-texte";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { infoMailInhalt, infoMailSprache, ladeInfoMail } from "@/lib/infomail";
+import { infoMailInhalt, infoMailSprache, infoMailTitel, ladeInfoMail } from "@/lib/infomail";
+import { walletStreifenTitel } from "@/lib/wallet-anzeige";
+import { walletStreifen } from "@/lib/wallet-streifen";
 import { ladeTicket, modulZeitraum } from "@/lib/teilnahme";
 import { kurzcodeAnzeige, qrPng } from "@/lib/tickets";
 import { googleWalletAktiv } from "@/lib/google-wallet";
@@ -405,6 +407,14 @@ export async function sendeNachricht(an: { participant_id: string | null; email:
   return ergebnis;
 }
 
+/**
+ * Kopfbild der Info-Mail im Stil der Wallet-Karte: Modultitel in der Website-Schrift mit Textmarker, Sirene rechts
+ * (Entscheidung Yusuf 12.11.2026). Ein Bild sieht auch im Dunkelmodus von Gmail gleich aus.
+ */
+export async function infoMailKopf(titel: string): Promise<Buffer> {
+  return (await walletStreifen(walletStreifenTitel({ slug: "", titel })))["strip@3x.png"];
+}
+
 /** Sprachname am Ende der Dokumenttitel („Tagesordnung Teilnehmende · Deutsch“) je Mailsprache. */
 const tagesordnungSprache: Record<string, string> = { de: "Deutsch", tr: "Türkçe", fr: "Français", en: "English" };
 const tagesordnungCache = new Map<string, Buffer>();
@@ -456,13 +466,18 @@ export async function sendeInfoMail(participantId: string, moduleId: string, aus
   const an = test ?? d.p.email;
   if (!an) return { ok: false, fehler: "Keine E-Mail-Adresse hinterlegt." };
   const pdf = await tagesordnungAnhang(moduleId, infoMailSprache(d.p.preferred_language));
+  const kopf = await infoMailKopf(infoMailTitel(d));
   const { betreff, text, html, sprache } = infoMailInhalt(d, seitenUrl(`/ticket/${d.p.link_token}/`), infoMailWallet(d.p), pdf !== null);
   const ergebnis = await senden({
     to: an,
     subject: test ? `[Test] ${betreff}` : betreff,
     text,
     html,
-    attachments: [{ filename: "ticket-qr.png", content: await qrPng(d.p.checkin_token), cid: "ticket-qr" }, ...(pdf ? [pdf] : [])],
+    attachments: [
+      { filename: "ses-academy.png", content: kopf, cid: "info-kopf" },
+      { filename: "ticket-qr.png", content: await qrPng(d.p.checkin_token), cid: "ticket-qr" },
+      ...(pdf ? [pdf] : []),
+    ],
   }, sprache);
   if (!test) {
     // Enthält das Ticket: zählt auch als Ticket-Versand
