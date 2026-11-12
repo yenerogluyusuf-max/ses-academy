@@ -79,6 +79,10 @@ export default async function Teilnehmende({ searchParams }: PageProps<"/team/te
     <>
       <TeamKopf staff={staff} aktiv="teilnehmende" breit />
       <main className="mx-auto max-w-[96rem] px-4 py-10">
+        {/* Über den Reiter „Teilnehmende“ eines Moduls gekommen: zurück ins Modul (Orga-Team ohne Modulübersicht: Programm) */}
+        {modul && s("modul") && (
+          <Link href={`/team/module/${modul.id}/${alles ? "" : "programm/"}`} className="mb-2 inline-block text-sm font-semibold text-ink-soft hover:text-ink">← {modul.title}</Link>
+        )}
         <Titel kicker={`${jahrgang?.name ?? "Kein aktueller Jahrgang"} · ${liste.length} von ${alle.length}`}>Teilnehmende</Titel>
         {gruppe === "jahrgang" && alle.some((p) => herkunft(p) && p.affiliation_status !== "academy_student") && (
           <p className="-mt-5 mb-6 text-sm text-ink-soft">
