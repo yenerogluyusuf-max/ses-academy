@@ -23,9 +23,27 @@ const schema = z.object({
 export type RundmailEingabe = z.input<typeof schema>;
 type Geprueft = z.output<typeof schema>;
 
+/**
+ * Kennungen statt Texten: RundmailFormular zeigt sie in der Sprache des Team-Bereichs an.
+ * eingabe: Angaben ungültig · text-de/text-tr: Betreff oder Text fehlt · niemand: niemand ausgewählt ·
+ * empfaenger: Empfänger nicht ermittelbar · keine-empfaenger: keine Empfänger mit Adresse · mail-aus: kein Mailversand ·
+ * test-fehler: Testmail abgelehnt · vorlage-*: Vorlagen speichern und löschen · fehler: sonstiger Fehler.
+ */
+export type RundmailFehler =
+  | "eingabe" | "text-de" | "text-tr" | "niemand" | "empfaenger" | "keine-empfaenger" | "mail-aus" | "test-fehler"
+  | "vorlage-name" | "vorlage-betreff" | "vorlage-fehler" | "vorlage-unbekannt" | "fehler";
+
 export type RundmailPruefung =
   | { ok: true; anzahl: number; tuerkisch: number; ohneAdresse: number }
-  | { ok: false; fehler: string };
+  | { ok: false; fehler: RundmailFehler };
+
+/** Ergebnis der Testmail: gesendet (eine oder zwei Fassungen an email) oder Fehlerkennung. */
+export type RundmailTest = { ok: true; zwei: boolean; email: string } | { ok: false; fehler: RundmailFehler };
+
+/** Ergebnis beim Speichern oder Löschen einer Vorlage. */
+export type VorlageMeldung =
+  | { ok: true; erfolg: "gespeichert" | "aktualisiert" | "geloescht"; name?: string; id?: string }
+  | { ok: false; fehler: RundmailFehler };
 
 /** Nur bekannte Filter mit gültigen Werten; bei einer Auswahl genau diese Personen. */
 function filterAus(d: Geprueft) {
@@ -38,9 +56,9 @@ function filterAus(d: Geprueft) {
   return f;
 }
 
-function pruefeTexte(d: Geprueft): string | null {
-  if ((d.sprache === "de" || d.sprache === "konto") && (!d.betreff || !d.text)) return "Bitte Betreff und Text auf Deutsch angeben.";
-  if ((d.sprache === "tr" || d.sprache === "konto") && (!d.betreffTr || !d.textTr)) return "Bitte Betreff und Text auf Türkisch angeben.";
+function pruefeTexte(d: Geprueft): RundmailFehler | null {
+  if ((d.sprache === "de" || d.sprache === "konto") && (!d.betreff || !d.text)) return "text-de";
+  if ((d.sprache === "tr" || d.sprache === "konto") && (!d.betreffTr || !d.textTr)) return "text-tr";
   return null;
 }
 
@@ -48,14 +66,14 @@ function pruefeTexte(d: Geprueft): string | null {
 export async function rundmailPruefen(eingabe: RundmailEingabe): Promise<RundmailPruefung> {
   await requireStaff("alles");
   const d = schema.safeParse(eingabe);
-  if (!d.success) return { ok: false, fehler: "Bitte die Angaben prüfen." };
+  if (!d.success) return { ok: false, fehler: "eingabe" };
   const textFehler = pruefeTexte(d.data);
   if (textFehler) return { ok: false, fehler: textFehler };
   const filter = filterAus(d.data);
-  if (Array.isArray(filter.participant_ids) && filter.participant_ids.length === 0) return { ok: false, fehler: "Niemand ausgewählt." };
+  if (Array.isArray(filter.participant_ids) && filter.participant_ids.length === 0) return { ok: false, fehler: "niemand" };
   const supabase = await createClient();
   const { data, error } = await supabase.rpc("broadcast_recipients", { p_filter: filter });
-  if (error) return { ok: false, fehler: "Die Empfänger konnten nicht ermittelt werden." };
+  if (error) return { ok: false, fehler: "empfaenger" };
   const liste = data ?? [];
   const tuerkisch = d.data.sprache === "tr" ? liste.length : d.data.sprache === "konto" ? liste.filter((e) => e.preferred_language === "tr").length : 0;
   const ohneAdresse = Array.isArray(filter.participant_ids) ? filter.participant_ids.length - liste.length : 0;
@@ -63,13 +81,13 @@ export async function rundmailPruefen(eingabe: RundmailEingabe): Promise<Rundmai
 }
 
 /** Testmail an die eigene Adresse; bei „nach Kontosprache“ beide Fassungen. */
-export async function rundmailTesten(eingabe: RundmailEingabe): Promise<{ ok: boolean; text: string }> {
+export async function rundmailTesten(eingabe: RundmailEingabe): Promise<RundmailTest> {
   const staff = await requireStaff("alles");
   const d = schema.safeParse(eingabe);
-  if (!d.success) return { ok: false, text: "Bitte die Angaben prüfen." };
+  if (!d.success) return { ok: false, fehler: "eingabe" };
   const textFehler = pruefeTexte(d.data);
-  if (textFehler) return { ok: false, text: textFehler };
-  if (!mailBereit()) return { ok: false, text: "Mailversand ist nicht eingerichtet: Die Testmail kann nicht verschickt werden." };
+  if (textFehler) return { ok: false, fehler: textFehler };
+  if (!mailBereit()) return { ok: false, fehler: "mail-aus" };
   const an = { participant_id: null, email: staff.email, first_name: staff.name.split(" ")[0] };
   const fassungen = [
     ...(d.data.sprache !== "tr" ? [{ betreff: d.data.betreff, text: d.data.text, sprache: "de" as const }] : []),
@@ -77,16 +95,16 @@ export async function rundmailTesten(eingabe: RundmailEingabe): Promise<{ ok: bo
   ];
   for (const f of fassungen) {
     const r = await sendeNachricht(an, f, "test", staff.userId, true);
-    if (!r.ok) return { ok: false, text: "Die Testmail konnte nicht verschickt werden: Der Mailserver hat sie abgelehnt oder war nicht erreichbar." };
+    if (!r.ok) return { ok: false, fehler: "test-fehler" };
   }
-  return { ok: true, text: fassungen.length > 1 ? `Zwei Testmails (Deutsch und Türkisch) an ${staff.email} verschickt.` : `Testmail an ${staff.email} verschickt.` };
+  return { ok: true, zwei: fassungen.length > 1, email: staff.email };
 }
 
 /** Zur Freigabe vorlegen. Empfängerzahl und Beschreibung für die zweite Person baut die Datenbank (create_approval). */
-export async function rundmailVorlegen(eingabe: RundmailEingabe): Promise<{ fehler: string }> {
+export async function rundmailVorlegen(eingabe: RundmailEingabe): Promise<{ fehler: RundmailFehler }> {
   await requireStaff("alles");
   const d = schema.safeParse(eingabe);
-  if (!d.success) return { fehler: "Bitte die Angaben prüfen." };
+  if (!d.success) return { fehler: "eingabe" };
   const textFehler = pruefeTexte(d.data);
   if (textFehler) return { fehler: textFehler };
   const supabase = await createClient();
@@ -98,7 +116,7 @@ export async function rundmailVorlegen(eingabe: RundmailEingabe): Promise<{ fehl
       sprache: d.data.sprache, filter: filterAus(d.data), auswahl: d.data.auswahl ?? "",
     },
   });
-  if (error) return { fehler: error.message.includes("no_recipients") ? "Mit dieser Auswahl gibt es keine Empfänger mit E-Mail-Adresse." : "Das hat nicht geklappt." };
+  if (error) return { fehler: error.message.includes("no_recipients") ? "keine-empfaenger" : "fehler" };
   revalidatePath("/team/nachrichten/");
   revalidatePath("/team/freigaben/");
   redirect("/team/nachrichten/?hinweis=beantragt");
@@ -110,11 +128,11 @@ const vorlageSchema = z.object({
 });
 
 /** Vorlage speichern; gleicher Name überschreibt die vorhandene. */
-export async function vorlageSpeichern(eingabe: z.input<typeof vorlageSchema>): Promise<{ ok: boolean; text: string; id?: string }> {
+export async function vorlageSpeichern(eingabe: z.input<typeof vorlageSchema>): Promise<VorlageMeldung> {
   await requireStaff("alles");
   const d = vorlageSchema.safeParse(eingabe);
-  if (!d.success) return { ok: false, text: "Bitte einen Namen für die Vorlage angeben." };
-  if (!d.data.betreff && !d.data.betreffTr) return { ok: false, text: "Die Vorlage braucht mindestens einen Betreff." };
+  if (!d.success) return { ok: false, fehler: "vorlage-name" };
+  if (!d.data.betreff && !d.data.betreffTr) return { ok: false, fehler: "vorlage-betreff" };
   const supabase = await createClient();
   const werte = { name: d.data.name, subject_de: d.data.betreff, body_de: d.data.text, subject_tr: d.data.betreffTr, body_tr: d.data.textTr };
   const { data: vorhanden } = await supabase.from("message_templates").select("id, name");
@@ -122,18 +140,18 @@ export async function vorlageSpeichern(eingabe: z.input<typeof vorlageSchema>): 
   const { data, error } = gleich
     ? await supabase.from("message_templates").update(werte).eq("id", gleich.id).select("id").single()
     : await supabase.from("message_templates").insert(werte).select("id").single();
-  if (error || !data) return { ok: false, text: "Die Vorlage konnte nicht gespeichert werden." };
+  if (error || !data) return { ok: false, fehler: "vorlage-fehler" };
   revalidatePath("/team/nachrichten/");
   revalidatePath("/team/teilnehmende/");
-  return { ok: true, text: gleich ? `Vorlage „${d.data.name}“ aktualisiert.` : `Vorlage „${d.data.name}“ gespeichert.`, id: data.id };
+  return { ok: true, erfolg: gleich ? "aktualisiert" : "gespeichert", name: d.data.name, id: data.id };
 }
 
-export async function vorlageLoeschen(id: string): Promise<{ ok: boolean; text: string }> {
+export async function vorlageLoeschen(id: string): Promise<VorlageMeldung> {
   await requireStaff("alles");
-  if (!istToken(id)) return { ok: false, text: "Unbekannte Vorlage." };
+  if (!istToken(id)) return { ok: false, fehler: "vorlage-unbekannt" };
   const supabase = await createClient();
   const { error } = await supabase.from("message_templates").delete().eq("id", id);
   revalidatePath("/team/nachrichten/");
   revalidatePath("/team/teilnehmende/");
-  return error ? { ok: false, text: "Das hat nicht geklappt." } : { ok: true, text: "Vorlage gelöscht." };
+  return error ? { ok: false, fehler: "fehler" } : { ok: true, erfolg: "geloescht" };
 }

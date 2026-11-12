@@ -4,8 +4,34 @@ import { requireStaff } from "@/lib/auth";
 import { istToken } from "@/lib/codes";
 import { uhrzeit } from "@/lib/einlass";
 import { createClient } from "@/lib/supabase/server";
+import type { TeamSprache } from "@/lib/team-sprache";
 
 export const metadata: Metadata = { title: "Tagesordnung | SES Academy" };
+
+/**
+ * Leiste über der Tagesordnung (nur am Bildschirm) in der Sprache des Team-Bereichs. Die Tagesordnung selbst ist ein
+ * Dokument für Teilnehmende und Gäste und bleibt, wie sie ist.
+ */
+const leiste = {
+  de: {
+    titel: "Tagesordnung",
+    stand: (tage: number, profile: number) => `${tage} ${tage === 1 ? "Tag" : "Tage"}, ${profile} Referentinnen und Referenten mit Kurzprofil`,
+    hinweis: "Druckdialog: A4, 100 %, Kopf- und Fußzeilen aus, Ränder „Keine“. „Als PDF sichern“ für den Versand.",
+    drucken: "Drucken / als PDF sichern",
+  },
+  tr: {
+    titel: "Gündem",
+    stand: (tage, profile) => `${tage} gün, kısa profilli ${profile} konuşmacı`,
+    hinweis: "Yazdırma penceresi: A4, %100, üstbilgi ve altbilgi kapalı, kenar boşlukları „Yok“. Göndermek için „PDF olarak kaydet“.",
+    drucken: "Yazdır / PDF olarak kaydet",
+  },
+  fr: {
+    titel: "Ordre du jour",
+    stand: (tage, profile) => `${tage} ${tage === 1 ? "jour" : "jours"}, ${profile} intervenants avec courte biographie`,
+    hinweis: "Boîte d’impression\u00a0: A4, 100\u00a0%, en-têtes et pieds de page désactivés, marges «\u00a0Aucune\u00a0». «\u00a0Enregistrer au format PDF\u00a0» pour l’envoi.",
+    drucken: "Imprimer / enregistrer en PDF",
+  },
+} satisfies Record<TeamSprache, { titel: string; stand: (tage: number, profile: number) => string; hinweis: string; drucken: string }>;
 
 const gruen = "#3d7a61";   // wie das Deckblatt der Regieplan-PDF
 const hellgruen = "#e6f0ea";
@@ -66,7 +92,9 @@ function Hinweis({ text }: { text: string }) {
  * Referenten mit Kurzprofil. Aus Programm (Regieplan) und Referenten des Moduls; interne Angaben wie Zuständige fehlen.
  */
 export default async function Tagesordnung({ params }: PageProps<"/team/module/[id]/tagesordnung">) {
-  await requireStaff("orga");
+  const staff = await requireStaff("orga");
+  const l = staff.sprache;
+  const t = leiste[l];
   const { id } = await params;
   if (!istToken(id)) notFound();
   const supabase = await createClient();
@@ -137,10 +165,10 @@ export default async function Tagesordnung({ params }: PageProps<"/team/module/[
         .person p { margin: 0; line-height: 1.5; }
       `}</style>
 
-      <div className="nur-bildschirm sticky top-0 z-10 flex flex-wrap items-center gap-3 border-b border-line bg-paper px-5 py-3 text-sm">
-        <p className="mr-auto"><span className="font-semibold">Tagesordnung · {modul.title}</span> · {tage.length} {tage.length === 1 ? "Tag" : "Tage"}, {mitProfil.length} Referentinnen und Referenten mit Kurzprofil</p>
-        <p className="text-ink-soft">Druckdialog: A4, 100 %, Kopf- und Fußzeilen aus, Ränder „Keine“. „Als PDF sichern“ für den Versand.</p>
-        <button id="drucken" className="rounded-full bg-ink px-5 py-2 font-semibold text-paper">Drucken / als PDF sichern</button>
+      <div lang={l} className="nur-bildschirm sticky top-0 z-10 flex flex-wrap items-center gap-3 border-b border-line bg-paper px-5 py-3 text-sm">
+        <p className="mr-auto"><span className="font-semibold">{t.titel} · {modul.title}</span> · {t.stand(tage.length, mitProfil.length)}</p>
+        <p className="text-ink-soft">{t.hinweis}</p>
+        <button id="drucken" className="rounded-full bg-ink px-5 py-2 font-semibold text-paper">{t.drucken}</button>
         <script dangerouslySetInnerHTML={{ __html: "document.getElementById('drucken').onclick=()=>window.print()" }} />
       </div>
 

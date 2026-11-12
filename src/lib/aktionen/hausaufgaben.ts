@@ -5,21 +5,47 @@ import { redirect } from "next/navigation";
 import { kriterien } from "@/lib/bewertung";
 import { requireStaff } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
+import type { TeamSprache } from "@/lib/team-sprache";
 
 // Hausaufgaben und Bewertungen: ab orga_team (Bewertungsteam), siehe RLS in der Migration hausaufgaben_und_portal.
 
 const leer = (v: FormDataEntryValue | null) => String(v ?? "").trim() || null;
 
+/** Fehlertexte für ?fehler= in der Sprache des Teamkontos (die Seiten zeigen sie unverändert an). */
+const fehlerTexte = {
+  de: {
+    keinJahrgang: "Kein aktueller Jahrgang angelegt.",
+    nummerVergeben: "Diese Nummer ist im Jahrgang schon vergeben.",
+    loeschenBestaetigen: "Bitte das Löschen bestätigen.",
+    keinKriterium: "Bitte mindestens ein Kriterium bewerten. Nichts gespeichert.",
+    kriterienFehlen: (offen: number, alle: number) => `Noch ${offen} von ${alle} Kriterien ohne Punkte. Bitte alle bewerten. Nichts gespeichert.`,
+  },
+  tr: {
+    keinJahrgang: "Güncel dönem oluşturulmamış.",
+    nummerVergeben: "Bu numara bu dönemde zaten kullanılıyor.",
+    loeschenBestaetigen: "Lütfen silmeyi onayla.",
+    keinKriterium: "Lütfen en az bir kriteri değerlendir. Hiçbir şey kaydedilmedi.",
+    kriterienFehlen: (offen: number, alle: number) => `${alle} kriterden ${offen} tanesi hâlâ puansız. Lütfen hepsini değerlendir. Hiçbir şey kaydedilmedi.`,
+  },
+  fr: {
+    keinJahrgang: "Aucune promotion en cours n’a été créée.",
+    nummerVergeben: "Ce numéro est déjà utilisé dans la promotion.",
+    loeschenBestaetigen: "Merci de confirmer la suppression.",
+    keinKriterium: "Merci d’évaluer au moins un critère. Rien n’a été enregistré.",
+    kriterienFehlen: (offen: number, alle: number) => `Encore ${offen} critères sur ${alle} sans points. Merci de tous les évaluer. Rien n’a été enregistré.`,
+  },
+} satisfies Record<TeamSprache, unknown>;
+
 export async function hausaufgabeSpeichern(formData: FormData) {
-  await requireStaff("orga");
+  const f = fehlerTexte[(await requireStaff("orga")).sprache];
   const supabase = await createClient();
   const id = leer(formData.get("id"));
   let cohort_id = leer(formData.get("cohort_id"));
   if (!cohort_id) cohort_id = (await supabase.from("cohorts").select("id").eq("is_current", true).maybeSingle()).data?.id ?? null;
-  if (!cohort_id) redirect(`/team/hausaufgaben/?fehler=${encodeURIComponent("Kein aktueller Jahrgang angelegt.")}`);
+  if (!cohort_id) redirect(`/team/hausaufgaben/?fehler=${encodeURIComponent(f.keinJahrgang)}`);
   const werte = { cohort_id, number: Number(formData.get("number")), title: leer(formData.get("title")) ?? "Hausaufgabe", description: String(formData.get("description") ?? ""), due_date: leer(formData.get("due_date")) };
   const res = id ? await supabase.from("assignments").update(werte).eq("id", id).select("id").single() : await supabase.from("assignments").insert(werte).select("id").single();
-  if (res.error) redirect(`/team/hausaufgaben/${id ? `${id}/` : ""}?fehler=${encodeURIComponent(res.error.code === "23505" ? "Diese Nummer ist im Jahrgang schon vergeben." : res.error.message)}`);
+  if (res.error) redirect(`/team/hausaufgaben/${id ? `${id}/` : ""}?fehler=${encodeURIComponent(res.error.code === "23505" ? f.nummerVergeben : res.error.message)}`);
   revalidatePath("/team/hausaufgaben/", "layout");
   redirect(`/team/hausaufgaben/${res.data.id}/?hinweis=gespeichert`);
 }
@@ -49,10 +75,10 @@ export async function abgabeSpeichern(formData: FormData) {
 }
 
 export async function abgabeLoeschen(formData: FormData) {
-  await requireStaff("orga");
+  const f = fehlerTexte[(await requireStaff("orga")).sprache];
   const supabase = await createClient();
   const id = String(formData.get("id"));
-  if (formData.get("bestaetigt") !== "ja") redirect(`/team/abgaben/${id}/?fehler=${encodeURIComponent("Bitte das Löschen bestätigen.")}`);
+  if (formData.get("bestaetigt") !== "ja") redirect(`/team/abgaben/${id}/?fehler=${encodeURIComponent(f.loeschenBestaetigen)}`);
   const { data } = await supabase.from("submissions").select("assignment_id").eq("id", id).single();
   await supabase.from("submissions").delete().eq("id", id);
   revalidatePath("/team/hausaufgaben/", "layout");
@@ -92,6 +118,7 @@ export async function personEntfernen(formData: FormData) {
 /** Jede Person im Team hat pro Abgabe eine eigene Bewertung; angezeigt wird der Durchschnitt. */
 export async function bewertungSpeichern(formData: FormData) {
   const staff = await requireStaff("orga");
+  const f = fehlerTexte[staff.sprache];
   const supabase = await createClient();
   const submission_id = String(formData.get("submission_id"));
   const punkte = Object.fromEntries(
@@ -101,8 +128,8 @@ export async function bewertungSpeichern(formData: FormData) {
     }),
   );
   const vergeben = Object.values(punkte).filter((v) => v !== null).length;
-  if (vergeben === 0) redirect(`/team/abgaben/${submission_id}/?fehler=${encodeURIComponent("Bitte mindestens ein Kriterium bewerten. Nichts gespeichert.")}`);
-  if (vergeben < kriterien.length) redirect(`/team/abgaben/${submission_id}/?fehler=${encodeURIComponent(`Noch ${kriterien.length - vergeben} von ${kriterien.length} Kriterien ohne Punkte. Bitte alle bewerten. Nichts gespeichert.`)}`);
+  if (vergeben === 0) redirect(`/team/abgaben/${submission_id}/?fehler=${encodeURIComponent(f.keinKriterium)}`);
+  if (vergeben < kriterien.length) redirect(`/team/abgaben/${submission_id}/?fehler=${encodeURIComponent(f.kriterienFehlen(kriterien.length - vergeben, kriterien.length))}`);
   // Ein importierter Bogen ohne Bewerter:in wird beim ersten Speichern übernommen
   const ziel = leer(formData.get("review_id"));
   const werte = {

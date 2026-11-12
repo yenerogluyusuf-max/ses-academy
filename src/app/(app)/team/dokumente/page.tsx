@@ -1,11 +1,13 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { Plus, Search } from "lucide-react";
-import { DokumentFormular, DokumentListe, dokumentArt } from "@/components/team/Dokumente";
+import { DokumentFormular, DokumentListe, dokumentArtNamen } from "@/components/team/Dokumente";
 import { Hinweis } from "@/components/team/Hinweis";
 import { TeamKopf } from "@/components/team/TeamKopf";
 import { requireStaff } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
+import type { TeamSprache } from "@/lib/team-sprache";
+import { teamTexte } from "@/lib/team-texte";
 
 export const metadata: Metadata = { title: "Dokumente | SES Academy" };
 
@@ -16,9 +18,71 @@ export const dokumentHinweise: Record<string, { text: string; gut: boolean }> = 
   fehler: { text: "Das hat nicht geklappt.", gut: false },
 };
 
+const de = {
+  hinweise: dokumentHinweise,
+  archiv: "Archiv",
+  zurueck: "← zurück zu den Dokumenten",
+  archivAnsehen: "Archiv ansehen",
+  sucheText: "Suchen nach Titel oder Schlagwort",
+  art: "Art",
+  alleArten: "alle Arten",
+  kommission: "Kommission",
+  alleKommissionen: "alle Kommissionen",
+  zuruecksetzen: "Zurücksetzen",
+  neu: "Neues Dokument",
+  allgemein: "Allgemein",
+};
+
+const T: Record<TeamSprache, typeof de> = {
+  de,
+  tr: {
+    hinweise: {
+      gespeichert: { text: teamTexte.tr.meldung.gespeichert, gut: true },
+      "zu-gross": { text: "Dosya 100 MB’tan büyük. Lütfen bağlantı olarak ekle.", gut: false },
+      eingabe: { text: "Lütfen bir başlık ve bir dosya ya da bağlantı gir.", gut: false },
+      fehler: { text: teamTexte.tr.meldung.fehler, gut: false },
+    },
+    archiv: "Arşiv",
+    zurueck: "← belgelere dön",
+    archivAnsehen: "Arşive bak",
+    sucheText: "Başlık ya da etikete göre ara",
+    art: "Tür",
+    alleArten: "tüm türler",
+    kommission: "Komisyon",
+    alleKommissionen: "tüm komisyonlar",
+    zuruecksetzen: "Sıfırla",
+    neu: "Yeni belge",
+    allgemein: "Genel",
+  },
+  fr: {
+    hinweise: {
+      gespeichert: { text: teamTexte.fr.meldung.gespeichert, gut: true },
+      "zu-gross": { text: "Le fichier dépasse 100\u00a0Mo. Merci de le déposer sous forme de lien.", gut: false },
+      eingabe: { text: "Merci d’indiquer un titre et un fichier ou un lien.", gut: false },
+      fehler: { text: teamTexte.fr.meldung.fehler, gut: false },
+    },
+    archiv: "Archives",
+    zurueck: "← retour aux documents",
+    archivAnsehen: "Voir les archives",
+    sucheText: "Rechercher par titre ou mot-clé",
+    art: "Type",
+    alleArten: "tous les types",
+    kommission: "Commission",
+    alleKommissionen: "toutes les commissions",
+    zuruecksetzen: "Réinitialiser",
+    neu: "Nouveau document",
+    allgemein: "Général",
+  },
+};
+
+/** Schlüssel der Gruppe „Allgemein“ (Dokumente ohne Modul, am Ende gezeigt); Module haben immer einen Titel */
+const ALLGEMEIN = "";
+
 /** Dokumentenablage (Phase 3): Suche, Filter nach Art, Status, Kommission und Modul; ersetzt nach und nach den Drive. */
 export default async function Dokumente({ searchParams }: PageProps<"/team/dokumente">) {
   const staff = await requireStaff("orga");
+  const l = staff.sprache;
+  const t = T[l];
   const sp = await searchParams;
   const wert = (k: string) => (typeof sp[k] === "string" ? (sp[k] as string) : "");
   const supabase = await createClient();
@@ -40,46 +104,46 @@ export default async function Dokumente({ searchParams }: PageProps<"/team/dokum
   // Nach Modul gruppieren: Module zuerst (zuletzt geändert oben), allgemeine Dokumente am Ende
   const gruppen = new Map<string, NonNullable<typeof dokumente>>();
   for (const d of dokumente ?? []) {
-    const g = d.module?.title ?? "Allgemein";
+    const g = d.module?.title ?? ALLGEMEIN;
     gruppen.set(g, [...(gruppen.get(g) ?? []), d]);
   }
-  const reihenfolge = [...gruppen.keys()].sort((a, b) => (a === "Allgemein" ? 1 : b === "Allgemein" ? -1 : 0));
+  const reihenfolge = [...gruppen.keys()].sort((a, b) => (a === ALLGEMEIN ? 1 : b === ALLGEMEIN ? -1 : 0));
 
   return (
     <>
       <TeamKopf staff={staff} aktiv="dokumente" breit />
-      <main className="mx-auto max-w-5xl px-4 py-8">
+      <main lang={l} className="mx-auto max-w-5xl px-4 py-8">
         <div className="flex flex-wrap items-end justify-between gap-3">
-          <h1 className="font-display text-3xl font-bold">{archiv ? "Archiv" : "Dokumente"}</h1>
-          <Link href={archiv ? "/team/dokumente/" : "/team/dokumente/?status=archiv"} className="text-sm font-semibold text-ink-soft underline-offset-4 hover:text-ink hover:underline">{archiv ? "← zurück zu den Dokumenten" : "Archiv ansehen"}</Link>
+          <h1 className="font-display text-3xl font-bold">{archiv ? t.archiv : teamTexte[l].bereiche.dokumente}</h1>
+          <Link href={archiv ? "/team/dokumente/" : "/team/dokumente/?status=archiv"} className="text-sm font-semibold text-ink-soft underline-offset-4 hover:text-ink hover:underline">{archiv ? t.zurueck : t.archivAnsehen}</Link>
         </div>
-        <Hinweis code={sp.hinweis} texte={dokumentHinweise} />
+        <Hinweis code={sp.hinweis} texte={t.hinweise} />
 
         <div className="mt-4 flex flex-wrap items-start gap-2">
           <form className="flex min-w-0 flex-1 flex-wrap gap-2" action="/team/dokumente/">
             {archiv && <input type="hidden" name="status" value="archiv" />}
-            <label className="sr-only" htmlFor="suche">Suchen</label>
+            <label className="sr-only" htmlFor="suche">{teamTexte[l].wort.suchen}</label>
             <div className="relative min-w-56 flex-1">
               <Search aria-hidden className="pointer-events-none absolute top-1/2 left-3.5 h-4 w-4 -translate-y-1/2 text-ink-soft" />
-              <input id="suche" name="suche" type="search" defaultValue={wert("suche")} placeholder="Suchen nach Titel oder Schlagwort" className="feld pl-10" />
+              <input id="suche" name="suche" type="search" defaultValue={wert("suche")} placeholder={t.sucheText} className="feld pl-10" />
             </div>
-            <select name="art" defaultValue={wert("art")} className="feld w-auto" aria-label="Art"><option value="">alle Arten</option>{Object.entries(dokumentArt).map(([k, v]) => <option key={k} value={k}>{v}</option>)}</select>
-            {komListe.length > 1 && <select name="kommission" defaultValue={wert("kommission")} className="feld w-auto" aria-label="Kommission"><option value="">alle Kommissionen</option>{komListe.map((k) => <option key={k} value={k}>{k}</option>)}</select>}
-            <button type="submit" className="knopf">Suchen</button>
-            {gefiltert && !archiv && <Link href="/team/dokumente/" className="knopf-hell">Zurücksetzen</Link>}
+            <select name="art" defaultValue={wert("art")} className="feld w-auto" aria-label={t.art}><option value="">{t.alleArten}</option>{Object.entries(dokumentArtNamen[l]).map(([k, v]) => <option key={k} value={k}>{v}</option>)}</select>
+            {komListe.length > 1 && <select name="kommission" defaultValue={wert("kommission")} className="feld w-auto" aria-label={t.kommission}><option value="">{t.alleKommissionen}</option>{komListe.map((k) => <option key={k} value={k}>{k}</option>)}</select>}
+            <button type="submit" className="knopf">{teamTexte[l].wort.suchen}</button>
+            {gefiltert && !archiv && <Link href="/team/dokumente/" className="knopf-hell">{t.zuruecksetzen}</Link>}
           </form>
           <details className="group w-full sm:w-auto [&[open]]:w-full">
-            <summary className="knopf cursor-pointer list-none bg-forest [&::-webkit-details-marker]:hidden"><Plus aria-hidden className="h-4 w-4" />Neues Dokument</summary>
-            <div className="mt-3"><DokumentFormular zurueck="/team/dokumente/" module={module ?? []} /></div>
+            <summary className="knopf cursor-pointer list-none bg-forest [&::-webkit-details-marker]:hidden"><Plus aria-hidden className="h-4 w-4" />{t.neu}</summary>
+            <div className="mt-3"><DokumentFormular zurueck="/team/dokumente/" module={module ?? []} sprache={l} /></div>
           </details>
         </div>
 
         {(dokumente ?? []).length === 0
-          ? <div className="mt-6"><DokumentListe dokumente={[]} /></div>
+          ? <div className="mt-6"><DokumentListe dokumente={[]} sprache={l} /></div>
           : reihenfolge.map((g) => (
               <section key={g} className="mt-6">
-                <h2 className="mb-2 px-1 text-xs font-semibold tracking-wide text-ink-soft uppercase">{g} · {gruppen.get(g)!.length}</h2>
-                <DokumentListe dokumente={gruppen.get(g)!} ohneModul />
+                <h2 className="mb-2 px-1 text-xs font-semibold tracking-wide text-ink-soft uppercase">{g === ALLGEMEIN ? t.allgemein : g} · {gruppen.get(g)!.length}</h2>
+                <DokumentListe dokumente={gruppen.get(g)!} ohneModul sprache={l} />
               </section>
             ))}
       </main>

@@ -45,7 +45,7 @@ async function teamLogin(browser, email, breite = 1280) {
   await page.goto(`${BASIS}/team/login/`);
   await page.fill("#email", email);
   await page.fill("#passwort", "test1234");
-  await page.click("button[type=submit]");
+  await page.click("form:has(#passwort) button[type=submit]");
   await page.waitForURL(`${BASIS}/team/`);
   return page;
 }
@@ -297,7 +297,7 @@ if (teil("bewerbungen")) {
   await ohneJs.goto(`${BASIS}/team/login/`);
   await ohneJs.fill("#email", "admin@ses.test");
   await ohneJs.fill("#passwort", "test1234");
-  await ohneJs.click("button[type=submit]");
+  await ohneJs.click("form:has(#passwort) button[type=submit]");
   await ohneJs.waitForURL(`${BASIS}/team/`).catch(() => {});
   if (ohneJs.url() === `${BASIS}/team/`) {
     await ohneJs.goto(`${BASIS}/team/bewerbungen/`);

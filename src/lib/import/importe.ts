@@ -6,6 +6,8 @@ import { kriterien, type KriteriumFeld } from "@/lib/bewertung";
 import { texte } from "@/i18n";
 import { anmeldestatus } from "@/lib/einlass";
 import { modulplan } from "@/i18n/daten";
+import { teamTexte, type TeamTexte } from "@/lib/team-texte";
+import type { TeamSprache } from "@/lib/team-sprache";
 import { excelDatum, klein, kopfzeile, leseTabelle, text, type Zeile } from "./excel";
 import { faltName, finde, landAusText, regionName, type Person, type Treffer } from "./namen";
 
@@ -24,12 +26,187 @@ export type Optionen = {
   hausaufgabeNr: number;
   /** Für Zusagen: zu welchem Modul die Antworten gehören. */
   modulId?: string;
+  /** Sprache des Berichts (Sprache des Teamkontos), Standard Deutsch. */
+  sprache?: TeamSprache;
 };
 
 export type Hinweis = { stufe: "ok" | "info" | "warnung"; text: string };
 export type Bericht = { titel: string; zahlen: [string, number][]; hinweise: Hinweis[]; angewendet: boolean };
 
+// ── Texte des Berichts je Sprache des Teamkontos ─────────────────────────────
+
+/** Französische Anführungszeichen mit geschützten Leerzeichen */
+const qFr = (x: string) => `«\u00a0${x}\u00a0»`;
+
+const meldungenDe = {
+  titel: { teilnehmerliste: "Teilnehmerliste", hausaufgaben: "Hausaufgabenliste", bewertungsbogen: "Bewertungsbogen Rhetorik", emails: "E-Mail-Adressen", zusagen: "Zusagen" } as Record<ImportArt, string>,
+  // Zähler
+  unklareNamen: "Unklare Namen", neueVerantwortliche: "Neue Verantwortliche", zeilenGelesen: "Zeilen gelesen", neueTeilnehmende: "Neue Teilnehmende",
+  aktualisiert: "Bereits vorhanden, aktualisiert", anwesend: "Anwesend (Modul)", nichtDa: "Nicht da (Modul)", nichtGefunden: "Nicht gefunden",
+  landErgaenzt: "Land/Region ergänzt", schonErfasst: (nr: number) => `Hausaufgabe ${nr}: schon erfasst`, abgegeben: (nr: number) => `Hausaufgabe ${nr}: abgegeben`,
+  videosGelesen: "Videos gelesen", nichtZugeordnet: "Nicht zugeordnete Namen", mitBewertung: "Videos mit Bewertung", ohneBewertung: "Videos noch ohne Bewertung",
+  gruppenvideos: "Gruppenvideos", abgabenNeu: "Abgaben neu", ungueltigeMail: "Ungültige E-Mail", konflikte: "Konflikte", schonEingetragen: "Schon eingetragen",
+  abweichend: "Abweichend, nicht geändert", mailErsetzt: "E-Mail ersetzt", mailErgaenzt: "E-Mail ergänzt", antwortUnklar: "Antwort unklar",
+  neueGaeste: "Neue Personen (als Gast)", neuAngemeldet: "Neu angemeldet", vomTeam: "Vom Team gesetzt, nicht geändert", zusagen: "Zusagen", absagen: "Absagen",
+  telefonErgaenzt: "Telefon ergänzt",
+  // Hinweise
+  zeile: (nr: number) => `Zeile ${nr}`,
+  video: (nr: number, bezeichnung: string) => `Video ${nr} („${bezeichnung}“)`,
+  grund: (g: string) => g,
+  zugeordnet: (kontext: string, name: string, person: string, grund: string) => `${kontext}: „${name}“ → „${person}“ zugeordnet (${grund}).`,
+  vermutlich: (kontext: string, name: string, person: string, grund: string) => `${kontext}: „${name}“ ist vermutlich „${person}“ (${grund}) – zum Übernehmen „Ähnliche Namen zuordnen“ anhaken.`,
+  mehrdeutig: (kontext: string, name: string, kandidaten: string) => `${kontext}: „${name}“ passt auf mehrere Personen (${kandidaten}) – bitte von Hand zuordnen.`,
+  keinJahrgang: "Es gibt keinen aktuellen Jahrgang. Bitte zuerst in Supabase einen Jahrgang mit is_current = true anlegen.",
+  hausaufgabeNeu: (nr: number) => `Hausaufgabe ${nr} wird neu angelegt.`,
+  modulFehlt: (nr: number) => `Modul ${nr} steht nicht im Modulplan der Website (src/i18n/daten.ts).`,
+  modulNeu: (nr: number, titel: string) => `Modul ${nr} („${titel}“) wird mit den Daten der Website angelegt.`,
+  kopfListe: "Kopfzeile nicht gefunden – erwartet werden Spalten wie „İsim Soyisim“/„Name“ und „Bölge“/„Region“.",
+  regionUnbekannt: (zeile: number, name: string, region: string) => `Zeile ${zeile} (${name}): Region „${region}“ unbekannt – bitte von Hand setzen.`,
+  gtUnklar: (zeile: number, name: string, wert: string) => `Zeile ${zeile} (${name}): GT/KGT „${wert}“ nicht eindeutig – bitte von Hand setzen.`,
+  doppelt: (zeile: number, name: string, erste: number) => `Zeile ${zeile}: „${name}“ steht doppelt in der Datei (auch Zeile ${erste}) – nur einmal angelegt. Sind es zwei Personen, bitte die zweite von Hand anlegen.`,
+  modulWert: (zeile: number, name: string, nr: number, wert: string) => `Zeile ${zeile} (${name}): Modul ${nr} hat den Wert „${wert}“ statt +/– – übersprungen.`,
+  kommendeModule: (n: number) => `Alle Personen der Liste sind für die ${n} kommenden Module des Jahrgangs angemeldet.`,
+  kopfHausaufgaben: "Kopfzeile nicht gefunden – erwartet werden Spalten „Name“ und „Ödev 1“ …",
+  nichtInListeAnlegen: (zeile: number, name: string) => `Zeile ${zeile}: „${name}“ ist nicht in der Teilnehmerliste – übersprungen (oder „Fehlende Personen anlegen“ anhaken).`,
+  kopfBogen: "Blatt mit den Spalten „Name(n) / Video“ und „Inhalt“ nicht gefunden.",
+  videoNichtGefunden: (kontext: string, name: string) => `${kontext}: „${name}“ nicht gefunden – unter Hausaufgaben von Hand zuordnen.`,
+  abgeschnitten: (kontext: string) => `${kontext}: Name abgeschnitten – bitte prüfen, ob alle Personen zugeordnet sind.`,
+  kopfMails: "Keine Spalte mit E-Mail-Adressen und Namen gefunden. Die Datei braucht eine Kopfzeile mit z. B. „Ad Soyad“ bzw. „Vorname“/„Nachname“ und eine Spalte mit E-Mails.",
+  leer: "leer",
+  keineMail: (zeile: number, name: string, mail: string) => `Zeile ${zeile} (${name}): „${mail}“ ist keine gültige E-Mail-Adresse.`,
+  nichtInListeMail: (zeile: number, name: string, mail: string) => `Zeile ${zeile}: „${name}“ (${mail}) ist nicht in der Teilnehmerliste.`,
+  mailVergeben: (zeile: number, mail: string, andere: string, person: string) => `Zeile ${zeile}: ${mail} gehört schon zu „${andere}“ – nicht für „${person}“ übernommen.`,
+  mailAbweichend: (person: string, alt: string, neu: string) => `„${person}“ hat schon ${alt}; in der Datei steht ${neu} – zum Ersetzen „Vorhandene überschreiben“ anhaken.`,
+  ohneMail: (n: number) => `${n} Personen haben danach noch keine E-Mail-Adresse.`,
+  modulWaehlen: "Bitte das Modul wählen, zu dem die Zusagen gehören.",
+  modulGibtsNicht: "Das gewählte Modul gibt es nicht.",
+  kopfZusagen: "Keine Namensspalte gefunden. Die Datei braucht eine Kopfzeile mit z. B. „Adınız Soyadınız“ oder „Vorname“/„Nachname“.",
+  keineAntwortSpalte: "Keine Spalte „Katılım sağlayacak mısınız?“ / „Teilnahme“ gefunden: jede Zeile zählt als Zusage.",
+  antwortUnverstanden: (zeile: number, name: string, antwort: string) => `Zeile ${zeile} (${name}): Antwort „${antwort}“ nicht verstanden, übersprungen.`,
+  nichtInListe: (zeile: number, name: string) => `Zeile ${zeile}: „${name}“ ist nicht in der Teilnehmerliste.`,
+  mehrfach: (zeile: number, name: string, vorher: number) => `Zeile ${zeile}: „${name}“ steht mehrfach in der Datei (auch Zeile ${vorher}); die untere Antwort gilt.`,
+  rsvp: (wert: string) => wert,
+  vomTeamGesetzt: (name: string, portal: string, datei: string) => `„${name}“: im Portal vom Team auf „${portal}“ gesetzt, in der Datei „${datei}“ – nicht geändert, bitte bei der Person prüfen.`,
+  status: (wert: string) => anmeldestatus[wert as keyof typeof anmeldestatus] ?? wert,
+  zusageStatus: (name: string, status: string) => `„${name}“ sagt zu, steht aber auf „${status}“: Status bitte prüfen.`,
+  ohneRueckmeldung: (modul: string, n: number) => `${modul}: ${n} Angemeldete haben danach noch keine Rückmeldung. Sie stehen unter Teilnehmende → „Noch keine Zusage“.`,
+};
+type Meldungen = typeof meldungenDe;
+
+/** Gründe aus lib/import/namen.ts (dort deutsch) */
+const grundUebersetzt = (g: string, ahnlich: (n: number) => string, teil: string, abgeschnitten: string) => {
+  const n = g.match(/^ähnlich geschrieben \((\d+) Zeichen anders\)$/)?.[1];
+  return n ? ahnlich(Number(n)) : g === "nur Teil des Namens angegeben" ? teil : g === "Name abgeschnitten" ? abgeschnitten : g;
+};
+
+const meldungen: Record<TeamSprache, Meldungen> = {
+  de: meldungenDe,
+  tr: {
+    titel: { teilnehmerliste: "Katılımcı listesi", hausaufgaben: "Ödev listesi", bewertungsbogen: "Hitabet değerlendirme formu", emails: "E-posta adresleri", zusagen: "Katılım cevapları" },
+    unklareNamen: "Belirsiz isimler", neueVerantwortliche: "Yeni sorumlular", zeilenGelesen: "Okunan satırlar", neueTeilnehmende: "Yeni katılımcılar",
+    aktualisiert: "Zaten vardı, güncellendi", anwesend: "Geldi (modül)", nichtDa: "Gelmedi (modül)", nichtGefunden: "Bulunamadı",
+    landErgaenzt: "Ülke/bölge tamamlandı", schonErfasst: (nr) => `Ödev ${nr}: zaten kayıtlı`, abgegeben: (nr) => `Ödev ${nr}: teslim edildi`,
+    videosGelesen: "Okunan videolar", nichtZugeordnet: "Atanmamış isimler", mitBewertung: "Değerlendirilmiş videolar", ohneBewertung: "Henüz değerlendirilmemiş videolar",
+    gruppenvideos: "Grup videoları", abgabenNeu: "Yeni teslimler", ungueltigeMail: "Geçersiz e-posta", konflikte: "Çakışmalar", schonEingetragen: "Zaten kayıtlı",
+    abweichend: "Farklı, değiştirilmedi", mailErsetzt: "E-posta değiştirildi", mailErgaenzt: "E-posta eklendi", antwortUnklar: "Belirsiz cevap",
+    neueGaeste: "Yeni kişiler (misafir olarak)", neuAngemeldet: "Yeni kayıt", vomTeam: "Ekip belirlemiş, değiştirilmedi", zusagen: "Katılacaklar", absagen: "Katılmayacaklar",
+    telefonErgaenzt: "Telefon eklendi",
+    zeile: (nr) => `Satır ${nr}`,
+    video: (nr, bezeichnung) => `Video ${nr} (“${bezeichnung}”)`,
+    grund: (g) => grundUebersetzt(g, (n) => `benzer yazılmış (${n} karakter farklı)`, "ismin yalnızca bir kısmı yazılmış", "isim kesik"),
+    zugeordnet: (kontext, name, person, grund) => `${kontext}: “${name}” → “${person}” ile eşleştirildi (${grund}).`,
+    vermutlich: (kontext, name, person, grund) => `${kontext}: “${name}” büyük ihtimalle “${person}” (${grund}) – aktarmak için “Benzer isimleri otomatik eşleştir”i işaretle.`,
+    mehrdeutig: (kontext, name, kandidaten) => `${kontext}: “${name}” birden fazla kişiye uyuyor (${kandidaten}) – lütfen elle eşleştir.`,
+    keinJahrgang: "Güncel dönem yok. Lütfen önce Supabase’te is_current = true olan bir dönem oluştur.",
+    hausaufgabeNeu: (nr) => `Ödev ${nr} yeni oluşturulacak.`,
+    modulFehlt: (nr) => `Modül ${nr} web sitesinin modül planında yok (src/i18n/daten.ts).`,
+    modulNeu: (nr, titel) => `Modül ${nr} (“${titel}”) web sitesindeki bilgilerle oluşturulacak.`,
+    kopfListe: "Başlık satırı bulunamadı – “İsim Soyisim”/“Name” ve “Bölge”/“Region” gibi sütunlar bekleniyor.",
+    regionUnbekannt: (zeile, name, region) => `Satır ${zeile} (${name}): “${region}” bölgesi bilinmiyor – lütfen elle gir.`,
+    gtUnklar: (zeile, name, wert) => `Satır ${zeile} (${name}): GT/KGT “${wert}” belirsiz – lütfen elle gir.`,
+    doppelt: (zeile, name, erste) => `Satır ${zeile}: “${name}” dosyada iki kez geçiyor (ayrıca satır ${erste}) – yalnızca bir kez oluşturuldu. İki ayrı kişiyse lütfen ikincisini elle oluştur.`,
+    modulWert: (zeile, name, nr, wert) => `Satır ${zeile} (${name}): Modül ${nr} için +/– yerine “${wert}” yazılmış – atlandı.`,
+    kommendeModule: (n) => `Listedeki herkes dönemin gelecek ${n} modülüne kaydedildi.`,
+    kopfHausaufgaben: "Başlık satırı bulunamadı – “Name” ve “Ödev 1” … sütunları bekleniyor.",
+    nichtInListeAnlegen: (zeile, name) => `Satır ${zeile}: “${name}” katılımcı listesinde yok – atlandı (ya da “Portalda henüz olmayan kişileri yeni oluştur”u işaretle).`,
+    kopfBogen: "“Name(n) / Video” ve “Inhalt” sütunlarını içeren sayfa bulunamadı.",
+    videoNichtGefunden: (kontext, name) => `${kontext}: “${name}” bulunamadı – Ödevler bölümünde elle eşleştir.`,
+    abgeschnitten: (kontext) => `${kontext}: isim kesik – lütfen herkesin eşleştirildiğini kontrol et.`,
+    kopfMails: "E-posta adresleri ve isimleri içeren bir sütun bulunamadı. Dosyada örn. “Ad Soyad” ya da “Vorname”/“Nachname” gibi bir başlık satırı ve e-postaların olduğu bir sütun olmalı.",
+    leer: "boş",
+    keineMail: (zeile, name, mail) => `Satır ${zeile} (${name}): “${mail}” geçerli bir e-posta adresi değil.`,
+    nichtInListeMail: (zeile, name, mail) => `Satır ${zeile}: “${name}” (${mail}) katılımcı listesinde yok.`,
+    mailVergeben: (zeile, mail, andere, person) => `Satır ${zeile}: ${mail} zaten “${andere}” adlı kişiye ait – “${person}” için aktarılmadı.`,
+    mailAbweichend: (person, alt, neu) => `“${person}” için zaten ${alt} kayıtlı; dosyada ${neu} yazıyor – değiştirmek için “Mevcut e-posta adreslerinin üzerine yaz”ı işaretle.`,
+    ohneMail: (n) => `Bundan sonra da ${n} kişinin e-posta adresi yok.`,
+    modulWaehlen: "Lütfen katılım cevaplarının ait olduğu modülü seç.",
+    modulGibtsNicht: "Seçilen modül yok.",
+    kopfZusagen: "İsim sütunu bulunamadı. Dosyada örn. “Adınız Soyadınız” ya da “Vorname”/“Nachname” gibi bir başlık satırı olmalı.",
+    keineAntwortSpalte: "“Katılım sağlayacak mısınız?” / “Teilnahme” sütunu bulunamadı: her satır katılım cevabı (evet) sayılıyor.",
+    antwortUnverstanden: (zeile, name, antwort) => `Satır ${zeile} (${name}): “${antwort}” cevabı anlaşılamadı, atlandı.`,
+    nichtInListe: (zeile, name) => `Satır ${zeile}: “${name}” katılımcı listesinde yok.`,
+    mehrfach: (zeile, name, vorher) => `Satır ${zeile}: “${name}” dosyada birden fazla geçiyor (ayrıca satır ${vorher}); alttaki cevap geçerli.`,
+    rsvp: (wert) => teamTexte.tr.rsvp[wert as keyof TeamTexte["rsvp"]] ?? wert,
+    vomTeamGesetzt: (name, portal, datei) => `“${name}”: portalda ekip tarafından “${portal}” olarak girilmiş, dosyada “${datei}” – değiştirilmedi, lütfen kişiyle kontrol et.`,
+    status: (wert) => teamTexte.tr.anmeldung[wert as keyof TeamTexte["anmeldung"]] ?? wert,
+    zusageStatus: (name, status) => `“${name}” katılacağını söylüyor ama durumu “${status}”: lütfen durumu kontrol et.`,
+    ohneRueckmeldung: (modul, n) => `${modul}: kayıtlı ${n} kişiden hâlâ cevap yok. Onları Katılımcılar sayfasında bulabilirsin.`,
+  },
+  fr: {
+    titel: { teilnehmerliste: "Liste des participants", hausaufgaben: "Liste des devoirs", bewertungsbogen: "Grille d’évaluation rhétorique", emails: "Adresses e-mail", zusagen: "Confirmations" },
+    unklareNamen: "Noms incertains", neueVerantwortliche: "Nouveaux référents", zeilenGelesen: "Lignes lues", neueTeilnehmende: "Nouveaux participants",
+    aktualisiert: "Déjà présents, mis à jour", anwesend: "Présents (module)", nichtDa: "Absents (module)", nichtGefunden: "Introuvables",
+    landErgaenzt: "Pays/région complétés", schonErfasst: (nr) => `Devoir ${nr}\u00a0: déjà saisi`, abgegeben: (nr) => `Devoir ${nr}\u00a0: rendu`,
+    videosGelesen: "Vidéos lues", nichtZugeordnet: "Noms non associés", mitBewertung: "Vidéos évaluées", ohneBewertung: "Vidéos pas encore évaluées",
+    gruppenvideos: "Vidéos de groupe", abgabenNeu: "Nouveaux rendus", ungueltigeMail: "E-mail invalide", konflikte: "Conflits", schonEingetragen: "Déjà saisis",
+    abweichend: "Différents, non modifiés", mailErsetzt: "E-mail remplacé", mailErgaenzt: "E-mail ajouté", antwortUnklar: "Réponse incertaine",
+    neueGaeste: "Nouvelles personnes (comme invités)", neuAngemeldet: "Nouvelles inscriptions", vomTeam: "Définis par l’équipe, non modifiés", zusagen: "Viennent", absagen: "Ne viennent pas",
+    telefonErgaenzt: "Téléphone ajouté",
+    zeile: (nr) => `Ligne ${nr}`,
+    video: (nr, bezeichnung) => `Vidéo ${nr} (${qFr(bezeichnung)})`,
+    grund: (g) => grundUebersetzt(g, (n) => `orthographe proche (${n}\u00a0caractère${n > 1 ? "s" : ""} de différence)`, "seule une partie du nom est indiquée", "nom tronqué"),
+    zugeordnet: (kontext, name, person, grund) => `${kontext}\u00a0: ${qFr(name)} → ${qFr(person)} associé (${grund}).`,
+    vermutlich: (kontext, name, person, grund) => `${kontext}\u00a0: ${qFr(name)} est probablement ${qFr(person)} (${grund}) – pour l’appliquer, coche ${qFr("Associer automatiquement les noms similaires")}.`,
+    mehrdeutig: (kontext, name, kandidaten) => `${kontext}\u00a0: ${qFr(name)} correspond à plusieurs personnes (${kandidaten}) – merci d’associer à la main.`,
+    keinJahrgang: "Il n’y a pas de promotion en cours. Crée d’abord dans Supabase une promotion avec is_current = true.",
+    hausaufgabeNeu: (nr) => `Le devoir ${nr} va être créé.`,
+    modulFehlt: (nr) => `Le module ${nr} ne figure pas dans le plan des modules du site (src/i18n/daten.ts).`,
+    modulNeu: (nr, titel) => `Le module ${nr} (${qFr(titel)}) va être créé avec les données du site.`,
+    kopfListe: `Ligne d’en-tête introuvable – colonnes attendues comme ${qFr("İsim Soyisim")}/${qFr("Name")} et ${qFr("Bölge")}/${qFr("Region")}.`,
+    regionUnbekannt: (zeile, name, region) => `Ligne ${zeile} (${name})\u00a0: région ${qFr(region)} inconnue – merci de la saisir à la main.`,
+    gtUnklar: (zeile, name, wert) => `Ligne ${zeile} (${name})\u00a0: GT/KGT ${qFr(wert)} ambigu – merci de le saisir à la main.`,
+    doppelt: (zeile, name, erste) => `Ligne ${zeile}\u00a0: ${qFr(name)} apparaît deux fois dans le fichier (aussi ligne ${erste}) – créé une seule fois. S’il s’agit de deux personnes, crée la deuxième à la main.`,
+    modulWert: (zeile, name, nr, wert) => `Ligne ${zeile} (${name})\u00a0: le module ${nr} a la valeur ${qFr(wert)} au lieu de +/– – ignoré.`,
+    kommendeModule: (n) => `Toutes les personnes de la liste sont inscrites aux ${n}\u00a0prochains modules de la promotion.`,
+    kopfHausaufgaben: `Ligne d’en-tête introuvable – colonnes attendues ${qFr("Name")} et ${qFr("Ödev 1")}…`,
+    nichtInListeAnlegen: (zeile, name) => `Ligne ${zeile}\u00a0: ${qFr(name)} n’est pas dans la liste des participants – ignoré (ou coche ${qFr("Créer les personnes qui ne sont pas encore dans le portail")}).`,
+    kopfBogen: `Feuille avec les colonnes ${qFr("Name(n) / Video")} et ${qFr("Inhalt")} introuvable.`,
+    videoNichtGefunden: (kontext, name) => `${kontext}\u00a0: ${qFr(name)} introuvable – à associer à la main sous Devoirs.`,
+    abgeschnitten: (kontext) => `${kontext}\u00a0: nom tronqué – vérifie que toutes les personnes sont associées.`,
+    kopfMails: `Aucune colonne avec des adresses e-mail et des noms trouvée. Le fichier doit avoir une ligne d’en-tête avec p.\u00a0ex. ${qFr("Ad Soyad")} ou ${qFr("Vorname")}/${qFr("Nachname")} et une colonne d’e-mails.`,
+    leer: "vide",
+    keineMail: (zeile, name, mail) => `Ligne ${zeile} (${name})\u00a0: ${qFr(mail)} n’est pas une adresse e-mail valide.`,
+    nichtInListeMail: (zeile, name, mail) => `Ligne ${zeile}\u00a0: ${qFr(name)} (${mail}) n’est pas dans la liste des participants.`,
+    mailVergeben: (zeile, mail, andere, person) => `Ligne ${zeile}\u00a0: ${mail} appartient déjà à ${qFr(andere)} – non repris pour ${qFr(person)}.`,
+    mailAbweichend: (person, alt, neu) => `${qFr(person)} a déjà ${alt}\u00a0; le fichier indique ${neu} – pour remplacer, coche ${qFr("Remplacer les adresses e-mail existantes")}.`,
+    ohneMail: (n) => `${n}\u00a0personnes n’ont toujours pas d’adresse e-mail.`,
+    modulWaehlen: "Merci de choisir le module auquel les confirmations se rapportent.",
+    modulGibtsNicht: "Le module choisi n’existe pas.",
+    kopfZusagen: `Aucune colonne de noms trouvée. Le fichier doit avoir une ligne d’en-tête avec p.\u00a0ex. ${qFr("Adınız Soyadınız")} ou ${qFr("Vorname")}/${qFr("Nachname")}.`,
+    keineAntwortSpalte: `Pas de colonne ${qFr("Katılım sağlayacak mısınız?")} / ${qFr("Teilnahme")} trouvée\u00a0: chaque ligne compte comme une confirmation.`,
+    antwortUnverstanden: (zeile, name, antwort) => `Ligne ${zeile} (${name})\u00a0: réponse ${qFr(antwort)} non comprise, ignorée.`,
+    nichtInListe: (zeile, name) => `Ligne ${zeile}\u00a0: ${qFr(name)} n’est pas dans la liste des participants.`,
+    mehrfach: (zeile, name, vorher) => `Ligne ${zeile}\u00a0: ${qFr(name)} apparaît plusieurs fois dans le fichier (aussi ligne ${vorher})\u00a0; la réponse la plus bas compte.`,
+    rsvp: (wert) => teamTexte.fr.rsvp[wert as keyof TeamTexte["rsvp"]] ?? wert,
+    vomTeamGesetzt: (name, portal, datei) => `${qFr(name)}\u00a0: mis sur ${qFr(portal)} par l’équipe dans le portail, ${qFr(datei)} dans le fichier – non modifié, merci de vérifier avec la personne.`,
+    status: (wert) => teamTexte.fr.anmeldung[wert as keyof TeamTexte["anmeldung"]] ?? wert,
+    zusageStatus: (name, status) => `${qFr(name)} confirme sa venue mais a le statut ${qFr(status)}\u00a0: merci de vérifier le statut.`,
+    ohneRueckmeldung: (modul, n) => `${modul}\u00a0: ${n}\u00a0inscrits n’ont toujours pas répondu. Tu les trouves sous Participants.`,
+  },
+};
+
 class Protokoll {
+  constructor(readonly m: Meldungen) {}
   zahlen = new Map<string, number>();
   hinweise: Hinweis[] = [];
   zaehle(k: string, n = 1) { this.zahlen.set(k, (this.zahlen.get(k) ?? 0) + n); }
@@ -54,16 +231,16 @@ function zuordnen(name: string, personen: Person[], o: Optionen, p: Protokoll, k
   if (t.art === "sicher") return t.person;
   if (t.art === "vorschlag") {
     if (o.vorschlaegeUebernehmen) {
-      p.info(`${kontext}: „${name}“ → „${t.person.name}“ zugeordnet (${t.grund}).`);
+      p.info(p.m.zugeordnet(kontext, name, t.person.name, p.m.grund(t.grund)));
       return t.person;
     }
-    p.warn(`${kontext}: „${name}“ ist vermutlich „${t.person.name}“ (${t.grund}) – zum Übernehmen „Ähnliche Namen zuordnen“ anhaken.`);
-    p.zaehle("Unklare Namen");
+    p.warn(p.m.vermutlich(kontext, name, t.person.name, p.m.grund(t.grund)));
+    p.zaehle(p.m.unklareNamen);
     return null;
   }
   if (t.art === "mehrdeutig") {
-    p.warn(`${kontext}: „${name}“ passt auf mehrere Personen (${t.kandidaten.map((k) => k.name).join(", ")}) – bitte von Hand zuordnen.`);
-    p.zaehle("Unklare Namen");
+    p.warn(p.m.mehrdeutig(kontext, name, t.kandidaten.map((k) => k.name).join(", ")));
+    p.zaehle(p.m.unklareNamen);
     return null;
   }
   return null;
@@ -71,14 +248,14 @@ function zuordnen(name: string, personen: Person[], o: Optionen, p: Protokoll, k
 
 type P = { id: string; name: string; email: string | null; region_id: number | null; country: string | null; branch: string | null; mentor_id: string | null };
 
-async function lade(sb: Db) {
+async function lade(sb: Db, m: Meldungen) {
   const [personen, regionen, mentoren, jahrgang] = await Promise.all([
     sb.from("participants").select("id,first_name,last_name,email,region_id,country,branch,mentor_id").in("affiliation_status", ["academy_student", "alumni", "guest", "member"]),
     sb.from("regions").select("id,name,country"),
     sb.from("mentors").select("id,name"),
     sb.from("cohorts").select("id,name").eq("is_current", true).maybeSingle(),
   ]);
-  if (!jahrgang.data) throw new Error("Es gibt keinen aktuellen Jahrgang. Bitte zuerst in Supabase einen Jahrgang mit is_current = true anlegen.");
+  if (!jahrgang.data) throw new Error(m.keinJahrgang);
   return {
     personen: pruefe<{ id: string; first_name: string; last_name: string; email: string | null; region_id: number | null; country: string | null; branch: string | null; mentor_id: string | null }[]>(personen, "Teilnehmende laden").map(
       (x): P => ({ id: x.id, name: `${x.first_name} ${x.last_name}`.trim(), email: x.email, region_id: x.region_id, country: x.country, branch: x.branch, mentor_id: x.mentor_id }),
@@ -110,7 +287,7 @@ async function hausaufgabeId(sb: Db, d: Daten, nr: number, o: Optionen, p: Proto
   const { data } = await sb.from("assignments").select("id").eq("cohort_id", d.jahrgang.id).eq("number", nr).maybeSingle();
   let id = data?.id;
   if (!id) {
-    p.info(`Hausaufgabe ${nr} wird neu angelegt.`);
+    p.info(p.m.hausaufgabeNeu(nr));
     id = o.anwenden
       ? pruefe<{ id: string }>(await sb.from("assignments").insert({ cohort_id: d.jahrgang.id, number: nr, title: `Hausaufgabe ${nr}` }).select("id").single(), "Hausaufgabe anlegen").id
       : `neu-${nr}`;
@@ -130,12 +307,12 @@ const berlin = (datum: string, uhr: string) => {
 /** Holt das Modul Nr. n des Jahrgangs samt Tagen; legt es bei Bedarf nach dem Modulplan der Website an. */
 async function modul(sb: Db, d: Daten, nr: number, o: Optionen, p: Protokoll) {
   const plan = modulplan[nr - 1];
-  if (!plan) throw new Error(`Modul ${nr} steht nicht im Modulplan der Website (src/i18n/daten.ts).`);
+  if (!plan) throw new Error(p.m.modulFehlt(nr));
   const { data } = await sb.from("modules").select("id,title,module_days(id,starts_at)").eq("slug", plan.slug).maybeSingle();
   if (data) return { id: data.id, titel: data.title, tage: data.module_days.map((t) => ({ id: t.id, beginn: t.starts_at })) };
 
   const titel = texte.de.seminare[plan.slug].titel;
-  p.info(`Modul ${nr} („${titel}“) wird mit den Daten der Website angelegt.`);
+  p.info(p.m.modulNeu(nr, titel));
   if (!o.anwenden) return { id: `neu-${nr}`, titel, tage: [] };
   const m = pruefe<{ id: string }>(
     await sb.from("modules").insert({ slug: plan.slug, title: titel, kind: plan.art, location: plan.ort, status: "published", cohort_id: d.jahrgang.id }).select("id").single(),
@@ -156,7 +333,7 @@ async function teilnehmerliste(sb: Db, zeilen: Zeile[], o: Optionen, p: Protokol
   const istName = (z: string) => z.includes("isim") || z === "name" || z.includes("vor- und nachname") || z === "vollständiger name";
   const istRegion = (z: string) => z.includes("bölge") || z === "region";
   const kopf = kopfzeile(zeilen, [istName, istRegion]);
-  if (!kopf) throw new Error("Kopfzeile nicht gefunden – erwartet werden Spalten wie „İsim Soyisim“/„Name“ und „Bölge“/„Region“.");
+  if (!kopf) throw new Error(p.m.kopfListe);
   const k = kopf.zellen;
   const col = {
     name: k.findIndex(istName),
@@ -166,7 +343,7 @@ async function teilnehmerliste(sb: Db, zeilen: Zeile[], o: Optionen, p: Protokol
   };
   const modulSpalten = k.map((z, i) => ({ i, nr: Number(z.match(/modul\s*(\d+)/)?.[1]) })).filter((m) => m.nr > 0);
 
-  const d = await lade(sb);
+  const d = await lade(sb, p.m);
   const bestand: Person[] = [...d.personen];
   const regionNamen = d.regionen.map((r) => r.name);
 
@@ -174,7 +351,7 @@ async function teilnehmerliste(sb: Db, zeilen: Zeile[], o: Optionen, p: Protokol
   for (const z of zeilen.slice(kopf.index + 1)) {
     const s = col.sorumlu >= 0 ? text(z[col.sorumlu]) : "";
     if (s && !mentorId.has(faltName(s))) {
-      p.zaehle("Neue Verantwortliche");
+      p.zaehle(p.m.neueVerantwortliche);
       mentorId.set(faltName(s), o.anwenden ? pruefe<{ id: string }>(await sb.from("mentors").insert({ name: s }).select("id").single(), "Verantwortliche anlegen").id : `neu-${s}`);
     }
   }
@@ -187,14 +364,14 @@ async function teilnehmerliste(sb: Db, zeilen: Zeile[], o: Optionen, p: Protokol
     const name = text(z[col.name]);
     if (!name) continue;
     const zeilenNr = kopf.index + 2 + zi;
-    p.zaehle("Zeilen gelesen");
+    p.zaehle(p.m.zeilenGelesen);
 
     const region = col.region >= 0 ? regionName(z[col.region], regionNamen) : null;
-    if (col.region >= 0 && text(z[col.region]) && !region) p.warn(`Zeile ${zeilenNr} (${name}): Region „${text(z[col.region])}“ unbekannt – bitte von Hand setzen.`);
+    if (col.region >= 0 && text(z[col.region]) && !region) p.warn(p.m.regionUnbekannt(zeilenNr, name, text(z[col.region])));
     const r = d.regionen.find((x) => x.name === region);
     const orgRoh = col.org >= 0 ? text(z[col.org]).toUpperCase() : "";
     const branch = orgRoh === "GT" || orgRoh === "KGT" ? orgRoh : null;
-    if (orgRoh && !branch) p.warn(`Zeile ${zeilenNr} (${name}): GT/KGT „${orgRoh}“ nicht eindeutig – bitte von Hand setzen.`);
+    if (orgRoh && !branch) p.warn(p.m.gtUnklar(zeilenNr, name, orgRoh));
     const s = col.sorumlu >= 0 ? text(z[col.sorumlu]) : "";
     const werte = {
       ...(r ? { region_id: r.id, country: r.country } : {}),
@@ -204,16 +381,16 @@ async function teilnehmerliste(sb: Db, zeilen: Zeile[], o: Optionen, p: Protokol
 
     // Mit dem Bestand vor dem Import abgleichen; derselbe Name zweimal in der Datei wird nur einmal angelegt
     const schonInDatei = ausDatei.get(faltName(name));
-    if (schonInDatei) p.warn(`Zeile ${zeilenNr}: „${name}“ steht doppelt in der Datei (auch Zeile ${schonInDatei.zeile}) – nur einmal angelegt. Sind es zwei Personen, bitte die zweite von Hand anlegen.`);
-    let person = schonInDatei?.person ?? zuordnen(name, bestand, o, p, `Zeile ${zeilenNr}`);
+    if (schonInDatei) p.warn(p.m.doppelt(zeilenNr, name, schonInDatei.zeile));
+    let person = schonInDatei?.person ?? zuordnen(name, bestand, o, p, p.m.zeile(zeilenNr));
     if (!person) {
       if (finde(name, bestand).art !== "keiner") continue;
       person = await personAnlegen(sb, d, name, werte, o);
-      p.zaehle("Neue Teilnehmende");
+      p.zaehle(p.m.neueTeilnehmende);
     } else if (schonInDatei) {
       // zweite Zeile derselben Person: nur die Module übernehmen
     } else {
-      p.zaehle("Bereits vorhanden, aktualisiert");
+      p.zaehle(p.m.aktualisiert);
       if (o.anwenden) pruefe(await sb.from("participants").update({ ...werte, affiliation_status: "academy_student", cohort_id: d.jahrgang.id }).eq("id", person.id), `„${name}“ aktualisieren`);
     }
 
@@ -222,11 +399,11 @@ async function teilnehmerliste(sb: Db, zeilen: Zeile[], o: Optionen, p: Protokol
       const w = text(z[m.i]);
       const da = w === "+" ? true : w === "-" || w === "–" ? false : null;
       if (da === null) {
-        if (w) p.warn(`Zeile ${zeilenNr} (${name}): Modul ${m.nr} hat den Wert „${w}“ statt +/– – übersprungen.`);
+        if (w) p.warn(p.m.modulWert(zeilenNr, name, m.nr, w));
         continue;
       }
       anmeldungen.push({ personId: person.id, modulNr: m.nr, da });
-      p.zaehle(da ? "Anwesend (Modul)" : "Nicht da (Modul)");
+      p.zaehle(da ? p.m.anwesend : p.m.nichtDa);
     }
   }
 
@@ -252,19 +429,19 @@ async function teilnehmerliste(sb: Db, zeilen: Zeile[], o: Optionen, p: Protokol
   const zukunft = [...new Set((kommende ?? []).map((m) => m.id))].flatMap((mid) => personen.map((pid) => ({ module_id: mid, participant_id: pid, status: "confirmed" as const, source: "cohort" as const })));
   for (let i = 0; i < zukunft.length; i += 500)
     pruefe(await sb.from("registrations").upsert(zukunft.slice(i, i + 500), { onConflict: "module_id,participant_id", ignoreDuplicates: true }), "Anmeldung kommende Module");
-  if (zukunft.length) p.info(`Alle Personen der Liste sind für die ${new Set(zukunft.map((z) => z.module_id)).size} kommenden Module des Jahrgangs angemeldet.`);
+  if (zukunft.length) p.info(p.m.kommendeModule(new Set(zukunft.map((z) => z.module_id)).size));
 }
 
 // ── 2. Hausaufgabenliste (Name, Bölge, Ülke, Ödev 1…n mit ✓) ─────────────────
 
 async function hausaufgaben(sb: Db, zeilen: Zeile[], o: Optionen, p: Protokoll) {
   const kopf = kopfzeile(zeilen, [(z) => z === "name" || z.includes("isim"), (z) => z.includes("ödev") || z.includes("hausaufgabe")]);
-  if (!kopf) throw new Error("Kopfzeile nicht gefunden – erwartet werden Spalten „Name“ und „Ödev 1“ …");
+  if (!kopf) throw new Error(p.m.kopfHausaufgaben);
   const k = kopf.zellen;
   const col = { name: k.findIndex((z) => z === "name" || z.includes("isim")), region: k.findIndex((z) => z.includes("bölge")), land: k.findIndex((z) => z.includes("ülke") || z.includes("land")) };
   const aufgaben = k.map((z, i) => ({ i, nr: Number(z.match(/(?:ödev|hausaufgabe)\s*(\d+)/)?.[1]) })).filter((a) => a.nr > 0);
 
-  const d = await lade(sb);
+  const d = await lade(sb, p.m);
   const regionNamen = d.regionen.map((r) => r.name);
   const cache = new Map<number, string>();
   const { data: vorhanden } = await sb.from("submission_participants").select("participant_id, submissions(assignment_id)");
@@ -274,26 +451,26 @@ async function hausaufgaben(sb: Db, zeilen: Zeile[], o: Optionen, p: Protokoll) 
     const name = text(z[col.name]);
     if (!name) continue;
     const zeilenNr = kopf.index + 2 + zi;
-    p.zaehle("Zeilen gelesen");
-    let person = zuordnen(name, d.personen, o, p, `Zeile ${zeilenNr}`);
+    p.zaehle(p.m.zeilenGelesen);
+    let person = zuordnen(name, d.personen, o, p, p.m.zeile(zeilenNr));
     const region = col.region >= 0 ? d.regionen.find((r) => r.name === regionName(z[col.region], regionNamen)) : undefined;
     const land = col.land >= 0 ? landAusText[faltName(text(z[col.land]))] : undefined;
     if (!person) {
       if (finde(name, d.personen).art !== "keiner") continue;
       if (!o.fehlendeAnlegen) {
-        p.warn(`Zeile ${zeilenNr}: „${name}“ ist nicht in der Teilnehmerliste – übersprungen (oder „Fehlende Personen anlegen“ anhaken).`);
-        p.zaehle("Nicht gefunden");
+        p.warn(p.m.nichtInListeAnlegen(zeilenNr, name));
+        p.zaehle(p.m.nichtGefunden);
         continue;
       }
       person = await personAnlegen(sb, d, name, { ...(region ? { region_id: region.id } : {}), ...(land || region ? { country: land ?? region!.country } : {}) }, o);
-      p.zaehle("Neue Teilnehmende");
+      p.zaehle(p.m.neueTeilnehmende);
     } else {
       const full = d.personen.find((x) => x.id === person!.id)!;
       const update: { country?: string; region_id?: number } = {};
       if (!full.country && (land || region)) update.country = land ?? region!.country;
       if (!full.region_id && region) update.region_id = region.id;
       if (Object.keys(update).length) {
-        p.zaehle("Land/Region ergänzt");
+        p.zaehle(p.m.landErgaenzt);
         if (o.anwenden) pruefe(await sb.from("participants").update(update).eq("id", person.id), `„${name}“ ergänzen`);
       }
     }
@@ -301,9 +478,9 @@ async function hausaufgaben(sb: Db, zeilen: Zeile[], o: Optionen, p: Protokoll) 
     for (const a of aufgaben) {
       if (!text(z[a.i])) continue;
       const hid = await hausaufgabeId(sb, d, a.nr, o, p, cache);
-      if (hatAbgabe.has(`${hid}|${person.id}`)) { p.zaehle(`Hausaufgabe ${a.nr}: schon erfasst`); continue; }
+      if (hatAbgabe.has(`${hid}|${person.id}`)) { p.zaehle(p.m.schonErfasst(a.nr)); continue; }
       hatAbgabe.add(`${hid}|${person.id}`);
-      p.zaehle(`Hausaufgabe ${a.nr}: abgegeben`);
+      p.zaehle(p.m.abgegeben(a.nr));
       if (o.anwenden) {
         const ab = pruefe<{ id: string }>(await sb.from("submissions").insert({ assignment_id: hid, label: person.name, source: "list", note: "Aus Hausaufgabenliste übernommen" }).select("id").single(), "Abgabe anlegen");
         pruefe(await sb.from("submission_participants").insert({ submission_id: ab.id, participant_id: person.id }), "Abgabe zuordnen");
@@ -335,7 +512,7 @@ async function bewertungsbogen(sb: Db, blaetter: { name: string; zeilen: Zeile[]
     kopf = kopfzeile(b.zeilen, [(z) => z.includes("name"), (z) => z === "inhalt"]);
     if (kopf) { zeilen = b.zeilen; break; }
   }
-  if (!kopf) throw new Error("Blatt mit den Spalten „Name(n) / Video“ und „Inhalt“ nicht gefunden.");
+  if (!kopf) throw new Error(p.m.kopfBogen);
   const k = kopf.zellen;
   const idx = (f: (z: string) => boolean) => k.findIndex(f);
   const col = {
@@ -350,7 +527,7 @@ async function bewertungsbogen(sb: Db, blaetter: { name: string; zeilen: Zeile[]
   };
   const kCol = Object.fromEntries(kriterien.map((kr) => [kr.feld, idx(kriteriumSpalte[kr.feld])])) as Record<KriteriumFeld, number>;
 
-  const d = await lade(sb);
+  const d = await lade(sb, p.m);
   const hid = await hausaufgabeId(sb, d, o.hausaufgabeNr, o, p, new Map());
   const { data: alt } = await sb.from("submissions").select("id,file_name,source,submission_participants(participant_id)").eq("assignment_id", hid);
   const abgaben = (alt ?? []) as Abgabe[];
@@ -358,18 +535,18 @@ async function bewertungsbogen(sb: Db, blaetter: { name: string; zeilen: Zeile[]
   for (const [zi, z] of zeilen.slice(kopf.index + 1).entries()) {
     const bezeichnung = text(z[col.name]);
     if (!bezeichnung) continue;
-    p.zaehle("Videos gelesen");
+    p.zaehle(p.m.videosGelesen);
     const datei = (col.datei >= 0 && text(z[col.datei])) || bezeichnung;
-    const kontext = `Video ${zi + 1} („${bezeichnung}“)`;
+    const kontext = p.m.video(zi + 1, bezeichnung);
 
     const namen = bezeichnung.split(/;|\s-\s|,|\s&\s/).map((n) => n.replace(/…|\.\.\./g, "").trim()).filter(Boolean);
     const ids: string[] = [];
     for (const n of namen) {
       const person = zuordnen(n, d.personen, o, p, kontext);
       if (person) ids.push(person.id);
-      else if (finde(n, d.personen).art === "keiner") { p.warn(`${kontext}: „${n}“ nicht gefunden – unter Hausaufgaben von Hand zuordnen.`); p.zaehle("Nicht zugeordnete Namen"); }
+      else if (finde(n, d.personen).art === "keiner") { p.warn(p.m.videoNichtGefunden(kontext, n)); p.zaehle(p.m.nichtZugeordnet); }
     }
-    if (bezeichnung.includes("…")) p.info(`${kontext}: Name abgeschnitten – bitte prüfen, ob alle Personen zugeordnet sind.`);
+    if (bezeichnung.includes("…")) p.info(p.m.abgeschnitten(kontext));
 
     const punkte = Object.fromEntries(
       kriterien.map((kr) => {
@@ -380,8 +557,8 @@ async function bewertungsbogen(sb: Db, blaetter: { name: string; zeilen: Zeile[]
     const bewertet = Object.values(punkte).some((v) => v != null);
     const feedback = { strengths: text(z[col.gut]) || null, improvements: text(z[col.besser]) || null, tip: text(z[col.tipp]) || null };
     const bewerter = col.von >= 0 ? text(z[col.von]) || null : null;
-    p.zaehle(bewertet ? "Videos mit Bewertung" : "Videos noch ohne Bewertung");
-    if (ids.length > 1) p.zaehle("Gruppenvideos");
+    p.zaehle(bewertet ? p.m.mitBewertung : p.m.ohneBewertung);
+    if (ids.length > 1) p.zaehle(p.m.gruppenvideos);
 
     if (!o.anwenden) continue;
     let ab = abgaben.find((a) => a.file_name === datei);
@@ -392,7 +569,7 @@ async function bewertungsbogen(sb: Db, blaetter: { name: string; zeilen: Zeile[]
       );
       ab = { id: neu.id, file_name: datei, source: "review_sheet", submission_participants: [] };
       abgaben.push(ab);
-      p.zaehle("Abgaben neu");
+      p.zaehle(p.m.abgabenNeu);
     }
     const fehlend = ids.filter((id) => !ab!.submission_participants.some((x) => x.participant_id === id));
     if (fehlend.length) {
@@ -434,9 +611,9 @@ async function emails(sb: Db, blaetter: { name: string; zeilen: Zeile[] }[], o: 
     }
     if (gefunden) break;
   }
-  if (!gefunden) throw new Error("Keine Spalte mit E-Mail-Adressen und Namen gefunden. Die Datei braucht eine Kopfzeile mit z. B. „Ad Soyad“ bzw. „Vorname“/„Nachname“ und eine Spalte mit E-Mails.");
+  if (!gefunden) throw new Error(p.m.kopfMails);
 
-  const d = await lade(sb);
+  const d = await lade(sb, p.m);
   const { data: alle } = await sb.from("participants").select("id,first_name,last_name,email").not("email", "is", null);
   const vergeben = new Map((alle ?? []).map((x) => [x.email!, { id: x.id, name: `${x.first_name} ${x.last_name}`.trim() }]));
   for (const [zi, z] of gefunden.zeilen.slice(gefunden.kopf + 1).entries()) {
@@ -444,21 +621,21 @@ async function emails(sb: Db, blaetter: { name: string; zeilen: Zeile[] }[], o: 
     const mail = text(z[gefunden.mail]).toLowerCase();
     if (!name && !mail) continue;
     const zeilenNr = gefunden.kopf + 2 + zi;
-    p.zaehle("Zeilen gelesen");
-    if (!MAIL.test(mail)) { p.warn(`Zeile ${zeilenNr} (${name}): „${mail || "leer"}“ ist keine gültige E-Mail-Adresse.`); p.zaehle("Ungültige E-Mail"); continue; }
-    let person = zuordnen(name, d.personen, o, p, `Zeile ${zeilenNr}`);
+    p.zaehle(p.m.zeilenGelesen);
+    if (!MAIL.test(mail)) { p.warn(p.m.keineMail(zeilenNr, name, mail || p.m.leer)); p.zaehle(p.m.ungueltigeMail); continue; }
+    let person = zuordnen(name, d.personen, o, p, p.m.zeile(zeilenNr));
     if (!person) {
       if (finde(name, d.personen).art !== "keiner") continue;
-      if (!o.fehlendeAnlegen) { p.warn(`Zeile ${zeilenNr}: „${name}“ (${mail}) ist nicht in der Teilnehmerliste.`); p.zaehle("Nicht gefunden"); continue; }
+      if (!o.fehlendeAnlegen) { p.warn(p.m.nichtInListeMail(zeilenNr, name, mail)); p.zaehle(p.m.nichtGefunden); continue; }
       person = await personAnlegen(sb, d, name, {}, o);
-      p.zaehle("Neue Teilnehmende");
+      p.zaehle(p.m.neueTeilnehmende);
     }
     const full = d.personen.find((x) => x.id === person!.id)!;
     const andere = vergeben.get(mail);
-    if (andere && andere.id !== full.id) { p.warn(`Zeile ${zeilenNr}: ${mail} gehört schon zu „${andere.name}“ – nicht für „${full.name}“ übernommen.`); p.zaehle("Konflikte"); continue; }
-    if (full.email === mail) { p.zaehle("Schon eingetragen"); continue; }
-    if (full.email && !o.ueberschreiben) { p.warn(`„${full.name}“ hat schon ${full.email}; in der Datei steht ${mail} – zum Ersetzen „Vorhandene überschreiben“ anhaken.`); p.zaehle("Abweichend, nicht geändert"); continue; }
-    p.zaehle(full.email ? "E-Mail ersetzt" : "E-Mail ergänzt");
+    if (andere && andere.id !== full.id) { p.warn(p.m.mailVergeben(zeilenNr, mail, andere.name, full.name)); p.zaehle(p.m.konflikte); continue; }
+    if (full.email === mail) { p.zaehle(p.m.schonEingetragen); continue; }
+    if (full.email && !o.ueberschreiben) { p.warn(p.m.mailAbweichend(full.name, full.email, mail)); p.zaehle(p.m.abweichend); continue; }
+    p.zaehle(full.email ? p.m.mailErsetzt : p.m.mailErgaenzt);
     const tel = gefunden.tel >= 0 ? text(z[gefunden.tel]) || undefined : undefined;
     if (o.anwenden) pruefe(await sb.from("participants").update({ email: mail, ...(tel ? { phone: tel } : {}) }).eq("id", full.id), `E-Mail für „${full.name}“`);
     if (full.email) vergeben.delete(full.email);
@@ -466,7 +643,7 @@ async function emails(sb: Db, blaetter: { name: string; zeilen: Zeile[] }[], o: 
     vergeben.set(mail, { id: full.id, name: full.name });
   }
   const ohne = d.personen.filter((x) => !x.email).length;
-  if (ohne) p.info(`${ohne} Personen haben danach noch keine E-Mail-Adresse.`);
+  if (ohne) p.info(p.m.ohneMail(ohne));
 }
 
 // ── 5. Zusagen (Antworten auf „Kommst du?“, z. B. Google-Formular „Katılım ve Konaklama“) ──────
@@ -475,9 +652,9 @@ const JA = /^(evet|ja|yes|oui|komme|katılacağım|katilacagim)\b/i;
 const NEIN = /^(hayır|hayir|nein|no|non|komme nicht|katılamayacağım|katilamayacagim)\b/i;
 
 async function zusagen(sb: Db, blaetter: { name: string; zeilen: Zeile[] }[], o: Optionen, p: Protokoll) {
-  if (!o.modulId) throw new Error("Bitte das Modul wählen, zu dem die Zusagen gehören.");
+  if (!o.modulId) throw new Error(p.m.modulWaehlen);
   const { data: modul } = await sb.from("modules").select("id, title").eq("id", o.modulId).maybeSingle();
-  if (!modul) throw new Error("Das gewählte Modul gibt es nicht.");
+  if (!modul) throw new Error(p.m.modulGibtsNicht);
   let gefunden: { zeilen: Zeile[]; kopf: number; namen: number[]; antwort: number; tel: number } | null = null;
   for (const b of blaetter) {
     for (let i = 0; i < Math.min(15, b.zeilen.length) && !gefunden; i++) {
@@ -495,10 +672,10 @@ async function zusagen(sb: Db, blaetter: { name: string; zeilen: Zeile[] }[], o:
     }
     if (gefunden) break;
   }
-  if (!gefunden) throw new Error("Keine Namensspalte gefunden. Die Datei braucht eine Kopfzeile mit z. B. „Adınız Soyadınız“ oder „Vorname“/„Nachname“.");
-  if (gefunden.antwort < 0) p.info("Keine Spalte „Katılım sağlayacak mısınız?“ / „Teilnahme“ gefunden: jede Zeile zählt als Zusage.");
+  if (!gefunden) throw new Error(p.m.kopfZusagen);
+  if (gefunden.antwort < 0) p.info(p.m.keineAntwortSpalte);
 
-  const d = await lade(sb);
+  const d = await lade(sb, p.m);
   const [{ data: anmeldungen }, { data: telefone }] = await Promise.all([
     sb.from("registrations").select("id, participant_id, status, rsvp, rsvp_source").eq("module_id", modul.id),
     sb.from("participants").select("id, phone"),
@@ -513,19 +690,19 @@ async function zusagen(sb: Db, blaetter: { name: string; zeilen: Zeile[] }[], o:
     const name = gefunden.namen.map((c) => text(z[c])).join(" ").trim();
     if (!name) continue;
     const zeilenNr = gefunden.kopf + 2 + zi;
-    p.zaehle("Zeilen gelesen");
+    p.zaehle(p.m.zeilenGelesen);
     const roh = gefunden.antwort >= 0 ? text(z[gefunden.antwort]).trim() : "Evet";
     const rsvp = JA.test(roh) ? "zugesagt" : NEIN.test(roh) ? "abgesagt" : null;
-    if (!rsvp) { p.warn(`Zeile ${zeilenNr} (${name}): Antwort „${roh || "leer"}“ nicht verstanden, übersprungen.`); p.zaehle("Antwort unklar"); continue; }
-    let person: P | Person | null = zuordnen(name, d.personen, o, p, `Zeile ${zeilenNr}`);
+    if (!rsvp) { p.warn(p.m.antwortUnverstanden(zeilenNr, name, roh || p.m.leer)); p.zaehle(p.m.antwortUnklar); continue; }
+    let person: P | Person | null = zuordnen(name, d.personen, o, p, p.m.zeile(zeilenNr));
     if (!person) {
       if (finde(name, d.personen).art !== "keiner") continue;
-      if (!o.fehlendeAnlegen) { p.warn(`Zeile ${zeilenNr}: „${name}“ ist nicht in der Teilnehmerliste.`); p.zaehle("Nicht gefunden"); continue; }
+      if (!o.fehlendeAnlegen) { p.warn(p.m.nichtInListe(zeilenNr, name)); p.zaehle(p.m.nichtGefunden); continue; }
       person = await personAnlegen(sb, d, name, { affiliation_status: "guest" }, o);
-      p.zaehle("Neue Personen (als Gast)");
+      p.zaehle(p.m.neueGaeste);
     }
     const vorher = antworten.get(person.id);
-    if (vorher) p.info(`Zeile ${zeilenNr}: „${person.name}“ steht mehrfach in der Datei (auch Zeile ${vorher.zeilenNr}); die untere Antwort gilt.`);
+    if (vorher) p.info(p.m.mehrfach(zeilenNr, person.name, vorher.zeilenNr));
     antworten.set(person.id, { person, rsvp, tel: gefunden.tel >= 0 ? text(z[gefunden.tel]).trim() : "", zeilenNr });
   }
 
@@ -533,51 +710,43 @@ async function zusagen(sb: Db, blaetter: { name: string; zeilen: Zeile[] }[], o:
   for (const { person, rsvp, tel } of antworten.values()) {
     const reg = anmeldung.get(person.id);
     if (!reg) {
-      p.zaehle("Neu angemeldet");
+      p.zaehle(p.m.neuAngemeldet);
       if (o.anwenden && !person.id.startsWith("neu-")) {
         pruefe(await sb.from("registrations").insert({ module_id: modul.id, participant_id: person.id, status: "confirmed", source: "staff", rsvp, rsvp_at: new Date().toISOString(), rsvp_source: "import" }), `Anmeldung für „${person.name}“`);
       }
     } else if (reg.rsvp === rsvp) {
-      p.zaehle("Schon eingetragen");
+      p.zaehle(p.m.schonEingetragen);
     } else if (reg.rsvp && reg.rsvp_source === "team") {
       // Nach einem Anruf vom Team gesetzt: nicht still mit der Formular-Antwort überschreiben
-      p.warn(`„${person.name}“: im Portal vom Team auf „${reg.rsvp}“ gesetzt, in der Datei „${rsvp}“ – nicht geändert, bitte bei der Person prüfen.`);
-      p.zaehle("Vom Team gesetzt, nicht geändert");
+      p.warn(p.m.vomTeamGesetzt(person.name, p.m.rsvp(reg.rsvp), p.m.rsvp(rsvp)));
+      p.zaehle(p.m.vomTeam);
       continue;
     } else {
-      if (reg.status !== "confirmed" && rsvp === "zugesagt") p.info(`„${person.name}“ sagt zu, steht aber auf „${anmeldestatus[reg.status as keyof typeof anmeldestatus] ?? reg.status}“: Status bitte prüfen.`);
+      if (reg.status !== "confirmed" && rsvp === "zugesagt") p.info(p.m.zusageStatus(person.name, p.m.status(reg.status)));
       if (o.anwenden) pruefe(await sb.from("registrations").update({ rsvp, rsvp_at: new Date().toISOString(), rsvp_source: "import" }).eq("id", reg.id), `Zusage für „${person.name}“`);
     }
-    p.zaehle(rsvp === "zugesagt" ? "Zusagen" : "Absagen");
+    p.zaehle(rsvp === "zugesagt" ? p.m.zusagen : p.m.absagen);
     if (tel && !telefon.get(person.id) && !person.id.startsWith("neu-")) {
-      p.zaehle("Telefon ergänzt");
+      p.zaehle(p.m.telefonErgaenzt);
       if (o.anwenden) pruefe(await sb.from("participants").update({ phone: tel }).eq("id", person.id), `Telefon für „${person.name}“`);
       telefon.set(person.id, tel);
     }
   }
   const ohne = (anmeldungen ?? []).filter((r) => r.status === "confirmed" && !r.rsvp && !antworten.has(r.participant_id)).length;
-  p.info(`${modul.title}: ${ohne} Angemeldete haben danach noch keine Rückmeldung. Sie stehen unter Teilnehmende → „Noch keine Zusage“.`);
+  p.info(p.m.ohneRueckmeldung(modul.title, ohne));
 }
 
 // ── Einstieg ──────────────────────────────────────────────────────────────────
 
-const titel: Record<ImportArt, string> = {
-  teilnehmerliste: "Teilnehmerliste",
-  hausaufgaben: "Hausaufgabenliste",
-  bewertungsbogen: "Bewertungsbogen Rhetorik",
-  emails: "E-Mail-Adressen",
-  zusagen: "Zusagen",
-};
-
 /** Liest die Datei und gleicht sie ab. Nur mit `anwenden` wird geschrieben. Aufrufer prüft vorher die Rolle. */
 export async function importiere(sb: Db, art: ImportArt, datei: File, o: Optionen): Promise<Bericht> {
   const blaetter = await leseTabelle(datei);
-  const p = new Protokoll();
+  const p = new Protokoll(meldungen[o.sprache ?? "de"]);
   const erstes = blaetter.find((b) => b.zeilen.length > 1)?.zeilen ?? [];
   if (art === "teilnehmerliste") await teilnehmerliste(sb, erstes, o, p);
   else if (art === "hausaufgaben") await hausaufgaben(sb, erstes, o, p);
   else if (art === "bewertungsbogen") await bewertungsbogen(sb, blaetter, o, p);
   else if (art === "zusagen") await zusagen(sb, blaetter, o, p);
   else await emails(sb, blaetter, o, p);
-  return { titel: titel[art], zahlen: [...p.zahlen.entries()], hinweise: p.hinweise, angewendet: o.anwenden };
+  return { titel: p.m.titel[art], zahlen: [...p.zahlen.entries()], hinweise: p.hinweise, angewendet: o.anwenden };
 }

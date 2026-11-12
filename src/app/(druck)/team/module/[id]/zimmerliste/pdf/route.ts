@@ -4,6 +4,14 @@ import { chromium } from "playwright";
 import { requireStaff } from "@/lib/auth";
 import { istToken } from "@/lib/codes";
 import { createClient } from "@/lib/supabase/server";
+import type { TeamSprache } from "@/lib/team-sprache";
+
+/** Fehlermeldung für das Teammitglied in seiner Sprache; die PDF und ihr Dateiname bleiben deutsch (für das Hotel). */
+const fehlerText: Record<TeamSprache, string> = {
+  de: "Die PDF konnte nicht erzeugt werden. Bitte die Druckansicht der Zimmerliste nutzen.",
+  tr: "PDF oluşturulamadı. Lütfen oda listesinin yazdırma görünümünü kullan.",
+  fr: "Le PDF n’a pas pu être créé. Merci d’utiliser la version imprimable de la liste des chambres.",
+};
 
 /**
  * Zimmerliste fürs Hotel als fertige PDF-Datei zum Herunterladen (ab Orga-Team).
@@ -13,7 +21,7 @@ import { createClient } from "@/lib/supabase/server";
  * Druckseite am 10.11.2026 wiederholt als leere Seite. Gleiche Angaben wie die Druckseite: ?hotel=…, ?groesse=2|3.
  */
 export async function GET(request: Request, { params }: RouteContext<"/team/module/[id]/zimmerliste/pdf">) {
-  await requireStaff("orga");
+  const staff = await requireStaff("orga");
   const { id } = await params;
   if (!istToken(id)) notFound();
   const sp = new URL(request.url).searchParams;
@@ -57,7 +65,7 @@ export async function GET(request: Request, { params }: RouteContext<"/team/modu
     });
   } catch (fehler) {
     console.error("Zimmerliste als PDF:", fehler);
-    return new Response("Die PDF konnte nicht erzeugt werden. Bitte die Druckansicht der Zimmerliste nutzen.", {
+    return new Response(fehlerText[staff.sprache], {
       status: 500,
       headers: { "content-type": "text/plain; charset=utf-8", "cache-control": "no-store" },
     });

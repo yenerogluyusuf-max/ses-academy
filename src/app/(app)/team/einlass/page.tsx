@@ -3,12 +3,35 @@ import { jetztMs } from "@/lib/zeit";
 import { Einlass, type ListenEintrag } from "@/components/team/Einlass";
 import { TagWahl } from "@/components/team/TagWahl";
 import { TeamKopf } from "@/components/team/TeamKopf";
-import { darf, requireStaff } from "@/lib/auth";
+import { darf, getStaff, requireStaff } from "@/lib/auth";
 import type { Zaehler } from "@/lib/einlass";
 import type { OfflineEintrag } from "@/lib/offline-einlass";
 import { createClient } from "@/lib/supabase/server";
+import type { TeamSprache } from "@/lib/team-sprache";
+import { teamTexte } from "@/lib/team-texte";
 
-export const metadata: Metadata = { title: "Einlass | SES Academy" };
+/** Titel im Browser-Tab in der Sprache des Teamkontos (getStaff ist pro Anfrage zwischengespeichert). */
+export async function generateMetadata(): Promise<Metadata> {
+  const l = (await getStaff())?.sprache ?? "de";
+  return { title: `${teamTexte[l].bereiche.einlass} | SES Academy` };
+}
+
+const de = {
+  keineTage: "Es gibt noch keine veröffentlichten Modultage.",
+  keinEinlass: "Gerade findet kein Einlass statt. Der Scanner öffnet 4 Stunden vor Beginn eines Modultags.",
+};
+
+const T: Record<TeamSprache, typeof de> = {
+  de,
+  tr: {
+    keineTage: "Henüz yayımlanmış modül günü yok.",
+    keinEinlass: "Şu anda giriş yok. QR okuyucu, bir modül günü başlamadan 4 saat önce açılır.",
+  },
+  fr: {
+    keineTage: "Il n’y a pas encore de jour de module publié.",
+    keinEinlass: "Pas d’accueil en ce moment. Le scanner s’ouvre 4 heures avant le début d’un jour de module.",
+  },
+};
 
 const STUNDE = 3600_000;
 
@@ -20,6 +43,8 @@ function imZeitfenster(tag: { starts_at: string; ends_at: string }, jetzt: numbe
 
 export default async function EinlassSeite({ searchParams }: PageProps<"/team/einlass">) {
   const staff = await requireStaff("einlass");
+  const l = staff.sprache;
+  const t = T[l];
   const { tag: gewaehlt } = await searchParams;
   const supabase = await createClient();
   const jetzt = jetztMs();
@@ -53,15 +78,15 @@ export default async function EinlassSeite({ searchParams }: PageProps<"/team/ei
   return (
     <>
       <TeamKopf staff={staff} aktiv="einlass" />
-      <main className="mx-auto max-w-3xl px-4 py-6 lg:max-w-7xl">
-        <h1 className="font-display text-3xl font-bold">Einlass</h1>
+      <main lang={l} className="mx-auto max-w-3xl px-4 py-6 lg:max-w-7xl">
+        <h1 className="font-display text-3xl font-bold">{teamTexte[l].bereiche.einlass}</h1>
         {!tag ? (
           <p className="mt-6 rounded-3xl bg-white/80 p-6 ring-1 ring-line">
-            {darf.orga(staff.role) ? "Es gibt noch keine veröffentlichten Modultage." : "Gerade findet kein Einlass statt. Der Scanner öffnet 4 Stunden vor Beginn eines Modultags."}
+            {darf.orga(staff.role) ? t.keineTage : t.keinEinlass}
           </p>
         ) : (
           <>
-            <TagWahl tage={tage} aktiv={tag.id} pfad="/team/einlass/" jetzt={jetztMs()} />
+            <TagWahl tage={tage} aktiv={tag.id} pfad="/team/einlass/" jetzt={jetztMs()} sprache={l} />
             <div className="mt-6">
               <Einlass
                 key={tag.id}
@@ -73,6 +98,7 @@ export default async function EinlassSeite({ searchParams }: PageProps<"/team/ei
                 liste={darf.orga(staff.role) ? alle : null}
                 darfZeitfensterIgnorieren={darf.alles(staff.role)}
                 darfWalkIn={darf.orga(staff.role)}
+                sprache={l}
               />
             </div>
           </>

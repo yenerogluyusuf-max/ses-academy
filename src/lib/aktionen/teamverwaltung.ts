@@ -156,16 +156,17 @@ export async function mitgliedEntfernen(formData: FormData) {
   zurueck("entfernt");
 }
 
-export type PasswortZustand = { meldung: string | null; ok: boolean };
+/** meldung: Kennung, das Passwort-Formular übersetzt sie (kurz | ungleich | fehler | geaendert). */
+export type PasswortZustand = { meldung: "kurz" | "ungleich" | "fehler" | "geaendert" | null; ok: boolean };
 
 export async function passwortAendern(_vorher: PasswortZustand, formData: FormData): Promise<PasswortZustand> {
   await requireStaff("einlass");
   const neu = String(formData.get("neu") ?? "");
-  if (neu.length < 10) return { meldung: "Das Passwort braucht mindestens 10 Zeichen.", ok: false };
-  if (neu !== String(formData.get("wiederholung") ?? "")) return { meldung: "Die beiden Eingaben stimmen nicht überein.", ok: false };
+  if (neu.length < 10) return { meldung: "kurz", ok: false };
+  if (neu !== String(formData.get("wiederholung") ?? "")) return { meldung: "ungleich", ok: false };
   const supabase = await createClient();
   const { error } = await supabase.auth.updateUser({ password: neu });
-  return error ? { meldung: "Das hat nicht geklappt. Ist das neue Passwort gleich dem alten?", ok: false } : { meldung: "Passwort geändert.", ok: true };
+  return error ? { meldung: "fehler", ok: false } : { meldung: "geaendert", ok: true };
 }
 
 /** Zweiten Faktor eines Teammitglieds löschen (z. B. Handy verloren). Beim nächsten Login wird neu eingerichtet. */

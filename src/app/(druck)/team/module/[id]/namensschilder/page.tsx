@@ -3,6 +3,8 @@ import { notFound } from "next/navigation";
 import { requireStaff } from "@/lib/auth";
 import { istToken } from "@/lib/codes";
 import { ladeNamensschilder, type Schild } from "@/lib/namensschilder";
+import type { TeamSprache } from "@/lib/team-sprache";
+import { teamTexte } from "@/lib/team-texte";
 
 export const metadata: Metadata = { title: "Namensschilder | SES Academy" };
 
@@ -11,18 +13,53 @@ export const metadata: Metadata = { title: "Namensschilder | SES Academy" };
  * für Kartenhüllen). Alle Maße in mm, damit der Druck ohne Skalierung stimmt; die Gestaltung skaliert mit der Höhe.
  */
 const formate = {
-  a7: { name: "A7 · 105 × 74 mm · 8 je Seite", spalten: 2, zeilen: 4, b: 105, h: 74.25, rand: [0, 0], je: 8 },
-  karte: { name: "Karte · 90 × 55 mm · 10 je Seite", spalten: 2, zeilen: 5, b: 90, h: 55, rand: [15, 11], je: 10 },
+  a7: { spalten: 2, zeilen: 4, b: 105, h: 74.25, rand: [0, 0], je: 8 },
+  karte: { spalten: 2, zeilen: 5, b: 90, h: 55, rand: [15, 11], je: 10 },
 } as const;
 type Format = keyof typeof formate;
 
 /** Immer der Stil „Klassisch“ (zentriert, Serifenschrift, Doppelrahmen), in drei Grundfarben. */
-const stile = {
-  weiss: "Weiß",
-  gruen: "Grün (braucht mehr Farbe)",
-  schwarz: "Schwarz (braucht mehr Farbe)",
-} as const;
-type Stil = keyof typeof stile;
+const stile = ["weiss", "gruen", "schwarz"] as const;
+type Stil = (typeof stile)[number];
+
+/**
+ * Leiste über den Schildern (nur am Bildschirm) in der Sprache des Team-Bereichs. Die Schilder selbst bleiben,
+ * wie sie sind (Rollen auf Türkisch wie auf den bisherigen Papierschildern).
+ */
+const de = {
+  titel: "Namensschilder",
+  stand: (personen: number, leer: number) => `${personen} Personen und ${leer} leere Schilder`,
+  druckdialog: ["Im Druckdialog: A4, Skalierung 100 %, ", "„Kopf- und Fußzeilen drucken“ ausschalten", " und Ränder „Keine“."] as [string, string, string],
+  sonst: "Sonst verkleinert der Browser die Schilder und sie passen nicht mehr in die Hüllen. Am genauesten druckt Chrome.",
+  farbe: "Farbe",
+  format: "Format",
+  stile: { weiss: "Weiß", gruen: "Grün (braucht mehr Farbe)", schwarz: "Schwarz (braucht mehr Farbe)" } as Record<Stil, string>,
+  formate: { a7: "A7 · 105 × 74 mm · 8 je Seite", karte: "Karte · 90 × 55 mm · 10 je Seite" } as Record<Format, string>,
+};
+
+const T: Record<TeamSprache, typeof de> = {
+  de,
+  tr: {
+    titel: "Yaka kartları",
+    stand: (personen, leer) => `${personen} kişi ve ${leer} boş kart`,
+    druckdialog: ["Yazdırma penceresinde: A4, ölçek %100, ", "„Üstbilgi ve altbilgileri yazdır“ seçeneğini kapat", " ve kenar boşluklarını „Yok“ yap."],
+    sonst: "Yoksa tarayıcı kartları küçültür ve kartlar kılıflara sığmaz. En doğru baskıyı Chrome verir.",
+    farbe: "Renk",
+    format: "Biçim",
+    stile: { weiss: "Beyaz", gruen: "Yeşil (daha çok mürekkep harcar)", schwarz: "Siyah (daha çok mürekkep harcar)" },
+    formate: { a7: "A7 · 105 × 74 mm · sayfa başına 8", karte: "Kart · 90 × 55 mm · sayfa başına 10" },
+  },
+  fr: {
+    titel: "Badges",
+    stand: (personen, leer) => `${personen} personnes et ${leer} badges vierges`,
+    druckdialog: ["Dans la boîte d’impression\u00a0: A4, échelle 100\u00a0%, ", "désactiver «\u00a0Imprimer les en-têtes et pieds de page\u00a0»", " et marges «\u00a0Aucune\u00a0»."],
+    sonst: "Sinon, le navigateur réduit les badges et ils ne rentrent plus dans les pochettes. C’est Chrome qui imprime le plus précisément.",
+    farbe: "Couleur",
+    format: "Format",
+    stile: { weiss: "Blanc", gruen: "Vert (utilise plus d’encre)", schwarz: "Noir (utilise plus d’encre)" },
+    formate: { a7: "A7 · 105 × 74 mm · 8 par page", karte: "Carte · 90 × 55 mm · 10 par page" },
+  },
+};
 
 const gruen = "#3d7a61";   // wie das Deckblatt der Regieplan-PDF
 const dunkel = "#173226";
@@ -33,14 +70,16 @@ const groesse = (text: string, basis: number, zeichen: number) => (text.length >
 
 /** Namensschilder zum Drucken (ab Orga-Team), mit QR-Code für den Einlass. */
 export default async function Namensschilder({ params, searchParams }: PageProps<"/team/module/[id]/namensschilder">) {
-  await requireStaff("orga");
+  const staff = await requireStaff("orga");
+  const l = staff.sprache;
+  const t = T[l];
   const { id } = await params;
   const sp = await searchParams;
   if (!istToken(id)) notFound();
   const daten = await ladeNamensschilder(id);
   if (!daten) notFound();
   const format: Format = sp.format === "karte" ? "karte" : "a7";
-  const stil: Stil = typeof sp.stil === "string" && sp.stil in stile ? (sp.stil as Stil) : "weiss";
+  const stil: Stil = stile.find((x) => x === sp.stil) ?? "weiss";
   const fm = formate[format];
   const seiten = Array.from({ length: Math.ceil(daten.schilder.length / fm.je) }, (_, i) => daten.schilder.slice(i * fm.je, (i + 1) * fm.je));
   const k = fm.h / 74.25;
@@ -93,26 +132,25 @@ export default async function Namensschilder({ params, searchParams }: PageProps
         .klassisch:is(.gruen, .schwarz) .linie { border-color: rgb(255 255 255 / .5); }
       `}</style>
 
-      <div className="nur-bildschirm sticky top-0 z-10 border-b border-line bg-paper px-5 py-3 text-sm">
+      <div lang={l} className="nur-bildschirm sticky top-0 z-10 border-b border-line bg-paper px-5 py-3 text-sm">
         <div className="flex flex-wrap items-center gap-2">
-          <p className="mr-auto"><span className="font-semibold">Namensschilder · {daten.titel}</span> · {daten.schilder.length - 4} Personen und 4 leere Schilder</p>
-          <button id="drucken" className="rounded-full bg-ink px-5 py-2 font-semibold text-paper">Drucken</button>
+          <p className="mr-auto"><span className="font-semibold">{t.titel} · {daten.titel}</span> · {t.stand(daten.schilder.length - 4, 4)}</p>
+          <button id="drucken" className="rounded-full bg-ink px-5 py-2 font-semibold text-paper">{teamTexte[l].wort.drucken}</button>
           <script dangerouslySetInnerHTML={{ __html: "document.getElementById('drucken').onclick=()=>window.print()" }} />
         </div>
         <p className="mt-1 text-ink-soft">
-          Im Druckdialog: A4, Skalierung 100 %, <span className="font-semibold text-ink">„Kopf- und Fußzeilen drucken“ ausschalten</span> und Ränder „Keine“.
-          Sonst verkleinert der Browser die Schilder und sie passen nicht mehr in die Hüllen. Am genauesten druckt Chrome.
+          {t.druckdialog[0]}<span className="font-semibold text-ink">{t.druckdialog[1]}</span>{t.druckdialog[2]} {t.sonst}
         </p>
         <div className="mt-2 flex flex-wrap items-center gap-2">
-          <span className="font-semibold">Farbe</span>
-          {(Object.keys(stile) as Stil[]).map((x) => (
+          <span className="font-semibold">{t.farbe}</span>
+          {stile.map((x) => (
             <a key={x} href={link({ stil: x })} aria-current={x === stil ? "page" : undefined}
-              className={`rounded-full px-3 py-1.5 ring-1 ${x === stil ? "bg-ink text-paper ring-ink" : "bg-white ring-line"}`}>{stile[x]}</a>
+              className={`rounded-full px-3 py-1.5 ring-1 ${x === stil ? "bg-ink text-paper ring-ink" : "bg-white ring-line"}`}>{t.stile[x]}</a>
           ))}
-          <span className="ml-3 font-semibold">Format</span>
+          <span className="ml-3 font-semibold">{t.format}</span>
           {(Object.keys(formate) as Format[]).map((x) => (
             <a key={x} href={link({ format: x })} aria-current={x === format ? "page" : undefined}
-              className={`rounded-full px-3 py-1.5 ring-1 ${x === format ? "bg-ink text-paper ring-ink" : "bg-white ring-line"}`}>{formate[x].name}</a>
+              className={`rounded-full px-3 py-1.5 ring-1 ${x === format ? "bg-ink text-paper ring-ink" : "bg-white ring-line"}`}>{t.formate[x]}</a>
           ))}
         </div>
       </div>

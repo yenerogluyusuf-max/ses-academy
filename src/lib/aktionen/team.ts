@@ -29,7 +29,10 @@ export async function abmelden() {
 // ---------------------------------------------------------------------------
 // Zweiter Faktor (Authenticator-App, TOTP)
 // ---------------------------------------------------------------------------
-export type FaktorZustand = { schritt: "start" | "einrichten" | "pruefen"; faktorId?: string; qr?: string; geheimnis?: string; fehler?: string };
+/** fehler: Kennung, das Formular übersetzt sie (einrichten | stellen | falsch). */
+export type FaktorZustand = {
+  schritt: "start" | "einrichten" | "pruefen"; faktorId?: string; qr?: string; geheimnis?: string; fehler?: "einrichten" | "stellen" | "falsch";
+};
 
 /** Neuen TOTP-Faktor anlegen; liefert QR-Code und Geheimnis zum Abtippen. Alte, nie bestätigte Versuche werden entfernt. */
 export async function faktorEinrichten(): Promise<FaktorZustand> {
@@ -37,7 +40,7 @@ export async function faktorEinrichten(): Promise<FaktorZustand> {
   const { data: liste } = await supabase.auth.mfa.listFactors();
   for (const f of liste?.all ?? []) if (f.status === "unverified") await supabase.auth.mfa.unenroll({ factorId: f.id });
   const { data, error } = await supabase.auth.mfa.enroll({ factorType: "totp", friendlyName: `SES ${new Date().toISOString().slice(0, 10)}` });
-  if (error || !data) return { schritt: "start", fehler: "Das Einrichten hat nicht geklappt. Bitte neu laden." };
+  if (error || !data) return { schritt: "start", fehler: "einrichten" };
   return { schritt: "einrichten", faktorId: data.id, qr: data.totp.qr_code, geheimnis: data.totp.secret };
 }
 
@@ -45,10 +48,10 @@ export async function faktorEinrichten(): Promise<FaktorZustand> {
 export async function faktorPruefen(vorher: FaktorZustand, formData: FormData): Promise<FaktorZustand> {
   const code = String(formData.get("code") ?? "").replace(/\D/g, "");
   const faktorId = String(formData.get("faktor_id") ?? "");
-  if (code.length !== 6) return { ...vorher, fehler: "Der Code hat 6 Ziffern." };
+  if (code.length !== 6) return { ...vorher, fehler: "stellen" };
   const supabase = await createClient();
   const { error } = await supabase.auth.mfa.challengeAndVerify({ factorId: faktorId, code });
-  if (error) return { ...vorher, fehler: "Der Code stimmt nicht. Bitte den aktuellen Code aus der App eingeben." };
+  if (error) return { ...vorher, fehler: "falsch" };
   redirect("/team/");
 }
 

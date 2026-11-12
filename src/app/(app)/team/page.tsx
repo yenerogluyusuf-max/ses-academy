@@ -4,16 +4,125 @@ import { ArrowRight, CalendarClock, CircleAlert, ClipboardList, ScanLine, Shield
 import { MailHinweis } from "@/components/team/MailHinweis";
 import { TeamKopf } from "@/components/team/TeamKopf";
 import { aufgabeUmschalten } from "@/lib/aktionen/modulwerkzeuge";
-import { darf, requireStaff } from "@/lib/auth";
+import { darf, getStaff, requireStaff } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
+import { teamLocale, type TeamSprache } from "@/lib/team-sprache";
+import { teamTexte } from "@/lib/team-texte";
 import { jetztMs } from "@/lib/zeit";
 
-export const metadata: Metadata = { title: "Team | SES Academy" };
+const de = {
+  seitentitel: "Team | SES Academy",
+  tagLabel: (n: number) => (n === 0 ? "heute" : n === 1 ? "morgen" : `in ${n} Tagen`),
+  gruss: (vorname: string) => `Salam, ${vorname}`,
+  keineRechte: "Für diesen Bereich fehlt deiner Rolle die Berechtigung.",
+  zugangVor: "Dein Zugang gilt nur für ",
+  einModul: "ein Modul",
+  zugangNach: "",
+  zugangBis: (datum: string) => ` bis ${datum}`,
+  zugangEnde: ": Einlass und Regieplan dieses Moduls.",
+  einlassOeffnen: "Einlass öffnen",
+  einlassText: "QR-Codes scannen oder Kurzcode eingeben",
+  regieplanText: "Was läuft gerade, was kommt als Nächstes",
+  freigaben: (n: number) => `${n} ${n === 1 ? "Antrag wartet" : "Anträge warten"} auf deine Freigabe`,
+  loeschungen: (n: number) => `${n} ${n === 1 ? "Löschantrag wartet" : "Löschanträge warten"} auf Bearbeitung`,
+  naechstesModul: "Nächstes Modul",
+  modulOeffnen: "Modul öffnen",
+  zimmerplan: "Zimmerplan",
+  angemeldet: "angemeldet",
+  infoMails: "Info-Mails verschickt",
+  aufgabenErledigt: "Aufgaben erledigt",
+  checklisteAnlegen: "Checkliste anlegen",
+  programmpunkte: "Programmpunkte",
+  keinModul: "Noch kein Modul geplant",
+  modulAnlegen: "Modul anlegen",
+  meineAufgaben: "Meine Aufgaben",
+  nichtsOffen: "Nichts offen. Aufgaben weist man in der Checkliste eines Moduls oder in einer Sitzung zu.",
+  erledigt: (titel: string) => `„${titel}“ erledigt`,
+  fristenBis: (datum: string) => `Fristen bis ${datum}`,
+  ueberfaellig: (n: number) => `${n} überfällig`,
+  stornofrist: (hotel: string, modul: string | undefined) => `Stornofrist ${hotel} (${modul})`,
+  hausaufgabe: (nummer: number, titel: string) => `Hausaufgabe ${nummer}: ${titel}`,
+  keineFristen: "Keine Fristen in den nächsten zwei Wochen.",
+};
 
-const datumLang = new Intl.DateTimeFormat("de-DE", { weekday: "long", day: "numeric", month: "long", timeZone: "Europe/Berlin" });
-const datum = new Intl.DateTimeFormat("de-DE", { weekday: "short", day: "numeric", month: "short", timeZone: "UTC" });
+const T: Record<TeamSprache, typeof de> = {
+  de,
+  tr: {
+    seitentitel: "Ekip | SES Academy",
+    tagLabel: (n) => (n === 0 ? "bugün" : n === 1 ? "yarın" : `${n} gün sonra`),
+    gruss: (vorname) => `Selam, ${vorname}`,
+    keineRechte: "Rolünün bu alan için yetkisi yok.",
+    zugangVor: "Erişimin yalnızca ",
+    einModul: "bir modül",
+    zugangNach: " için geçerli",
+    zugangBis: (datum) => ` (${datum} tarihine kadar)`,
+    zugangEnde: ": bu modülün girişi ve akış planı.",
+    einlassOeffnen: "Girişi aç",
+    einlassText: "QR kodları tara ya da kısa kodu gir",
+    regieplanText: "Şu an ne var, sırada ne var",
+    freigaben: (n) => `Onayını bekleyen ${n} talep var`,
+    loeschungen: (n) => `İşlem bekleyen ${n} silme talebi var`,
+    naechstesModul: "Sıradaki modül",
+    modulOeffnen: "Modülü aç",
+    zimmerplan: "Oda planı",
+    angemeldet: "kayıtlı",
+    infoMails: "bilgi e-postası gönderildi",
+    aufgabenErledigt: "görev tamamlandı",
+    checklisteAnlegen: "Kontrol listesi oluştur",
+    programmpunkte: "program maddesi",
+    keinModul: "Henüz planlanmış modül yok",
+    modulAnlegen: "Modül oluştur",
+    meineAufgaben: "Görevlerim",
+    nichtsOffen: "Açık görev yok. Görevler bir modülün kontrol listesinde ya da bir toplantıda atanır.",
+    erledigt: (titel) => `“${titel}” tamamlandı olarak işaretle`,
+    fristenBis: (datum) => `${datum} tarihine kadarki son tarihler`,
+    ueberfaellig: (n) => `${n} gecikmiş`,
+    stornofrist: (hotel, modul) => `İptal son tarihi: ${hotel} (${modul})`,
+    hausaufgabe: (nummer, titel) => `Ödev ${nummer}: ${titel}`,
+    keineFristen: "Önümüzdeki iki hafta içinde son tarih yok.",
+  },
+  fr: {
+    seitentitel: "Équipe | SES Academy",
+    tagLabel: (n) => (n === 0 ? "aujourd’hui" : n === 1 ? "demain" : `dans ${n} jours`),
+    gruss: (vorname) => `Salam, ${vorname}`,
+    keineRechte: "Ton rôle ne donne pas accès à cet espace.",
+    zugangVor: "Ton accès ne vaut que pour ",
+    einModul: "un module",
+    zugangNach: "",
+    zugangBis: (datum) => ` jusqu’au ${datum}`,
+    zugangEnde: " : accueil et déroulé de ce module.",
+    einlassOeffnen: "Ouvrir l’accueil",
+    einlassText: "Scanner les QR codes ou saisir le code court",
+    regieplanText: "Ce qui se passe maintenant, ce qui vient ensuite",
+    freigaben: (n) => (n === 1 ? "1 demande attend ta validation" : `${n} demandes attendent ta validation`),
+    loeschungen: (n) => (n === 1 ? "1 demande de suppression attend d’être traitée" : `${n} demandes de suppression attendent d’être traitées`),
+    naechstesModul: "Prochain module",
+    modulOeffnen: "Ouvrir le module",
+    zimmerplan: "Plan des chambres",
+    angemeldet: "inscrits",
+    infoMails: "e-mails d’info envoyés",
+    aufgabenErledigt: "tâches terminées",
+    checklisteAnlegen: "Créer la liste de contrôle",
+    programmpunkte: "points du programme",
+    keinModul: "Aucun module prévu pour l’instant",
+    modulAnlegen: "Créer un module",
+    meineAufgaben: "Mes tâches",
+    nichtsOffen: "Rien en attente. Les tâches s’attribuent dans la liste de contrôle d’un module ou lors d’une réunion.",
+    erledigt: (titel) => `Marquer la tâche « ${titel} » comme terminée`,
+    fristenBis: (datum) => `Échéances jusqu’au ${datum}`,
+    ueberfaellig: (n) => `${n} en retard`,
+    stornofrist: (hotel, modul) => `Date limite d’annulation : ${hotel} (${modul})`,
+    hausaufgabe: (nummer, titel) => `Devoir ${nummer} : ${titel}`,
+    keineFristen: "Aucune échéance dans les deux prochaines semaines.",
+  },
+};
+
+export async function generateMetadata(): Promise<Metadata> {
+  const l = (await getStaff())?.sprache ?? "de";
+  return { title: T[l].seitentitel };
+}
+
 const tageBis = (tag: string, heute: string) => Math.round((Date.parse(`${tag}T12:00:00Z`) - Date.parse(`${heute}T12:00:00Z`)) / 86_400_000);
-const tagLabel = (n: number) => (n === 0 ? "heute" : n === 1 ? "morgen" : `in ${n} Tagen`);
 
 function Kennzahl({ wert, text, icon: Icon, href }: { wert: string; text: string; icon: typeof Users; href: string }) {
   return (
@@ -28,6 +137,11 @@ function Kennzahl({ wert, text, icon: Icon, href }: { wert: string; text: string
 /** Übersicht: nächstes Modul mit Stand der Vorbereitung, meine Aufgaben, Fristen, offene Freigaben. */
 export default async function TeamStart({ searchParams }: PageProps<"/team">) {
   const staff = await requireStaff();
+  const l = staff.sprache;
+  const t = T[l];
+  const b = teamTexte[l].bereiche;
+  const datumLang = new Intl.DateTimeFormat(teamLocale[l], { weekday: "long", day: "numeric", month: "long", timeZone: "Europe/Berlin" });
+  const datum = new Intl.DateTimeFormat(teamLocale[l], { weekday: "short", day: "numeric", month: "short", timeZone: "UTC" });
   const { fehler } = await searchParams;
   const jetzt = jetztMs();
   const heute = new Date(jetzt).toISOString().slice(0, 10);
@@ -41,25 +155,25 @@ export default async function TeamStart({ searchParams }: PageProps<"/team">) {
     return (
       <>
         <TeamKopf staff={staff} />
-        <main className="mx-auto max-w-3xl px-4 py-8 lg:py-12">
+        <main lang={l} className="mx-auto max-w-3xl px-4 py-8 lg:py-12">
           <p className="text-sm text-ink-soft">{datumLang.format(new Date(jetzt))}</p>
-          <h1 className="font-display mt-1 text-3xl font-bold lg:text-4xl">Salam, {vorname}</h1>
-          {fehler === "rechte" && <p role="alert" className="mt-4 rounded-2xl bg-amber-100 p-4 text-amber-900">Für diesen Bereich fehlt deiner Rolle die Berechtigung.</p>}
+          <h1 className="font-display mt-1 text-3xl font-bold lg:text-4xl">{t.gruss(vorname)}</h1>
+          {fehler === "rechte" && <p role="alert" className="mt-4 rounded-2xl bg-amber-100 p-4 text-amber-900">{t.keineRechte}</p>}
           {staff.modulId && (
             <p className="mt-4 rounded-2xl bg-gelb-hell p-4 text-sm">
-              Dein Zugang gilt nur für <strong>{modul?.title ?? "ein Modul"}</strong>{staff.gueltigBis ? ` bis ${datumLang.format(new Date(staff.gueltigBis))}` : ""}: Einlass und Regieplan dieses Moduls.
+              {t.zugangVor}<strong>{modul?.title ?? t.einModul}</strong>{t.zugangNach}{staff.gueltigBis ? t.zugangBis(datumLang.format(new Date(staff.gueltigBis))) : ""}{t.zugangEnde}
             </p>
           )}
           <div className="mt-8 grid gap-4 sm:grid-cols-2">
             <Link href="/team/einlass/" className="rounded-3xl bg-forest p-6 text-paper">
               <ScanLine aria-hidden className="h-7 w-7 text-signal" />
-              <p className="font-display mt-6 text-2xl font-bold">Einlass öffnen</p>
-              <p className="mt-1 text-paper/70">QR-Codes scannen oder Kurzcode eingeben</p>
+              <p className="font-display mt-6 text-2xl font-bold">{t.einlassOeffnen}</p>
+              <p className="mt-1 text-paper/70">{t.einlassText}</p>
             </Link>
             <Link href="/team/regieplan/" className="karte">
               <CalendarClock aria-hidden className="h-7 w-7 text-sage" />
-              <p className="font-display mt-6 text-2xl font-bold">Regieplan</p>
-              <p className="mt-1 text-ink-soft">Was läuft gerade, was kommt als Nächstes</p>
+              <p className="font-display mt-6 text-2xl font-bold">{b.regieplan}</p>
+              <p className="mt-1 text-ink-soft">{t.regieplanText}</p>
             </Link>
           </div>
         </main>
@@ -83,7 +197,7 @@ export default async function TeamStart({ searchParams }: PageProps<"/team">) {
   let angemeldet = 0, tickets = 0, aufgabenOffen = 0, aufgabenGesamt = 0, programm = 0;
   if (naechstes) {
     const m = naechstes.module.id;
-    const [{ count: a }, { data: t }, { data: auf }, { count: p }] = await Promise.all([
+    const [{ count: a }, { data: tk }, { data: auf }, { count: p }] = await Promise.all([
       // Anmeldungen lesen darf nur Admin/Vorstand; das Orga-Team bekommt die Zahl über die Einlass-Zählung des Tages
       alles
         ? supabase.from("registrations").select("id", { count: "exact", head: true }).eq("module_id", m).eq("status", "confirmed")
@@ -93,7 +207,7 @@ export default async function TeamStart({ searchParams }: PageProps<"/team">) {
       supabase.from("program_items").select("id, module_days!inner(module_id)", { count: "exact", head: true }).eq("module_days.module_id", m),
     ]);
     angemeldet = a ?? 0;
-    tickets = (t ?? []).filter((z) => z.info_status === "gesendet").length;
+    tickets = (tk ?? []).filter((z) => z.info_status === "gesendet").length;
     aufgabenGesamt = (auf ?? []).length;
     aufgabenOffen = (auf ?? []).filter((z) => !z.done_at).length;
     programm = p ?? 0;
@@ -103,16 +217,16 @@ export default async function TeamStart({ searchParams }: PageProps<"/team">) {
   return (
     <>
       <TeamKopf staff={staff} />
-      <main className="mx-auto max-w-6xl px-4 py-8 lg:px-8 lg:py-10">
+      <main lang={l} className="mx-auto max-w-6xl px-4 py-8 lg:px-8 lg:py-10">
         <p className="text-sm text-ink-soft">{datumLang.format(new Date(jetzt))}</p>
-        <h1 className="font-display mt-1 text-3xl font-bold lg:text-4xl">Salam, {vorname}</h1>
-        {fehler === "rechte" && <p role="alert" className="mt-4 rounded-2xl bg-amber-100 p-4 text-amber-900">Für diesen Bereich fehlt deiner Rolle die Berechtigung.</p>}
-        <MailHinweis className="mt-6" />
+        <h1 className="font-display mt-1 text-3xl font-bold lg:text-4xl">{t.gruss(vorname)}</h1>
+        {fehler === "rechte" && <p role="alert" className="mt-4 rounded-2xl bg-amber-100 p-4 text-amber-900">{t.keineRechte}</p>}
+        <MailHinweis className="mt-6" sprache={l} />
 
         {(offeneFreigaben ?? 0) > 0 && (
           <Link href="/team/freigaben/" className="mt-6 flex items-center gap-3 rounded-2xl bg-signal px-5 py-3.5 font-semibold text-ink transition hover:brightness-95">
             <ShieldCheck aria-hidden className="h-5 w-5" />
-            <span className="mr-auto">{offeneFreigaben} {offeneFreigaben === 1 ? "Antrag wartet" : "Anträge warten"} auf deine Freigabe</span>
+            <span className="mr-auto">{t.freigaben(offeneFreigaben ?? 0)}</span>
             <ArrowRight aria-hidden className="h-5 w-5" />
           </Link>
         )}
@@ -120,7 +234,7 @@ export default async function TeamStart({ searchParams }: PageProps<"/team">) {
         {(offeneLoeschungen ?? 0) > 0 && (
           <Link href="/team/loeschantraege/" className="mt-3 flex items-center gap-3 rounded-2xl bg-gelb-hell px-5 py-3.5 font-semibold text-ink ring-1 ring-line transition hover:brightness-95">
             <ShieldCheck aria-hidden className="h-5 w-5" />
-            <span className="mr-auto">{offeneLoeschungen} {offeneLoeschungen === 1 ? "Löschantrag wartet" : "Löschanträge warten"} auf Bearbeitung</span>
+            <span className="mr-auto">{t.loeschungen(offeneLoeschungen ?? 0)}</span>
             <ArrowRight aria-hidden className="h-5 w-5" />
           </Link>
         )}
@@ -130,47 +244,47 @@ export default async function TeamStart({ searchParams }: PageProps<"/team">) {
             <>
               <div className="flex flex-wrap items-start gap-4">
                 <div className="mr-auto">
-                  <p className="text-xs font-semibold tracking-[0.14em] text-signal uppercase">Nächstes Modul · {tagLabel(tageBis(naechstes.day, heute))}</p>
+                  <p className="text-xs font-semibold tracking-[0.14em] text-signal uppercase">{t.naechstesModul} · {t.tagLabel(tageBis(naechstes.day, heute))}</p>
                   <h2 className="font-display mt-2 text-3xl font-bold lg:text-4xl">{naechstes.module.title}</h2>
                   <p className="mt-1 text-paper/70">{datum.format(new Date(`${naechstes.day}T12:00:00Z`))}{naechstes.module.location ? ` · ${naechstes.module.location}` : ""}</p>
                 </div>
                 <div className="flex flex-wrap gap-2">
-                  <Link href="/team/einlass/" className="inline-flex items-center gap-2 rounded-full bg-signal px-5 py-2.5 text-sm font-semibold text-ink"><ScanLine aria-hidden className="h-4 w-4" /> Einlass</Link>
-                  <Link href={`/team/module/${naechstes.module.id}/${alles ? "" : "programm/"}`} className="inline-flex items-center gap-2 rounded-full bg-white/10 px-5 py-2.5 text-sm font-semibold hover:bg-white/16">Modul öffnen <ArrowRight aria-hidden className="h-4 w-4" /></Link>
+                  <Link href="/team/einlass/" className="inline-flex items-center gap-2 rounded-full bg-signal px-5 py-2.5 text-sm font-semibold text-ink"><ScanLine aria-hidden className="h-4 w-4" /> {b.einlass}</Link>
+                  <Link href={`/team/module/${naechstes.module.id}/${alles ? "" : "programm/"}`} className="inline-flex items-center gap-2 rounded-full bg-white/10 px-5 py-2.5 text-sm font-semibold hover:bg-white/16">{t.modulOeffnen} <ArrowRight aria-hidden className="h-4 w-4" /></Link>
                   {!alles && (
                     <>
-                      <Link href={`/team/module/${naechstes.module.id}/hotel/`} className="inline-flex items-center gap-2 rounded-full bg-white/10 px-5 py-2.5 text-sm font-semibold hover:bg-white/16">Logistik</Link>
-                      <Link href={`/team/module/${naechstes.module.id}/zimmerplan/`} className="inline-flex items-center gap-2 rounded-full bg-white/10 px-5 py-2.5 text-sm font-semibold hover:bg-white/16">Zimmerplan</Link>
+                      <Link href={`/team/module/${naechstes.module.id}/hotel/`} className="inline-flex items-center gap-2 rounded-full bg-white/10 px-5 py-2.5 text-sm font-semibold hover:bg-white/16">{b.logistik}</Link>
+                      <Link href={`/team/module/${naechstes.module.id}/zimmerplan/`} className="inline-flex items-center gap-2 rounded-full bg-white/10 px-5 py-2.5 text-sm font-semibold hover:bg-white/16">{t.zimmerplan}</Link>
                     </>
                   )}
                 </div>
               </div>
               <div className="mt-6 grid grid-cols-2 gap-3 lg:grid-cols-4">
-                <Kennzahl icon={Users} wert={String(angemeldet)} text="angemeldet" href={alles ? `/team/module/${naechstes.module.id}/` : "/team/einlass/"} />
-                {alles && <Kennzahl icon={Ticket} wert={`${tickets}/${angemeldet}`} text="Info-Mails verschickt" href={`/team/module/${naechstes.module.id}/infomail/`} />}
-                <Kennzahl icon={ClipboardList} wert={aufgabenGesamt ? `${aufgabenGesamt - aufgabenOffen}/${aufgabenGesamt}` : "–"} text={aufgabenGesamt ? "Aufgaben erledigt" : "Checkliste anlegen"} href={`/team/module/${naechstes.module.id}/checkliste/`} />
-                <Kennzahl icon={CalendarClock} wert={String(programm)} text="Programmpunkte" href={`/team/module/${naechstes.module.id}/programm/`} />
+                <Kennzahl icon={Users} wert={String(angemeldet)} text={t.angemeldet} href={alles ? `/team/module/${naechstes.module.id}/` : "/team/einlass/"} />
+                {alles && <Kennzahl icon={Ticket} wert={`${tickets}/${angemeldet}`} text={t.infoMails} href={`/team/module/${naechstes.module.id}/infomail/`} />}
+                <Kennzahl icon={ClipboardList} wert={aufgabenGesamt ? `${aufgabenGesamt - aufgabenOffen}/${aufgabenGesamt}` : "–"} text={aufgabenGesamt ? t.aufgabenErledigt : t.checklisteAnlegen} href={`/team/module/${naechstes.module.id}/checkliste/`} />
+                <Kennzahl icon={CalendarClock} wert={String(programm)} text={t.programmpunkte} href={`/team/module/${naechstes.module.id}/programm/`} />
               </div>
             </>
           ) : (
             <div>
-              <p className="text-xs font-semibold tracking-[0.14em] text-signal uppercase">Nächstes Modul</p>
-              <p className="font-display mt-2 text-2xl font-bold">Noch kein Modul geplant</p>
-              {alles && <Link href="/team/module/" className="mt-4 inline-flex items-center gap-2 rounded-full bg-signal px-5 py-2.5 text-sm font-semibold text-ink">Modul anlegen <ArrowRight aria-hidden className="h-4 w-4" /></Link>}
+              <p className="text-xs font-semibold tracking-[0.14em] text-signal uppercase">{t.naechstesModul}</p>
+              <p className="font-display mt-2 text-2xl font-bold">{t.keinModul}</p>
+              {alles && <Link href="/team/module/" className="mt-4 inline-flex items-center gap-2 rounded-full bg-signal px-5 py-2.5 text-sm font-semibold text-ink">{t.modulAnlegen} <ArrowRight aria-hidden className="h-4 w-4" /></Link>}
             </div>
           )}
         </section>
 
         <div className="mt-6 grid gap-6 lg:grid-cols-2">
           <section className="karte">
-            <h2 className="font-display text-lg font-bold">Meine Aufgaben</h2>
-            {(meine ?? []).length === 0 ? <p className="mt-2 text-ink-soft">Nichts offen. Aufgaben weist man in der Checkliste eines Moduls oder in einer Sitzung zu.</p> : (
+            <h2 className="font-display text-lg font-bold">{t.meineAufgaben}</h2>
+            {(meine ?? []).length === 0 ? <p className="mt-2 text-ink-soft">{t.nichtsOffen}</p> : (
               <ul className="mt-3 divide-y divide-line">
                 {(meine ?? []).map((a) => (
                   <li key={a.id} className="flex items-start gap-3 py-2.5">
                     <form action={aufgabeUmschalten}>
                       <input type="hidden" name="id" value={a.id} /><input type="hidden" name="erledigt" value="1" /><input type="hidden" name="zurueck" value="/team/" />
-                      <button type="submit" aria-label={`„${a.title}“ erledigt`} className="mt-0.5 h-5 w-5 rounded-full ring-2 ring-ink/25 transition hover:bg-gruen-hell hover:ring-sage" />
+                      <button type="submit" aria-label={t.erledigt(a.title)} className="mt-0.5 h-5 w-5 rounded-full ring-2 ring-ink/25 transition hover:bg-gruen-hell hover:ring-sage" />
                     </form>
                     <span className="min-w-0">
                       <span className="block font-medium">{a.title}</span>
@@ -186,18 +300,18 @@ export default async function TeamStart({ searchParams }: PageProps<"/team">) {
 
           <section className="karte">
             <div className="flex items-center gap-2">
-              <h2 className="font-display mr-auto text-lg font-bold">Fristen bis {datum.format(new Date(`${inZweiWochen}T12:00:00Z`))}</h2>
-              {ueberfaellig > 0 && <span className="chip bg-rot-hell text-rot"><CircleAlert aria-hidden className="mr-1 h-3.5 w-3.5" />{ueberfaellig} überfällig</span>}
+              <h2 className="font-display mr-auto text-lg font-bold">{t.fristenBis(datum.format(new Date(`${inZweiWochen}T12:00:00Z`)))}</h2>
+              {ueberfaellig > 0 && <span className="chip bg-rot-hell text-rot"><CircleAlert aria-hidden className="mr-1 h-3.5 w-3.5" />{t.ueberfaellig(ueberfaellig)}</span>}
             </div>
             <ul className="mt-3 divide-y divide-line text-sm">
               {(hotels ?? []).map((h) => (
                 <li key={h.name} className="flex gap-3 py-2.5 font-semibold text-rot">
-                  <span className="w-20 shrink-0">{datum.format(new Date(`${h.cancellation_deadline}T12:00:00Z`))}</span><span>Stornofrist {h.name} ({h.module?.title})</span>
+                  <span className="w-20 shrink-0">{datum.format(new Date(`${h.cancellation_deadline}T12:00:00Z`))}</span><span>{t.stornofrist(h.name, h.module?.title)}</span>
                 </li>
               ))}
               {(hausaufgaben ?? []).map((h) => (
                 <li key={h.number} className="flex gap-3 py-2.5">
-                  <span className="w-20 shrink-0 text-ink-soft">{datum.format(new Date(`${h.due_date}T12:00:00Z`))}</span><span>Hausaufgabe {h.number}: {h.title}</span>
+                  <span className="w-20 shrink-0 text-ink-soft">{datum.format(new Date(`${h.due_date}T12:00:00Z`))}</span><span>{t.hausaufgabe(h.number, h.title)}</span>
                 </li>
               ))}
               {(fristen ?? []).map((a) => (
@@ -206,7 +320,7 @@ export default async function TeamStart({ searchParams }: PageProps<"/team">) {
                   {a.module ? <Link href={`/team/module/${a.module.id}/checkliste/`} className="hover:underline">{a.title}</Link> : <span>{a.title}</span>}
                 </li>
               ))}
-              {!(hotels ?? []).length && !(hausaufgaben ?? []).length && !(fristen ?? []).length && <li className="py-2.5 text-ink-soft">Keine Fristen in den nächsten zwei Wochen.</li>}
+              {!(hotels ?? []).length && !(hausaufgaben ?? []).length && !(fristen ?? []).length && <li className="py-2.5 text-ink-soft">{t.keineFristen}</li>}
             </ul>
           </section>
         </div>

@@ -4,8 +4,10 @@ import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useRef, useState, useSyncExternalStore } from "react";
 import { abhaken, scannen, walkIn, zuruecknehmen } from "@/lib/aktionen/einlass";
 import { istGueltigesFormat, kurzcodeAnzeige, normalisiereCode } from "@/lib/codes";
-import { anmeldestatus, deute, uhrzeit, zugehoerigkeit, type EinlassAntwort, type EinlassErgebnis, type Zaehler } from "@/lib/einlass";
+import { anmeldestatusTexte, deute, uhrzeit, zugehoerigkeitTexte, type EinlassAntwort, type EinlassErgebnis, type Zaehler } from "@/lib/einlass";
 import { aufraeumen, listeSpeichern, offlinePruefen, warteschlange, warteschlangeAbonnieren, warteschlangeSetzen, type OfflineEintrag } from "@/lib/offline-einlass";
+import type { TeamSprache } from "@/lib/team-sprache";
+import { teamTexte } from "@/lib/team-texte";
 import { Scanner } from "./Scanner";
 
 export type ListenEintrag = OfflineEintrag & { attendance_id: string | null };
@@ -21,6 +23,137 @@ type Props = {
   liste: ListenEintrag[] | null;
   darfZeitfensterIgnorieren: boolean;
   darfWalkIn: boolean;
+  sprache?: TeamSprache;
+};
+
+const de = {
+  syncMeldung: (ok: number, abgelehnt: string[]) =>
+    `${ok} Offline-Check-in${ok === 1 ? "" : "s"} übertragen.${abgelehnt.length ? ` Nicht übernommen: ${abgelehnt.join("; ")}` : ""}`,
+  zuruecknehmenFrage: (name: string) => `Check-in von ${name} zurücknehmen?`,
+  liveStand: "Live-Stand",
+  von: (erwartet: number) => ` von ${erwartet}`,
+  eingecheckt: (offen: number) => `eingecheckt${offen > 0 ? ` (+${offen} offline vorgemerkt)` : ""}`,
+  stand: (z: Zaehler) =>
+    `${z.no_reply ? `${z.no_reply} ohne Rückmeldung · ` : ""}${z.waitlist} auf der Warteliste · ${z.excused} entschuldigt oder abgemeldet`,
+  zeitfenster: "Einlass auch außerhalb des Zeitfensters zulassen (nur Vorstand und Admin)",
+  offline: "Offline: Scans werden auf diesem Gerät geprüft und vorgemerkt. Die Seite prüft alle 10 Sekunden, ob die Verbindung wieder da ist.",
+  warten: (n: number) => `${n} Check-in${n === 1 ? "" : "s"} warten auf Übertragung.`,
+  synchronisieren: "Jetzt synchronisieren",
+  keinTicket: "Für dieses Modul gibt es kein Ticket.",
+  listeAbhaken: "Anwesende bitte in der Anwesenheitsliste abhaken",
+  weiterUnten: " (weiter unten)",
+  helferNichts: "Die Anwesenheit hakt das Orga-Team in der Liste ab. Als Einlass-Helfer:in ist hier nichts einzutragen.",
+  kurzcode: "Kurzcode eingeben",
+  pruefen: "Prüfen",
+  prueft: "Prüfe …",
+  walkIn: "Walk-in: nicht angemeldete Person erfassen",
+  email: "E-Mail (optional, dann kommt das Ticket per Mail)",
+  zugehoerigkeit: "Zugehörigkeit",
+  einwilligung: "Die Person ist einverstanden, dass ihre Angaben zur Organisation der SES Academy verarbeitet werden.",
+  trotzdem: "Trotzdem als neue Person anlegen (es ist jemand anderes mit gleichem Namen)",
+  erfassen: "Erfassen und einchecken",
+  speichert: "Speichere …",
+  walkInOffline: "Walk-ins brauchen Internet. Ohne Verbindung wird nichts gespeichert.",
+  liste: "Anwesenheitsliste",
+  suchen: "Name oder Code suchen",
+  daSeit: (zeit: string) => `da seit ${zeit}`,
+  zuruecknehmen: "zurücknehmen",
+  abhaken: "Abhaken",
+  keineEintraege: "Keine Einträge.",
+  keineAntwort: "Keine Antwort vom Server.",
+  nochmal: " Springt die Zeile nicht gleich auf „da“, bitte noch einmal tippen.",
+  veranstaltung: "Veranstaltung",
+  anmeldung: "Anmeldung",
+  geprueftUm: (zeit: string) => `Geprüft um ${zeit} Uhr`,
+};
+
+/**
+ * Türkisch: Einlass = „giriş“, Anwesenheitsliste = „yoklama listesi“, Kurzcode = „kısa kod“, Walk-in = „kapıda kayıt“;
+ * keine Endungen an Zahlen und Namen (hingen von der Aussprache ab). Französisch: Einlass = „accueil“, Check-in = „entrée“,
+ * Walk-in = „inscription sur place“.
+ */
+const T: Record<TeamSprache, typeof de> = {
+  de,
+  tr: {
+    syncMeldung: (ok, abgelehnt) =>
+      `${ok} çevrimdışı giriş aktarıldı.${abgelehnt.length ? ` Kabul edilmeyenler: ${abgelehnt.join("; ")}` : ""}`,
+    zuruecknehmenFrage: (name) => `${name}: giriş geri alınsın mı?`,
+    liveStand: "Anlık durum",
+    von: (erwartet) => ` / ${erwartet}`,
+    eingecheckt: (offen) => `giriş yaptı${offen > 0 ? ` (+${offen} çevrimdışı sırada)` : ""}`,
+    stand: (z) =>
+      `${z.no_reply ? `${z.no_reply} cevap yok · ` : ""}${z.waitlist} bekleme listesinde · ${z.excused} mazeretli ya da kaydını iptal etti`,
+    zeitfenster: "Giriş saatleri dışında da girişe izin ver (yalnızca yönetim kurulu ve yönetici)",
+    offline: "Çevrimdışı: Okutulan kodlar bu cihazda kontrol edilip sıraya alınıyor. Sayfa her 10 saniyede bir bağlantının geri gelip gelmediğini kontrol ediyor.",
+    warten: (n) => `${n} giriş aktarılmayı bekliyor.`,
+    synchronisieren: "Şimdi aktar",
+    keinTicket: "Bu modül için bilet yok.",
+    listeAbhaken: "Gelenleri lütfen yoklama listesinde işaretle",
+    weiterUnten: " (aşağıda)",
+    helferNichts: "Katılımı organizasyon ekibi listede işaretler. Giriş görevlisi olarak burada bir şey girmen gerekmiyor.",
+    kurzcode: "Kısa kodu gir",
+    pruefen: "Kontrol et",
+    prueft: "Bekle …",
+    walkIn: "Kapıda kayıt: kayıtlı olmayan kişiyi ekle",
+    email: "E-posta (isteğe bağlı; girilirse bilet e-postayla gelir)",
+    zugehoerigkeit: "Üyelik durumu",
+    einwilligung: "Kişi, bilgilerinin SES Academy organizasyonu için işlenmesini kabul ediyor.",
+    trotzdem: "Yine de yeni kişi olarak ekle (aynı adı taşıyan başka biri)",
+    erfassen: "Ekle ve giriş yap",
+    speichert: "Kaydediliyor …",
+    walkInOffline: "Kapıda kayıt için internet gerekir. Bağlantı yoksa hiçbir şey kaydedilmez.",
+    liste: "Yoklama listesi",
+    suchen: "Ad veya kod ara",
+    daSeit: (zeit) => `burada · ${zeit}`,
+    zuruecknehmen: "geri al",
+    abhaken: "İşaretle",
+    keineEintraege: "Kayıt yok.",
+    keineAntwort: "Sunucudan yanıt yok.",
+    nochmal: " Satır hemen “burada” olarak değişmezse lütfen bir kez daha dokun.",
+    veranstaltung: "Etkinlik",
+    anmeldung: "Kayıt",
+    geprueftUm: (zeit) => `Kontrol saati: ${zeit}`,
+  },
+  fr: {
+    syncMeldung: (ok, abgelehnt) =>
+      `${ok} entrée${ok > 1 ? "s" : ""} hors ligne transmise${ok > 1 ? "s" : ""}.${abgelehnt.length ? ` Non prises en compte\u00a0: ${abgelehnt.join("\u00a0; ")}` : ""}`,
+    zuruecknehmenFrage: (name) => `Annuler l’entrée de ${name}\u00a0?`,
+    liveStand: "État en direct",
+    von: (erwartet) => ` sur ${erwartet}`,
+    eingecheckt: (offen) => `entrées enregistrées${offen > 0 ? ` (+${offen} en attente hors ligne)` : ""}`,
+    stand: (z) =>
+      `${z.no_reply ? `${z.no_reply} sans réponse · ` : ""}${z.waitlist} sur liste d’attente · ${z.excused} excusé·e·s ou désinscrit·e·s`,
+    zeitfenster: "Autoriser l’entrée hors des horaires d’accueil (bureau et admin uniquement)",
+    offline: "Hors ligne\u00a0: les scans sont vérifiés et mis en attente sur cet appareil. La page vérifie toutes les 10 secondes si la connexion est revenue.",
+    warten: (n) => `${n} entrée${n > 1 ? "s" : ""} en attente de transmission.`,
+    synchronisieren: "Synchroniser",
+    keinTicket: "Pas de billet pour ce module.",
+    listeAbhaken: "Coche les personnes présentes dans la liste de présence",
+    weiterUnten: " (plus bas)",
+    helferNichts: "L’équipe d’organisation coche les présences dans la liste. En tant que bénévole d’accueil, tu n’as rien à saisir ici.",
+    kurzcode: "Saisir le code court",
+    pruefen: "Vérifier",
+    prueft: "En cours …",
+    walkIn: "Sur place\u00a0: ajouter une personne non inscrite",
+    email: "E-mail (facultatif, le billet est alors envoyé par e-mail)",
+    zugehoerigkeit: "Statut",
+    einwilligung: "La personne accepte que ses données soient traitées pour l’organisation de la SES Academy.",
+    trotzdem: "Créer quand même une nouvelle personne (c’est quelqu’un d’autre du même nom)",
+    erfassen: "Ajouter et valider l’entrée",
+    speichert: "Enregistrement …",
+    walkInOffline: "Les inscriptions sur place nécessitent internet. Sans connexion, rien n’est enregistré.",
+    liste: "Liste de présence",
+    suchen: "Chercher un nom ou un code",
+    daSeit: (zeit) => `arrivé·e à ${zeit}`,
+    zuruecknehmen: "annuler",
+    abhaken: "Cocher",
+    keineEintraege: "Aucun résultat.",
+    keineAntwort: "Pas de réponse du serveur.",
+    nochmal: " Si la ligne n’affiche pas tout de suite «\u00a0arrivé·e\u00a0», appuie encore une fois.",
+    veranstaltung: "Événement",
+    anmeldung: "Inscription",
+    geprueftUm: (zeit) => `Vérifié à ${zeit}`,
+  },
 };
 
 const tonKlassen = {
@@ -43,7 +176,11 @@ function suchform(text: string) {
   return text.toLocaleLowerCase("de").replace(/ı/g, "i").replace(/ß/g, "ss").normalize("NFD").replace(/[\u0300-\u036f]/g, "");
 }
 
-export function Einlass({ tagId, modulTitel, ticketNoetig, zaehler: start, offlineListe, liste, darfZeitfensterIgnorieren, darfWalkIn }: Props) {
+export function Einlass({ tagId, modulTitel, ticketNoetig, zaehler: start, offlineListe, liste, darfZeitfensterIgnorieren, darfWalkIn, sprache = "de" }: Props) {
+  const t = T[sprache];
+  const wort = teamTexte[sprache].wort;
+  const zugehoerigkeit = zugehoerigkeitTexte[sprache];
+  const anmeldestatus = anmeldestatusTexte[sprache];
   const router = useRouter();
   const eingabeRef = useRef<HTMLInputElement>(null);
   const [zaehler, setZaehler] = useState(start);
@@ -103,7 +240,7 @@ export function Einlass({ tagId, modulTitel, ticketNoetig, zaehler: start, offli
         const a = await mitFrist(scannen(s.tagId, s.code, "offline_sync", false, s.gescanntUm));
         verbindung(true);
         if (a.ergebnis.result === "checked_in" || a.ergebnis.result === "already_checked_in") ok++;
-        else abgelehnt.push(`${s.name}: ${deute(a.ergebnis).titel}`);
+        else abgelehnt.push(`${s.name}${sprache === "fr" ? "\u00a0" : ""}: ${deute(a.ergebnis, sprache).titel}`);
         if (s.tagId === tagId && a.zaehler) setZaehler(a.zaehler);
       } catch {
         rest.push(s); // immer noch offline
@@ -112,10 +249,10 @@ export function Einlass({ tagId, modulTitel, ticketNoetig, zaehler: start, offli
     if (rest.length) verbindung(false);
     warteschlangeSetzen(rest);
     if (ok || abgelehnt.length) {
-      setSyncMeldung(`${ok} Offline-Check-in${ok === 1 ? "" : "s"} übertragen.${abgelehnt.length ? ` Nicht übernommen: ${abgelehnt.join("; ")}` : ""}`);
+      setSyncMeldung(T[sprache].syncMeldung(ok, abgelehnt));
       router.refresh();
     }
-  }, [router, tagId, verbindung]);
+  }, [router, tagId, verbindung, sprache]);
 
   // Online/offline verfolgen, beim Wiederverbinden automatisch übertragen, sonst alle 30 s live aktualisieren
   useEffect(() => {
@@ -238,7 +375,7 @@ export function Einlass({ tagId, modulTitel, ticketNoetig, zaehler: start, offli
   }
 
   function listeZuruecknehmen(p: ListenEintrag) {
-    if (!p.attendance_id || !confirm(`Check-in von ${p.display_name} zurücknehmen?`)) return;
+    if (!p.attendance_id || !confirm(t.zuruecknehmenFrage(p.display_name))) return;
     starte(async () => {
       let ok = false;
       try {
@@ -288,17 +425,17 @@ export function Einlass({ tagId, modulTitel, ticketNoetig, zaehler: start, offli
     .sort((a, b) => a.display_name.localeCompare(b.display_name, "de"));
 
   const liveStand = zaehler && (
-    <section aria-label="Live-Stand" className="rounded-3xl bg-white/80 p-4 text-center ring-1 ring-line lg:p-6">
+    <section aria-label={t.liveStand} className="rounded-3xl bg-white/80 p-4 text-center ring-1 ring-line lg:p-6">
       <p className="font-display text-4xl font-bold tabular-nums lg:text-6xl">
         {zaehler.checked_in}
-        <span className="text-2xl text-ink-soft lg:text-3xl"> von {zaehler.expected}</span>
+        <span className="text-2xl text-ink-soft lg:text-3xl">{t.von(zaehler.expected)}</span>
       </p>
-      <p className="mt-1 font-semibold">eingecheckt{offen > 0 ? ` (+${offen} offline vorgemerkt)` : ""}</p>
+      <p className="mt-1 font-semibold">{t.eingecheckt(offen)}</p>
       <div className="mx-auto mt-3 h-2 max-w-sm overflow-hidden rounded-full bg-paper-deep" aria-hidden>
         <div className="h-full rounded-full bg-forest" style={{ width: `${zaehler.expected ? Math.min(100, (zaehler.checked_in / zaehler.expected) * 100) : 0}%` }} />
       </div>
       <p className="mt-2 text-sm text-ink-soft">
-        {zaehler.no_reply ? `${zaehler.no_reply} ohne Rückmeldung · ` : ""}{zaehler.waitlist} auf der Warteliste · {zaehler.excused} entschuldigt oder abgemeldet
+        {t.stand(zaehler)}
       </p>
     </section>
   );
@@ -306,7 +443,7 @@ export function Einlass({ tagId, modulTitel, ticketNoetig, zaehler: start, offli
   const zeitfensterHaken = darfZeitfensterIgnorieren && (
     <label className="mt-4 flex items-center gap-2 text-sm">
       <input type="checkbox" checked={zeitfensterIgnorieren} onChange={(e) => setZeitfensterIgnorieren(e.target.checked)} className="h-4 w-4" />
-      Einlass auch außerhalb des Zeitfensters zulassen (nur Vorstand und Admin)
+      {t.zeitfenster}
     </label>
   );
 
@@ -316,12 +453,12 @@ export function Einlass({ tagId, modulTitel, ticketNoetig, zaehler: start, offli
       <div className="grid grid-cols-[minmax(0,1fr)] gap-6">
       {(!online || offen > 0 || syncMeldung) && (
         <section role="status" className={`rounded-3xl p-4 ring-1 ${online ? "bg-white/80 ring-line" : "bg-amber-100 text-amber-950 ring-amber-500"}`}>
-          {!online && <p className="font-semibold">Offline: Scans werden auf diesem Gerät geprüft und vorgemerkt. Die Seite prüft alle 10 Sekunden, ob die Verbindung wieder da ist.</p>}
+          {!online && <p className="font-semibold">{t.offline}</p>}
           {offen > 0 && (
             <div className="mt-1 flex flex-wrap items-center gap-3">
-              <p>{offen} Check-in{offen === 1 ? "" : "s"} warten auf Übertragung.</p>
+              <p>{t.warten(offen)}</p>
               <button type="button" onClick={() => starte(synchronisieren)} disabled={laeuft} className="knopf">
-                Jetzt synchronisieren
+                {t.synchronisieren}
               </button>
             </div>
           )}
@@ -333,21 +470,21 @@ export function Einlass({ tagId, modulTitel, ticketNoetig, zaehler: start, offli
 
       {!ticketNoetig ? (
         <section className="rounded-3xl bg-amber-100 p-5 text-amber-950 ring-1 ring-amber-500">
-          <p className="font-semibold">Für dieses Modul gibt es kein Ticket.</p>
+          <p className="font-semibold">{t.keinTicket}</p>
           <p className="mt-1">
             {liste
-              ? <>Anwesende bitte in der Anwesenheitsliste abhaken<span className="lg:hidden"> (weiter unten)</span>.</>
-              : "Die Anwesenheit hakt das Orga-Team in der Liste ab. Als Einlass-Helfer:in ist hier nichts einzutragen."}
+              ? <>{t.listeAbhaken}<span className="lg:hidden">{t.weiterUnten}</span>.</>
+              : t.helferNichts}
           </p>
           {zeitfensterHaken}
-          {ergebnis && <div ref={karteRef} className="mt-4 scroll-mt-20"><Ergebniskarte ergebnis={ergebnis} zeit={ergebnisZeit} /></div>}
+          {ergebnis && <div ref={karteRef} className="mt-4 scroll-mt-20"><Ergebniskarte ergebnis={ergebnis} zeit={ergebnisZeit} sprache={sprache} /></div>}
         </section>
       ) : (
       <section className="rounded-3xl bg-white/60 p-5 ring-1 ring-line">
-        {ergebnis && <div ref={karteRef} className="mb-5 scroll-mt-20"><Ergebniskarte ergebnis={ergebnis} zeit={ergebnisZeit} /></div>}
+        {ergebnis && <div ref={karteRef} className="mb-5 scroll-mt-20"><Ergebniskarte ergebnis={ergebnis} zeit={ergebnisZeit} sprache={sprache} /></div>}
 
         <form onSubmit={codeAbsenden}>
-          <label htmlFor="kurzcode" className="mb-1.5 block font-semibold">Kurzcode eingeben</label>
+          <label htmlFor="kurzcode" className="mb-1.5 block font-semibold">{t.kurzcode}</label>
           <div className="flex gap-2">
             <input
               ref={eingabeRef} id="kurzcode" value={code} onChange={(e) => setCode(e.target.value)}
@@ -355,13 +492,13 @@ export function Einlass({ tagId, modulTitel, ticketNoetig, zaehler: start, offli
               className="min-w-0 flex-1 rounded-2xl bg-white px-4 py-4 font-mono text-2xl tracking-widest uppercase ring-1 ring-line outline-none focus:ring-2 focus:ring-ink"
             />
             <button type="submit" disabled={laeuft || !code.trim()} className="shrink-0 rounded-2xl bg-ink px-6 font-semibold text-paper disabled:opacity-50">
-              {laeuft ? "Prüfe …" : "Prüfen"}
+              {laeuft ? t.prueft : t.pruefen}
             </button>
           </div>
         </form>
 
         <div className="mt-6">
-          <Scanner onCode={vomScanner} onKeineKamera={() => eingabeRef.current?.focus()} />
+          <Scanner onCode={vomScanner} onKeineKamera={() => eingabeRef.current?.focus()} sprache={sprache} />
         </div>
 
         {zeitfensterHaken}
@@ -370,32 +507,32 @@ export function Einlass({ tagId, modulTitel, ticketNoetig, zaehler: start, offli
 
       {darfWalkIn && (
         <details className="rounded-3xl bg-white/60 p-5 ring-1 ring-line">
-          <summary className="cursor-pointer font-display text-xl font-bold">Walk-in: nicht angemeldete Person erfassen</summary>
+          <summary className="cursor-pointer font-display text-xl font-bold">{t.walkIn}</summary>
           <form onSubmit={walkInAbsenden} className="mt-4 grid gap-3 sm:grid-cols-2">
-            <div><label htmlFor="wi-vorname" className="etikett">Vorname</label><input id="wi-vorname" name="vorname" required className="feld" /></div>
-            <div><label htmlFor="wi-nachname" className="etikett">Nachname</label><input id="wi-nachname" name="nachname" className="feld" /></div>
+            <div><label htmlFor="wi-vorname" className="etikett">{wort.vorname}</label><input id="wi-vorname" name="vorname" required className="feld" /></div>
+            <div><label htmlFor="wi-nachname" className="etikett">{wort.nachname}</label><input id="wi-nachname" name="nachname" className="feld" /></div>
             <div>
-              <label htmlFor="wi-email" className="etikett">E-Mail (optional, dann kommt das Ticket per Mail)</label>
+              <label htmlFor="wi-email" className="etikett">{t.email}</label>
               <input id="wi-email" name="email" type="email" className="feld" />
             </div>
             <div>
-              <label htmlFor="wi-zugehoerigkeit" className="etikett">Zugehörigkeit</label>
+              <label htmlFor="wi-zugehoerigkeit" className="etikett">{t.zugehoerigkeit}</label>
               <select id="wi-zugehoerigkeit" name="zugehoerigkeit" defaultValue="guest" className="feld">
                 {Object.entries(zugehoerigkeit).map(([w, n]) => <option key={w} value={w}>{n}</option>)}
               </select>
             </div>
             <label className="flex gap-2 text-sm sm:col-span-2">
               <input type="checkbox" name="einwilligung" value="ja" required className="mt-0.5 h-4 w-4 shrink-0" />
-              Die Person ist einverstanden, dass ihre Angaben zur Organisation der SES Academy verarbeitet werden.
+              {t.einwilligung}
             </label>
             {doppelt && (
               <label className="flex gap-2 rounded-2xl bg-amber-100 p-3 text-sm text-amber-950 sm:col-span-2">
                 <input type="checkbox" name="trotzdem" value="ja" className="mt-0.5 h-4 w-4 shrink-0" />
-                Trotzdem als neue Person anlegen (es ist jemand anderes mit gleichem Namen)
+                {t.trotzdem}
               </label>
             )}
-            <button type="submit" disabled={laeuft} className="knopf sm:justify-self-start">{laeuft ? "Speichere …" : "Erfassen und einchecken"}</button>
-            {!online && <p className="text-sm text-ink-soft sm:col-span-2">Walk-ins brauchen Internet. Ohne Verbindung wird nichts gespeichert.</p>}
+            <button type="submit" disabled={laeuft} className="knopf sm:justify-self-start">{laeuft ? t.speichert : t.erfassen}</button>
+            {!online && <p className="text-sm text-ink-soft sm:col-span-2">{t.walkInOffline}</p>}
           </form>
         </details>
       )}
@@ -406,8 +543,8 @@ export function Einlass({ tagId, modulTitel, ticketNoetig, zaehler: start, offli
       {gefiltert && (
         <section className="rounded-3xl bg-white/60 p-5 ring-1 ring-line lg:flex lg:max-h-[calc(100vh-15rem)] lg:flex-col">
           <div className="flex flex-wrap items-end justify-between gap-3">
-            <h2 className="font-display text-xl font-bold">Anwesenheitsliste</h2>
-            <input type="search" aria-label="Name oder Code suchen" value={suche} onChange={(e) => setSuche(e.target.value)} placeholder="Name oder Code suchen"
+            <h2 className="font-display text-xl font-bold">{t.liste}</h2>
+            <input type="search" aria-label={t.suchen} value={suche} onChange={(e) => setSuche(e.target.value)} placeholder={t.suchen}
               className="rounded-full bg-white px-4 py-2 ring-1 ring-line outline-none focus:ring-2 focus:ring-ink" />
           </div>
           <ul className="mt-4 divide-y divide-line lg:-mr-2 lg:min-h-0 lg:overflow-y-auto lg:pr-2">
@@ -422,22 +559,22 @@ export function Einlass({ tagId, modulTitel, ticketNoetig, zaehler: start, offli
                 </div>
                 {p.checked_in_at ? (
                   <>
-                    <span className="rounded-full bg-emerald-100 px-3 py-1 text-sm font-semibold text-emerald-950">da seit {uhrzeit(p.checked_in_at, false)}</span>
+                    <span className="rounded-full bg-emerald-100 px-3 py-1 text-sm font-semibold text-emerald-950">{t.daSeit(uhrzeit(p.checked_in_at, false, sprache))}</span>
                     <button type="button" disabled={laeuft || !p.attendance_id} onClick={() => listeZuruecknehmen(p)} className="text-sm font-semibold text-ink-soft underline">
-                      zurücknehmen
+                      {t.zuruecknehmen}
                     </button>
                   </>
                 ) : p.registration_status === "confirmed" ? (
                   <button type="button" disabled={laeuft} onClick={() => listeAbhaken(p)}
                     className="rounded-full bg-ink px-4 py-2 text-sm font-semibold text-paper disabled:opacity-50">
-                    Abhaken
+                    {t.abhaken}
                   </button>
                 ) : null}
-                {zeilenHinweis?.id === p.participant_id && <ZeilenHinweis ergebnis={zeilenHinweis.ergebnis} />}
+                {zeilenHinweis?.id === p.participant_id && <ZeilenHinweis ergebnis={zeilenHinweis.ergebnis} sprache={sprache} />}
               </li>
             ))}
           </ul>
-          {gefiltert.length === 0 && <p className="mt-4 text-ink-soft">Keine Einträge.</p>}
+          {gefiltert.length === 0 && <p className="mt-4 text-ink-soft">{t.keineEintraege}</p>}
         </section>
       )}
       </div>
@@ -445,18 +582,20 @@ export function Einlass({ tagId, modulTitel, ticketNoetig, zaehler: start, offli
   );
 }
 
-function ZeilenHinweis({ ergebnis }: { ergebnis: EinlassErgebnis }) {
-  const { ton, titel, text } = deute(ergebnis);
+function ZeilenHinweis({ ergebnis, sprache }: { ergebnis: EinlassErgebnis; sprache: TeamSprache }) {
+  const t = T[sprache];
+  const { ton, titel, text } = deute(ergebnis, sprache);
   return (
     <p role="status" className={`w-full rounded-2xl px-3 py-2 text-sm ring-1 ${tonKlassen[ton]}`}>
-      <span className="font-semibold">{ergebnis.result === "fehler" ? "Keine Antwort vom Server." : titel}</span>
-      {ergebnis.result === "fehler" ? " Springt die Zeile nicht gleich auf „da“, bitte noch einmal tippen." : text ? ` ${text}` : ""}
+      <span className="font-semibold">{ergebnis.result === "fehler" ? t.keineAntwort : titel}</span>
+      {ergebnis.result === "fehler" ? t.nochmal : text ? ` ${text}` : ""}
     </p>
   );
 }
 
-function Ergebniskarte({ ergebnis, zeit }: { ergebnis: EinlassErgebnis; zeit: string | null }) {
-  const { ton, titel, text } = deute(ergebnis);
+function Ergebniskarte({ ergebnis, zeit, sprache }: { ergebnis: EinlassErgebnis; zeit: string | null; sprache: TeamSprache }) {
+  const t = T[sprache];
+  const { ton, titel, text } = deute(ergebnis, sprache);
   return (
     <section role="status" aria-live="assertive" className={`rounded-3xl p-5 ring-2 sm:p-6 ${tonKlassen[ton]}`}>
       {ergebnis.display_name && <p className="font-display text-3xl font-bold leading-tight sm:text-4xl">{ergebnis.display_name}</p>}
@@ -464,13 +603,13 @@ function Ergebniskarte({ ergebnis, zeit }: { ergebnis: EinlassErgebnis; zeit: st
       {text && <p className="mt-1">{text}</p>}
       {ergebnis.display_name && (
         <dl className="mt-4 hidden gap-x-6 gap-y-1 text-sm sm:grid sm:grid-cols-3">
-          {ergebnis.affiliation_status && <div><dt className="opacity-70">Zugehörigkeit</dt><dd className="font-semibold">{zugehoerigkeit[ergebnis.affiliation_status]}</dd></div>}
-          {ergebnis.module_title && <div><dt className="opacity-70">Veranstaltung</dt><dd className="font-semibold">{ergebnis.module_title}</dd></div>}
-          {ergebnis.registration_status && <div><dt className="opacity-70">Anmeldung</dt><dd className="font-semibold">{anmeldestatus[ergebnis.registration_status]}</dd></div>}
+          {ergebnis.affiliation_status && <div><dt className="opacity-70">{t.zugehoerigkeit}</dt><dd className="font-semibold">{zugehoerigkeitTexte[sprache][ergebnis.affiliation_status]}</dd></div>}
+          {ergebnis.module_title && <div><dt className="opacity-70">{t.veranstaltung}</dt><dd className="font-semibold">{ergebnis.module_title}</dd></div>}
+          {ergebnis.registration_status && <div><dt className="opacity-70">{t.anmeldung}</dt><dd className="font-semibold">{anmeldestatusTexte[sprache][ergebnis.registration_status]}</dd></div>}
         </dl>
       )}
       {/* Gleicher Fehler zweimal hintereinander: an der Uhrzeit sieht man, dass neu geprüft wurde */}
-      {zeit && <p className="mt-3 text-xs opacity-70">Geprüft um {uhrzeit(zeit)} Uhr</p>}
+      {zeit && <p className="mt-3 text-xs opacity-70">{t.geprueftUm(uhrzeit(zeit, true, sprache))}</p>}
     </section>
   );
 }

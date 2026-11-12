@@ -2,13 +2,65 @@
 
 import jsQR from "jsqr";
 import { useCallback, useEffect, useRef, useState } from "react";
+import type { TeamSprache } from "@/lib/team-sprache";
 
 type Props = {
   /** Wird mit dem gelesenen QR-Inhalt aufgerufen. Während das Promise läuft, pausiert die Erkennung. */
   onCode: (inhalt: string) => Promise<void>;
   /** Kamera geht nicht: Die Seite soll auf die Codeeingabe umlenken. */
   onKeineKamera: () => void;
+  sprache?: TeamSprache;
 };
+
+const de = {
+  start: "Kamera starten und den QR-Code in den Rahmen halten.",
+  unsicher: "Die Kamera funktioniert nur über eine sichere Verbindung (https). Bitte den Kurzcode eingeben.",
+  keinZugriff: "Dieser Browser erlaubt keinen Kamerazugriff. Bitte den Kurzcode eingeben.",
+  aktiv: "Scanner aktiv. Er liest Code für Code weiter, ohne neu zu starten.",
+  verweigert: "Kamerazugriff wurde verweigert. In den Browser-Einstellungen erlauben oder den Kurzcode eingeben.",
+  keineKamera: "Keine Kamera gefunden. Bitte den Kurzcode eingeben.",
+  belegt: "Die Kamera wird gerade von einer anderen App benutzt. Bitte die App schließen oder den Kurzcode eingeben.",
+  fehler: "Kamera konnte nicht geöffnet werden. Bitte den Kurzcode eingeben.",
+  starten: "Kamera starten",
+  stoppen: "Kamera stoppen",
+  lampeAus: "Taschenlampe aus",
+  lampeAn: "Taschenlampe an",
+};
+
+// Türkisch „okuyucu“ (QR-Leser) statt „tarayıcı“, das dort auch „Browser“ heißt
+const T: Record<TeamSprache, typeof de> = {
+  de,
+  tr: {
+    start: "Kamerayı başlat ve QR kodu çerçevenin içine tut.",
+    unsicher: "Kamera yalnızca güvenli bağlantıda (https) çalışır. Lütfen kısa kodu gir.",
+    keinZugriff: "Bu tarayıcı kameraya erişime izin vermiyor. Lütfen kısa kodu gir.",
+    aktiv: "QR okuyucu açık. Yeniden başlatmadan kodları art arda okur.",
+    verweigert: "Kamera erişimi reddedildi. Tarayıcı ayarlarından izin ver ya da kısa kodu gir.",
+    keineKamera: "Kamera bulunamadı. Lütfen kısa kodu gir.",
+    belegt: "Kamera şu anda başka bir uygulama tarafından kullanılıyor. Lütfen o uygulamayı kapat ya da kısa kodu gir.",
+    fehler: "Kamera açılamadı. Lütfen kısa kodu gir.",
+    starten: "Kamerayı başlat",
+    stoppen: "Kamerayı durdur",
+    lampeAus: "Feneri kapat",
+    lampeAn: "Feneri aç",
+  },
+  fr: {
+    start: "Démarre la caméra et place le QR code dans le cadre.",
+    unsicher: "La caméra ne fonctionne qu’avec une connexion sécurisée (https). Saisis le code court.",
+    keinZugriff: "Ce navigateur n’autorise pas l’accès à la caméra. Saisis le code court.",
+    aktiv: "Scanner actif. Il lit les codes les uns après les autres, sans redémarrer.",
+    verweigert: "Accès à la caméra refusé. Autorise-le dans les réglages du navigateur ou saisis le code court.",
+    keineKamera: "Aucune caméra trouvée. Saisis le code court.",
+    belegt: "La caméra est utilisée par une autre application. Ferme cette application ou saisis le code court.",
+    fehler: "Impossible d’ouvrir la caméra. Saisis le code court.",
+    starten: "Démarrer la caméra",
+    stoppen: "Arrêter la caméra",
+    lampeAus: "Éteindre la lampe",
+    lampeAn: "Allumer la lampe",
+  },
+};
+
+type Hinweis = "start" | "unsicher" | "keinZugriff" | "aktiv" | "verweigert" | "keineKamera" | "belegt" | "fehler";
 
 // Taschenlampe ist (noch) nicht in den Standard-Typen von TypeScript.
 type MitTaschenlampe = MediaTrackCapabilities & { torch?: boolean };
@@ -16,7 +68,8 @@ type MitTaschenlampe = MediaTrackCapabilities & { torch?: boolean };
 const GLEICHER_CODE_SPERRE_MS = 4000; // derselbe Code wird so lange nicht erneut gesendet
 const PRUEF_ABSTAND_MS = 120; // nicht jedes Videobild auswerten, schont den Akku
 
-export function Scanner({ onCode, onKeineKamera }: Props) {
+export function Scanner({ onCode, onKeineKamera, sprache = "de" }: Props) {
+  const t = T[sprache];
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const streamRef = useRef<MediaStream | null>(null);
@@ -31,7 +84,8 @@ export function Scanner({ onCode, onKeineKamera }: Props) {
   }, [onCode]);
 
   const [laeuft, setLaeuft] = useState(false);
-  const [hinweis, setHinweis] = useState("Kamera starten und den QR-Code in den Rahmen halten.");
+  // Schlüssel statt Text: so passt der Hinweis auch nach einem Sprachwechsel
+  const [hinweis, setHinweis] = useState<Hinweis>("start");
   const [lampeMoeglich, setLampeMoeglich] = useState(false);
   const [lampeAn, setLampeAn] = useState(false);
   const [treffer, setTreffer] = useState(false);
@@ -84,12 +138,12 @@ export function Scanner({ onCode, onKeineKamera }: Props) {
 
   async function starten() {
     if (!window.isSecureContext) {
-      setHinweis("Die Kamera funktioniert nur über eine sichere Verbindung (https). Bitte den Kurzcode eingeben.");
+      setHinweis("unsicher");
       onKeineKamera();
       return;
     }
     if (!navigator.mediaDevices?.getUserMedia) {
-      setHinweis("Dieser Browser erlaubt keinen Kamerazugriff. Bitte den Kurzcode eingeben.");
+      setHinweis("keinZugriff");
       onKeineKamera();
       return;
     }
@@ -104,18 +158,18 @@ export function Scanner({ onCode, onKeineKamera }: Props) {
       }
       aktivRef.current = true;
       setLaeuft(true);
-      setHinweis("Scanner aktiv. Er liest Code für Code weiter, ohne neu zu starten.");
+      setHinweis("aktiv");
       pruefen();
     } catch (e) {
       const name = e instanceof DOMException ? e.name : "";
       setHinweis(
         name === "NotAllowedError"
-          ? "Kamerazugriff wurde verweigert. In den Browser-Einstellungen erlauben oder den Kurzcode eingeben."
+          ? "verweigert"
           : name === "NotFoundError" || name === "OverconstrainedError"
-            ? "Keine Kamera gefunden. Bitte den Kurzcode eingeben."
+            ? "keineKamera"
             : name === "NotReadableError"
-              ? "Die Kamera wird gerade von einer anderen App benutzt. Bitte die App schließen oder den Kurzcode eingeben."
-              : "Kamera konnte nicht geöffnet werden. Bitte den Kurzcode eingeben.",
+              ? "belegt"
+              : "fehler",
       );
       stoppen();
       onKeineKamera();
@@ -142,7 +196,7 @@ export function Scanner({ onCode, onKeineKamera }: Props) {
         <video ref={videoRef} className="h-full w-full object-cover" muted playsInline />
         {!laeuft && (
           <div className="absolute inset-0 flex items-center justify-center p-6 text-center text-paper/80">
-            <p>{hinweis}</p>
+            <p>{t[hinweis]}</p>
           </div>
         )}
         {laeuft && (
@@ -156,21 +210,21 @@ export function Scanner({ onCode, onKeineKamera }: Props) {
           </div>
         )}
       </div>
-      {laeuft && <p className="mt-3 text-sm text-ink-soft">{hinweis}</p>}
+      {laeuft && <p className="mt-3 text-sm text-ink-soft">{t[hinweis]}</p>}
       <div className="mt-3 flex flex-wrap gap-2">
         {!laeuft ? (
           <button type="button" onClick={starten} className="rounded-full bg-ink px-6 py-3 font-semibold text-paper hover:bg-forest">
-            Kamera starten
+            {t.starten}
           </button>
         ) : (
           <button type="button" onClick={stoppen} className="rounded-full bg-white/80 px-6 py-3 font-semibold ring-1 ring-line">
-            Kamera stoppen
+            {t.stoppen}
           </button>
         )}
         {laeuft && lampeMoeglich && (
           <button type="button" onClick={lampeUmschalten} aria-pressed={lampeAn}
             className={`rounded-full px-6 py-3 font-semibold ring-1 ring-line ${lampeAn ? "bg-signal" : "bg-white/80"}`}>
-            {lampeAn ? "Taschenlampe aus" : "Taschenlampe an"}
+            {lampeAn ? t.lampeAus : t.lampeAn}
           </button>
         )}
       </div>

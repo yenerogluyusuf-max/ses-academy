@@ -12,6 +12,7 @@
 // Alles ist deterministisch: gleiche Angaben ergeben denselben Vorschlag (wichtig, weil „Übernehmen“ neu rechnet).
 
 import { faltName, finde, type Person as NamensPerson } from "@/lib/import/namen";
+import type { TeamSprache } from "@/lib/team-sprache";
 
 // ── Wünsche verstehen ──────────────────────────────────────────────────────────
 
@@ -73,7 +74,51 @@ export type PlanPerson = {
 export type PlanZimmer = { id: string; label: string; capacity: number; vorgabe?: "w" | "m" | null };
 export type Grund = "fest" | "wunsch_gegenseitig" | "wunsch" | "gemischt" | "einzelzimmer";
 export type Belegung = { id: string; grund: Grund };
-export type Hinweis = { personId: string; text: string };
+/** Angaben für den Text eines Hinweises: gewünschte Person bzw. Namen einer Gruppe, Größe der Gruppe. */
+export type HinweisWerte = { name?: string; anzahl?: number };
+
+/** Hinweise zum Vorschlag; die Seite stellt sie hinter den fett gesetzten Namen der Person. */
+const hinweisDe = {
+  ohne_nacht: (w: HinweisWerte) => `wünscht sich ${w.name}, die/der aber keine Übernachtung angegeben hat`,
+  anderes_geschlecht: (w: HinweisWerte) => `wünscht sich ${w.name} (anderes Geschlecht, nicht eingeplant)`,
+  naechte: (w: HinweisWerte) => `wünscht sich ${w.name}, aber die Nächte passen nicht zusammen (nicht zusammen eingeplant)`,
+  wunsch_vergeben: (w: HinweisWerte) => `wünscht sich ${w.name}, die/der sich aber jemand anderen wünscht`,
+  gruppe_zu_gross: (w: HinweisWerte) => `Wunschgruppe mit ${w.anzahl} Personen (${w.name}) passt in kein Zimmer`,
+  kein_zimmer: (w: HinweisWerte) => `kein Zimmer frei für ${w.name} zusammen`,
+  einzelzimmer: () => "wünscht sich ein Einzelzimmer, es ist aber keins frei",
+  geschlecht_fehlt: () => "Geschlecht fehlt, bitte von Hand einteilen oder eintragen",
+  kein_bett: () => "hat kein Bett mehr: weitere Zimmer anlegen",
+};
+export type HinweisArt = keyof typeof hinweisDe;
+
+/** Dieselben Hinweise in der Sprache des Team-Bereichs (text im Hinweis bleibt die deutsche Fassung). */
+export const hinweisTexte: Record<TeamSprache, Record<HinweisArt, (w: HinweisWerte) => string>> = {
+  de: hinweisDe,
+  tr: {
+    ohne_nacht: (w) => `${w.name} ile kalmak istiyor, ancak o konaklama bildirmemiş`,
+    anderes_geschlecht: (w) => `${w.name} ile kalmak istiyor (farklı cinsiyet, planlanmadı)`,
+    naechte: (w) => `${w.name} ile kalmak istiyor, ancak geceler uyuşmuyor (birlikte planlanmadı)`,
+    wunsch_vergeben: (w) => `${w.name} ile kalmak istiyor, ancak o başka biriyle kalmak istiyor`,
+    gruppe_zu_gross: (w) => `${w.anzahl} kişilik istek grubu (${w.name}) hiçbir odaya sığmıyor`,
+    kein_zimmer: (w) => `${w.name} için birlikte boş oda yok`,
+    einzelzimmer: () => "tek kişilik oda istiyor, ancak boş tek kişilik oda yok",
+    geschlecht_fehlt: () => "cinsiyet bilgisi eksik, lütfen elle yerleştir ya da bilgiyi gir",
+    kein_bett: () => "için yatak kalmadı: başka odalar ekle",
+  },
+  fr: {
+    ohne_nacht: (w) => `souhaite être avec ${w.name}, qui n’a pas indiqué de nuitée`,
+    anderes_geschlecht: (w) => `souhaite être avec ${w.name} (autre sexe, non planifié)`,
+    naechte: (w) => `souhaite être avec ${w.name}, mais les nuits ne correspondent pas (pas planifiés ensemble)`,
+    wunsch_vergeben: (w) => `souhaite être avec ${w.name}, qui souhaite être avec quelqu’un d’autre`,
+    gruppe_zu_gross: (w) => `le groupe souhaité de ${w.anzahl} personnes (${w.name}) ne tient dans aucune chambre`,
+    kein_zimmer: (w) => `aucune chambre libre pour ${w.name} ensemble`,
+    einzelzimmer: () => "souhaite une chambre individuelle, mais aucune n’est libre",
+    geschlecht_fehlt: () => "sexe non renseigné\u00a0: répartir à la main ou le renseigner",
+    kein_bett: () => "n’a plus de lit\u00a0: ajouter des chambres",
+  },
+};
+
+export type Hinweis = { personId: string; text: string; art: HinweisArt } & HinweisWerte;
 export type Ergebnis = {
   zimmer: (PlanZimmer & { belegung: Belegung[] })[];
   ohneZimmer: string[];
@@ -98,6 +143,7 @@ export function planen(personen: PlanPerson[], zimmerListe: PlanZimmer[], verlau
   const teilmenge = (a: string, b: string) => { const nb = new Set(byId.get(b)?.nights ?? []); return (byId.get(a)?.nights ?? []).every((n) => nb.has(n)); };
   const name = (id: string) => byId.get(id)?.name ?? "?";
   const hinweise: Hinweis[] = [];
+  const melde = (personId: string, art: HinweisArt, werte: HinweisWerte = {}) => hinweise.push({ personId, art, ...werte, text: hinweisDe[art](werte) });
   const zimmer = [...zimmerListe].sort((a, b) => a.label.localeCompare(b.label, "de", { numeric: true }))
     .map((z) => ({ ...z, belegung: [] as Belegung[], gender: (z.vorgabe ?? null) as string | null, naechte: new Set<string>() }));
   const zimmerVon = new Map<string, (typeof zimmer)[number]>();
@@ -125,14 +171,14 @@ export function planen(personen: PlanPerson[], zimmerListe: PlanZimmer[], verlau
     for (const w of new Set(p.wuensche)) {
       const q = byId.get(w);
       if (!q) continue;
-      if (!brauchtSet.has(w)) { hinweise.push({ personId: p.id, text: `wünscht sich ${q.name}, die/der aber keine Übernachtung angegeben hat` }); continue; }
-      if (p.gender && q.gender && p.gender !== q.gender) { hinweise.push({ personId: p.id, text: `wünscht sich ${q.name} (anderes Geschlecht, nicht eingeplant)` }); continue; }
+      if (!brauchtSet.has(w)) { melde(p.id, "ohne_nacht", { name: q.name }); continue; }
+      if (p.gender && q.gender && p.gender !== q.gender) { melde(p.id, "anderes_geschlecht", { name: q.name }); continue; }
       // Zusammen geht, wenn die Nächte der einen in denen der anderen liegen (Zimmer ab der früheren Anreise)
-      if (!teilmenge(p.id, w) && !teilmenge(w, p.id)) { hinweise.push({ personId: p.id, text: `wünscht sich ${q.name}, aber die Nächte passen nicht zusammen (nicht zusammen eingeplant)` }); continue; }
+      if (!teilmenge(p.id, w) && !teilmenge(w, p.id)) { melde(p.id, "naechte", { name: q.name }); continue; }
       const gegenseitig = q.wuensche.includes(p.id);
       if (gegenseitig && p.id > w) continue;   // gegenseitige Paare nur einmal
       if (!gegenseitig && q.wuensche.some((x) => x !== p.id && brauchtSet.has(x))) {
-        hinweise.push({ personId: p.id, text: `wünscht sich ${q.name}, die/der sich aber jemand anderen wünscht` });
+        melde(p.id, "wunsch_vergeben", { name: q.name });
         continue;
       }
       kanten.push({ a: p.id, b: w, gegenseitig });
@@ -154,7 +200,7 @@ export function planen(personen: PlanPerson[], zimmerListe: PlanZimmer[], verlau
   for (const g of gruppen.values()) {
     if (g.length <= groessteZimmer) { gruppenListe.push(g); continue; }
     // zu groß für jedes Zimmer: nur gegenseitige Paare zusammenhalten, Rest einzeln
-    hinweise.push({ personId: g[0], text: `Wunschgruppe mit ${g.length} Personen (${g.map(name).join(", ")}) passt in kein Zimmer` });
+    melde(g[0], "gruppe_zu_gross", { anzahl: g.length, name: g.map(name).join(", ") });
     zuGross.push(g);
   }
   for (const g of zuGross) {
@@ -185,14 +231,14 @@ export function planen(personen: PlanPerson[], zimmerListe: PlanZimmer[], verlau
       .sort((a, b) => konflikte(offen, a) - konflikte(offen, b) || (frei(a) - offen.length) - (frei(b) - offen.length)
         || b.belegung.length - a.belegung.length);
     if (kandidaten[0]) offen.forEach((id) => legeAb(kandidaten[0], id, grundVon(id)));
-    else hinweise.push({ personId: g[0], text: `kein Zimmer frei für ${offen.map(name).join(", ")} zusammen` });
+    else melde(g[0], "kein_zimmer", { name: offen.map(name).join(", ") });
   }
 
   // Einzelzimmer-Wünsche: nur wenn es ein freies Einzelzimmer gibt
   for (const p of brauchen.filter((x) => x.einzelzimmer && !zimmerVon.has(x.id))) {
     const z = zimmer.find((x) => x.capacity === 1 && x.belegung.length === 0);
     if (z) legeAb(z, p.id, "einzelzimmer");
-    else hinweise.push({ personId: p.id, text: "wünscht sich ein Einzelzimmer, es ist aber keins frei" });
+    else melde(p.id, "einzelzimmer");
   }
 
   // 4. Alle übrigen durchmischen: nach Nächten gebündelt (wer länger bleibt zuerst, damit die Zimmer je Anreise voll
@@ -201,7 +247,7 @@ export function planen(personen: PlanPerson[], zimmerListe: PlanZimmer[], verlau
     .sort((a, b) => b.nights.length - a.nights.length || naechteVon(a.id).localeCompare(naechteVon(b.id)) || streuwert(a.id) - streuwert(b.id));
   const ohneZimmer: string[] = [];
   for (const p of rest) {
-    if (!p.gender) hinweise.push({ personId: p.id, text: "Geschlecht fehlt, bitte von Hand einteilen oder eintragen" });
+    if (!p.gender) melde(p.id, "geschlecht_fehlt");
     const punkte = (z: (typeof zimmer)[number]) =>
       100 * konflikte([p.id], z)
       + 10 * z.belegung.filter((b) => p.region && byId.get(b.id)!.region === p.region).length
@@ -215,7 +261,7 @@ export function planen(personen: PlanPerson[], zimmerListe: PlanZimmer[], verlau
     if (ziel) legeAb(ziel, p.id, "gemischt");
     else ohneZimmer.push(p.id);
   }
-  for (const id of ohneZimmer) hinweise.push({ personId: id, text: "hat kein Bett mehr: weitere Zimmer anlegen" });
+  for (const id of ohneZimmer) melde(id, "kein_bett");
 
   const wiederholungen = zimmer.flatMap((z) => z.belegung.flatMap((a, i) => z.belegung.slice(i + 1)
     .filter((b) => verlauf.has(`${a.id}|${b.id}`)).map((b) => ({ zimmerId: z.id, a: a.id, b: b.id }))));

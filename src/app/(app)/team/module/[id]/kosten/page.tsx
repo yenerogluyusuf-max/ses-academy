@@ -7,22 +7,135 @@ import { Rueckfrage } from "@/components/team/Rueckfrage";
 import { TeamKopf } from "@/components/team/TeamKopf";
 import { kostenEntfernen, kostenSpeichern } from "@/lib/aktionen/logistik";
 import { darf, requireStaff } from "@/lib/auth";
-import { euro } from "@/lib/betrag";
 import { istToken } from "@/lib/codes";
 import { createClient } from "@/lib/supabase/server";
+import { teamLocale, type TeamSprache } from "@/lib/team-sprache";
+import { teamTexte } from "@/lib/team-texte";
 import { naechte } from "@/lib/uebernachtung";
 
 export const metadata: Metadata = { title: "Kosten | SES Academy" };
 
-const hinweise: Record<string, { text: string; gut: boolean }> = {
-  kosten: { text: "Posten gespeichert.", gut: true },
-  "kosten-entfernt": { text: "Posten entfernt.", gut: true },
-  eingabe: { text: "Bitte Bezeichnung und Betrag angeben, z. B. 1.250,50.", gut: false },
-  fehler: { text: "Das hat nicht geklappt.", gut: false },
+const de = {
+  hinweise: {
+    kosten: { text: "Posten gespeichert.", gut: true },
+    "kosten-entfernt": { text: "Posten entfernt.", gut: true },
+    eingabe: { text: "Bitte Bezeichnung und Betrag angeben, z. B. 1.250,50.", gut: false },
+    fehler: { text: "Das hat nicht geklappt.", gut: false },
+  } as Record<string, { text: string; gut: boolean }>,
+  kategorie: { verpflegung: "Verpflegung", raum: "Raum", technik: "Technik", reise: "Reise", material: "Material", sonstiges: "Sonstiges" } as Record<string, string>,
+  rolle: { vortrag: "Vortrag", podium: "Podium", laendergruppe: "Ländergruppe", workshop: "Workshop", grusswort: "Grußwort", moderation: "Moderation", diskussion: "Diskussion" } as Record<string, string>,
+  summen: { hotel: "Hotel", honorare: "Honorare", reise: "Reisekosten", sonstiges: "Sonstiges", gesamt: "Gesamt" },
+  hotel: "Hotel",
+  hotelsUnterLogistik: "Hotels und Preise unter Logistik",
+  keinHotel: "Noch kein Hotel angelegt.",
+  zimmerBelegt: "Zimmer belegt",
+  zimmernaechte: "Zimmernächte",
+  preis: "Preis je Zimmer und Nacht",
+  summe: "Summe",
+  vonZimmern: (belegt: number, alle: number) => `${belegt} von ${alle}`,
+  preisFehlt: "Preis fehlt",
+  geschaetztTitel: "Noch niemand eingeteilt: Kontingent × Nächte × Preis",
+  geschaetzt: (zimmer: number | null, naechte: number) => `geschätzt: ${zimmer} Zimmer × ${naechte} Nächte`,
+  zimmernaechteErklaerung: "Zimmernächte aus dem Zimmerplan: Jedes belegte Zimmer zählt von der ersten bis zur letzten Nacht seiner Gäste. Ohne Einteilung wird mit dem Kontingent geschätzt.",
+  honorareReise: "Honorare und Reisekosten",
+  betraegeUnterReferenten: "Beträge unter Referenten",
+  keineReferenten: "Noch keine zugesagten Referent:innen.",
+  referent: "Referent:in",
+  rolleSpalte: "Rolle",
+  honorar: "Honorar",
+  reisekosten: "Reisekosten",
+  sonstigePosten: "Sonstige Posten",
+  entfernen: "entfernen",
+  entfernenJa: "Ja, entfernen",
+  entfernenFrage: (posten: string) => `Posten „${posten}“ entfernen?`,
+  bezeichnung: "Bezeichnung",
+  bezeichnungBeispiel: "z. B. Mittagessen Samstag",
+  art: "Art",
+  betrag: "Betrag (€)",
+  betragBeispiel: "1.250,50",
 };
 
-const kategorieName: Record<string, string> = { verpflegung: "Verpflegung", raum: "Raum", technik: "Technik", reise: "Reise", material: "Material", sonstiges: "Sonstiges" };
-const rolleName: Record<string, string> = { vortrag: "Vortrag", podium: "Podium", laendergruppe: "Ländergruppe", workshop: "Workshop", grusswort: "Grußwort", moderation: "Moderation", diskussion: "Diskussion" };
+const T: Record<TeamSprache, typeof de> = {
+  de,
+  tr: {
+    hinweise: {
+      kosten: { text: "Kalem kaydedildi.", gut: true },
+      "kosten-entfernt": { text: "Kalem kaldırıldı.", gut: true },
+      eingabe: { text: "Lütfen açıklama ve tutar gir, ör. 1.250,50.", gut: false },
+      fehler: { text: teamTexte.tr.meldung.fehler, gut: false },
+    },
+    kategorie: { verpflegung: "Yemek", raum: "Salon", technik: "Teknik", reise: "Yol", material: "Malzeme", sonstiges: "Diğer" },
+    rolle: { vortrag: "Konuşma", podium: "Panel", laendergruppe: "Ülke grubu", workshop: "Atölye", grusswort: "Selamlama", moderation: "Moderasyon", diskussion: "Tartışma" },
+    summen: { hotel: "Otel", honorare: "Ücretler", reise: "Yol masrafları", sonstiges: "Diğer", gesamt: "Toplam" },
+    hotel: "Otel",
+    hotelsUnterLogistik: "Oteller ve fiyatlar Lojistik altında",
+    keinHotel: "Henüz otel eklenmedi.",
+    zimmerBelegt: "Dolu oda",
+    zimmernaechte: "Oda-gece",
+    preis: "Oda başına gecelik fiyat",
+    summe: "Tutar",
+    vonZimmern: (belegt, alle) => `${belegt} / ${alle}`,
+    preisFehlt: "Fiyat eksik",
+    geschaetztTitel: "Henüz kimse yerleştirilmedi: kontenjan × gece × fiyat",
+    geschaetzt: (zimmer, naechte) => `tahmini: ${zimmer} oda × ${naechte} gece`,
+    zimmernaechteErklaerung: "Oda-geceler oda planından: Her dolu oda, misafirlerinin ilk gecesinden son gecesine kadar sayılır. Yerleştirme yoksa kontenjanla tahmin edilir.",
+    honorareReise: "Ücretler ve yol masrafları",
+    betraegeUnterReferenten: "Tutarlar Konuşmacılar altında",
+    keineReferenten: "Henüz katılımı kesinleşen konuşmacı yok.",
+    referent: "Konuşmacı",
+    rolleSpalte: "Rol",
+    honorar: "Ücret",
+    reisekosten: "Yol masrafları",
+    sonstigePosten: "Diğer kalemler",
+    entfernen: "kaldır",
+    entfernenJa: "Evet, kaldır",
+    entfernenFrage: (posten) => `„${posten}“ kalemi kaldırılsın mı?`,
+    bezeichnung: "Açıklama",
+    bezeichnungBeispiel: "ör. cumartesi öğle yemeği",
+    art: "Tür",
+    betrag: "Tutar (€)",
+    betragBeispiel: "1.250,50",
+  },
+  fr: {
+    hinweise: {
+      kosten: { text: "Poste enregistré.", gut: true },
+      "kosten-entfernt": { text: "Poste supprimé.", gut: true },
+      eingabe: { text: "Merci d’indiquer un libellé et un montant, p. ex. 1250,50.", gut: false },
+      fehler: { text: teamTexte.fr.meldung.fehler, gut: false },
+    },
+    kategorie: { verpflegung: "Repas", raum: "Salle", technik: "Technique", reise: "Voyage", material: "Matériel", sonstiges: "Divers" },
+    rolle: { vortrag: "Conférence", podium: "Table ronde", laendergruppe: "Groupe par pays", workshop: "Atelier", grusswort: "Mot d’accueil", moderation: "Animation", diskussion: "Discussion" },
+    summen: { hotel: "Hôtel", honorare: "Honoraires", reise: "Frais de déplacement", sonstiges: "Divers", gesamt: "Total" },
+    hotel: "Hôtel",
+    hotelsUnterLogistik: "Hôtels et prix dans Logistique",
+    keinHotel: "Aucun hôtel ajouté pour l’instant.",
+    zimmerBelegt: "Chambres occupées",
+    zimmernaechte: "Nuitées-chambres",
+    preis: "Prix par chambre et par nuit",
+    summe: "Somme",
+    vonZimmern: (belegt, alle) => `${belegt} sur ${alle}`,
+    preisFehlt: "Prix manquant",
+    geschaetztTitel: "Personne n’est encore réparti\u00a0: contingent × nuits × prix",
+    geschaetzt: (zimmer, naechte) => `estimé\u00a0: ${zimmer} chambres × ${naechte} nuits`,
+    zimmernaechteErklaerung: "Nuitées-chambres d’après le plan des chambres\u00a0: chaque chambre occupée compte de la première à la dernière nuit de ses occupants. Sans répartition, l’estimation se fait avec le contingent.",
+    honorareReise: "Honoraires et frais de déplacement",
+    betraegeUnterReferenten: "Montants dans Intervenants",
+    keineReferenten: "Pas encore d’intervenants confirmés.",
+    referent: "Intervenant·e",
+    rolleSpalte: "Rôle",
+    honorar: "Honoraires",
+    reisekosten: "Frais de déplacement",
+    sonstigePosten: "Autres postes",
+    entfernen: "supprimer",
+    entfernenJa: "Oui, supprimer",
+    entfernenFrage: (posten) => `Supprimer le poste «\u00a0${posten}\u00a0»\u00a0?`,
+    bezeichnung: "Libellé",
+    bezeichnungBeispiel: "p. ex. déjeuner du samedi",
+    art: "Catégorie",
+    betrag: "Montant (€)",
+    betragBeispiel: "1250,50",
+  },
+};
 
 /**
  * Kostenübersicht eines Moduls (ab Orga-Team): Hotel (Zimmer × Nächte × Preis je Zimmer und Nacht, aus dem Zimmerplan),
@@ -31,6 +144,12 @@ const rolleName: Record<string, string> = { vortrag: "Vortrag", podium: "Podium"
  */
 export default async function Kosten({ params, searchParams }: PageProps<"/team/module/[id]/kosten">) {
   const staff = await requireStaff("orga");
+  const l = staff.sprache;
+  const t = T[l];
+  const w = teamTexte[l].wort;
+  // Wie euro() aus lib/betrag, aber im Zahlenformat der Sprache des Team-Bereichs
+  const euroFormat = new Intl.NumberFormat(teamLocale[l], { style: "currency", currency: "EUR" });
+  const euro = (n: number) => euroFormat.format(n);
   const { id } = await params;
   const { hinweis } = await searchParams;
   if (!istToken(id)) notFound();
@@ -67,37 +186,37 @@ export default async function Kosten({ params, searchParams }: PageProps<"/team/
   return (
     <>
       <TeamKopf staff={staff} aktiv={darf.alles(staff.role) ? "module" : "logistik"} breit />
-      <main className="mx-auto max-w-6xl px-4 py-8">
+      <main lang={l} className="mx-auto max-w-6xl px-4 py-8">
         <ModulReiter id={id} titel={modul.title} aktiv="kosten/" />
-        <Hinweis code={hinweis} texte={hinweise} />
+        <Hinweis code={hinweis} texte={t.hinweise} />
 
         <section className="mt-6 grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
-          {[["Hotel", hotelSumme], ["Honorare", honorarSumme], ["Reisekosten", reiseSumme], ["Sonstiges", sonstigeSumme], ["Gesamt", gesamt]].map(([n, w]) => (
-            <div key={n} className={`rounded-3xl p-5 ring-1 ring-line ${n === "Gesamt" ? "bg-gelb-hell" : "bg-weiss"}`}>
-              <span className="font-display block text-2xl font-extrabold">{euro(w as number)}</span>
-              <span className="mt-1 block text-sm text-ink-soft">{n}</span>
+          {([["hotel", hotelSumme], ["honorare", honorarSumme], ["reise", reiseSumme], ["sonstiges", sonstigeSumme], ["gesamt", gesamt]] as const).map(([n, wert]) => (
+            <div key={n} className={`rounded-3xl p-5 ring-1 ring-line ${n === "gesamt" ? "bg-gelb-hell" : "bg-weiss"}`}>
+              <span className="font-display block text-2xl font-extrabold">{euro(wert)}</span>
+              <span className="mt-1 block text-sm text-ink-soft">{t.summen[n]}</span>
             </div>
           ))}
         </section>
 
         <section className="karte relative mt-6 overflow-x-auto">
           <div className="flex flex-wrap items-baseline gap-3">
-            <h2 className="font-display mr-auto text-xl font-bold">Hotel</h2>
-            <Link href={`/team/module/${id}/hotel/`} className="text-sm font-semibold underline">Hotels und Preise unter Logistik</Link>
+            <h2 className="font-display mr-auto text-xl font-bold">{t.hotel}</h2>
+            <Link href={`/team/module/${id}/hotel/`} className="text-sm font-semibold underline">{t.hotelsUnterLogistik}</Link>
           </div>
-          {hotelZeilen.length === 0 ? <p className="mt-3 text-ink-soft">Noch kein Hotel angelegt.</p> : (
+          {hotelZeilen.length === 0 ? <p className="mt-3 text-ink-soft">{t.keinHotel}</p> : (
             <table className="tabelle mt-4 min-w-[34rem]">
-              <thead><tr><th>Hotel</th><th className="text-right">Zimmer belegt</th><th className="text-right">Zimmernächte</th><th className="text-right">Preis je Zimmer und Nacht</th><th className="text-right">Summe</th></tr></thead>
+              <thead><tr><th>{t.hotel}</th><th className="text-right">{t.zimmerBelegt}</th><th className="text-right">{t.zimmernaechte}</th><th className="text-right">{t.preis}</th><th className="text-right">{t.summe}</th></tr></thead>
               <tbody>
                 {hotelZeilen.map((h) => (
                   <tr key={h.id}>
                     <td className="font-semibold">{h.name}</td>
-                    <td className="text-right">{h.belegt} von {h.rooms.length}</td>
+                    <td className="text-right">{t.vonZimmern(h.belegt, h.rooms.length)}</td>
                     <td className="text-right">{h.zimmerNaechte}</td>
-                    <td className="text-right">{h.preis === null ? <span className="chip bg-gelb-hell">Preis fehlt</span> : euro(h.preis)}</td>
+                    <td className="text-right">{h.preis === null ? <span className="chip bg-gelb-hell">{t.preisFehlt}</span> : euro(h.preis)}</td>
                     <td className="text-right font-semibold">
                       {h.summe !== null && h.zimmerNaechte > 0 ? euro(h.summe)
-                        : h.schaetzung !== null ? <span title="Noch niemand eingeteilt: Kontingent × Nächte × Preis">{euro(h.schaetzung)} <span className="block text-xs font-normal text-ink-soft">geschätzt: {h.quota_rooms} Zimmer × {modulNaechte} Nächte</span></span>
+                        : h.schaetzung !== null ? <span title={t.geschaetztTitel}>{euro(h.schaetzung)} <span className="block text-xs font-normal text-ink-soft">{t.geschaetzt(h.quota_rooms, modulNaechte)}</span></span>
                         : "–"}
                     </td>
                   </tr>
@@ -105,22 +224,22 @@ export default async function Kosten({ params, searchParams }: PageProps<"/team/
               </tbody>
             </table>
           )}
-          <p className="mt-3 text-xs text-ink-soft">Zimmernächte aus dem Zimmerplan: Jedes belegte Zimmer zählt von der ersten bis zur letzten Nacht seiner Gäste. Ohne Einteilung wird mit dem Kontingent geschätzt.</p>
+          <p className="mt-3 text-xs text-ink-soft">{t.zimmernaechteErklaerung}</p>
         </section>
 
         <section className="karte relative mt-6 overflow-x-auto">
           <div className="flex flex-wrap items-baseline gap-3">
-            <h2 className="font-display mr-auto text-xl font-bold">Honorare und Reisekosten</h2>
-            <Link href={`/team/module/${id}/referenten/`} className="text-sm font-semibold underline">Beträge unter Referenten</Link>
+            <h2 className="font-display mr-auto text-xl font-bold">{t.honorareReise}</h2>
+            <Link href={`/team/module/${id}/referenten/`} className="text-sm font-semibold underline">{t.betraegeUnterReferenten}</Link>
           </div>
-          {honorare.length === 0 ? <p className="mt-3 text-ink-soft">Noch keine zugesagten Referent:innen.</p> : (
+          {honorare.length === 0 ? <p className="mt-3 text-ink-soft">{t.keineReferenten}</p> : (
             <table className="tabelle mt-4 min-w-[30rem]">
-              <thead><tr><th>Referent:in</th><th>Rolle</th><th className="text-right">Honorar</th><th className="text-right">Reisekosten</th></tr></thead>
+              <thead><tr><th>{t.referent}</th><th>{t.rolleSpalte}</th><th className="text-right">{t.honorar}</th><th className="text-right">{t.reisekosten}</th></tr></thead>
               <tbody>
                 {honorare.map((r) => (
                   <tr key={r.id}>
                     <td className="font-semibold">{r.speakers?.name ?? "?"}</td>
-                    <td>{rolleName[r.role] ?? r.role}</td>
+                    <td>{t.rolle[r.role] ?? r.role}</td>
                     <td className="text-right">{r.fee === null ? <span className="text-ink-soft">–</span> : euro(r.fee)}</td>
                     <td className="text-right">{r.travel === null ? <span className="text-ink-soft">–</span> : euro(r.travel)}</td>
                   </tr>
@@ -131,16 +250,16 @@ export default async function Kosten({ params, searchParams }: PageProps<"/team/
         </section>
 
         <section className="karte mt-6">
-          <h2 className="font-display text-xl font-bold">Sonstige Posten</h2>
+          <h2 className="font-display text-xl font-bold">{t.sonstigePosten}</h2>
           {sonstiges.length > 0 && (
             <ul className="mt-3 divide-y divide-line">
               {sonstiges.map((p) => (
                 <li key={p.id} className="flex flex-wrap items-center gap-x-3 gap-y-1 py-2.5">
-                  <span className="mr-auto"><span className="font-semibold">{p.label}</span> <span className="chip bg-paper-deep">{kategorieName[p.category] ?? p.category}</span>{p.note && <span className="block text-sm text-ink-soft">{p.note}</span>}</span>
+                  <span className="mr-auto"><span className="font-semibold">{p.label}</span> <span className="chip bg-paper-deep">{t.kategorie[p.category] ?? p.category}</span>{p.note && <span className="block text-sm text-ink-soft">{p.note}</span>}</span>
                   <span className="font-semibold">{euro(p.amount)}</span>
                   <form action={kostenEntfernen} className="flex flex-wrap">
                     <input type="hidden" name="module_id" value={id} /><input type="hidden" name="id" value={p.id} />
-                    <Rueckfrage knopf="entfernen" knopfKlasse="text-xs font-semibold text-ink-soft underline" gefahr ja="Ja, entfernen" frage={`Posten „${p.label}“ entfernen?`} />
+                    <Rueckfrage sprache={l} knopf={t.entfernen} knopfKlasse="text-xs font-semibold text-ink-soft underline" gefahr ja={t.entfernenJa} frage={t.entfernenFrage(p.label)} />
                   </form>
                 </li>
               ))}
@@ -148,12 +267,12 @@ export default async function Kosten({ params, searchParams }: PageProps<"/team/
           )}
           <form action={kostenSpeichern} className="mt-4 grid gap-3 sm:grid-cols-[2fr_1fr_1fr] lg:grid-cols-[2fr_1fr_1fr_2fr_auto] lg:items-end">
             <input type="hidden" name="module_id" value={id} />
-            <div><label className="etikett" htmlFor="label">Bezeichnung</label><input id="label" name="label" required maxLength={200} className="feld" placeholder="z. B. Mittagessen Samstag" /></div>
-            <div><label className="etikett" htmlFor="category">Art</label>
-              <select id="category" name="category" className="feld">{Object.entries(kategorieName).map(([k, v]) => <option key={k} value={k}>{v}</option>)}</select></div>
-            <div><label className="etikett" htmlFor="amount">Betrag (€)</label><input id="amount" name="amount" required inputMode="decimal" className="feld" placeholder="1.250,50" /></div>
-            <div><label className="etikett" htmlFor="note">Notiz</label><input id="note" name="note" maxLength={1000} className="feld" /></div>
-            <button type="submit" className="knopf">Hinzufügen</button>
+            <div><label className="etikett" htmlFor="label">{t.bezeichnung}</label><input id="label" name="label" required maxLength={200} className="feld" placeholder={t.bezeichnungBeispiel} /></div>
+            <div><label className="etikett" htmlFor="category">{t.art}</label>
+              <select id="category" name="category" className="feld">{Object.entries(t.kategorie).map(([k, v]) => <option key={k} value={k}>{v}</option>)}</select></div>
+            <div><label className="etikett" htmlFor="amount">{t.betrag}</label><input id="amount" name="amount" required inputMode="decimal" className="feld" placeholder={t.betragBeispiel} /></div>
+            <div><label className="etikett" htmlFor="note">{w.notiz}</label><input id="note" name="note" maxLength={1000} className="feld" /></div>
+            <button type="submit" className="knopf">{w.hinzufuegen}</button>
           </form>
         </section>
       </main>

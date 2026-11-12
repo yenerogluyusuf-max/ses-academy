@@ -2,9 +2,40 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { requireStaff } from "@/lib/auth";
 import { istToken } from "@/lib/codes";
+import type { TeamSprache } from "@/lib/team-sprache";
+import { teamTexte } from "@/lib/team-texte";
 import { ladeZimmerplan, probeplan, zimmerArt } from "@/lib/zimmerplan-daten";
 
+// Titel bleibt deutsch: Er ist der Dateiname beim Speichern als PDF, und die Liste geht an ein deutsches Hotel.
 export const metadata: Metadata = { title: "Zimmerliste | SES Academy" };
+
+/**
+ * Leiste über der Liste (nur am Bildschirm) in der Sprache des Team-Bereichs. Die Liste selbst bleibt deutsch:
+ * Sie geht an ein deutsches Hotel.
+ */
+const leiste = {
+  de: {
+    titel: "Zimmerliste",
+    stand: (zimmer: number, gaeste: number) => `${zimmer} Zimmer, ${gaeste} Gäste`,
+    automatisch: (g: 2 | 3) => `automatische Einteilung mit ${zimmerArt[g]}n`,
+    hinweis: "Zum Verschicken ans Hotel die PDF herunterladen. Drucken auf Papier: A4, 100 %, Kopf- und Fußzeilen aus.",
+    pdf: "PDF herunterladen",
+  },
+  tr: {
+    titel: "Oda listesi",
+    stand: (zimmer, gaeste) => `${zimmer} oda, ${gaeste} misafir`,
+    automatisch: (g) => (g === 2 ? "çift kişilik odalarla otomatik dağılım" : "üç kişilik odalarla otomatik dağılım"),
+    hinweis: "Liste otel için Almanca kalır. Otele göndermek için PDF’yi indir. Kâğıda yazdırma: A4, %100, üstbilgi ve altbilgi kapalı.",
+    pdf: "PDF’yi indir",
+  },
+  fr: {
+    titel: "Liste des chambres",
+    stand: (zimmer, gaeste) => `${zimmer} chambres, ${gaeste} personnes`,
+    automatisch: (g) => (g === 2 ? "répartition automatique en chambres doubles" : "répartition automatique en chambres triples"),
+    hinweis: "La liste reste en allemand pour l’hôtel. Pour l’envoyer à l’hôtel, télécharge le PDF. Impression papier\u00a0: A4, 100\u00a0%, en-têtes et pieds de page désactivés.",
+    pdf: "Télécharger le PDF",
+  },
+} satisfies Record<TeamSprache, { titel: string; stand: (zimmer: number, gaeste: number) => string; automatisch: (g: 2 | 3) => string; hinweis: string; pdf: string }>;
 
 const gruen = "#3d7a61";
 const tinte = "#173226";
@@ -22,7 +53,9 @@ const nachtDatum = (n: string, plus = 0) => new Date(Date.parse(`${n}T12:00:00Z`
  * Nur Namen, keine Kontaktdaten.
  */
 export default async function Zimmerliste({ params, searchParams }: PageProps<"/team/module/[id]/zimmerliste">) {
-  await requireStaff("orga");
+  const staff = await requireStaff("orga");
+  const l = staff.sprache;
+  const t = leiste[l];
   const { id } = await params;
   const sp = await searchParams;
   if (!istToken(id)) notFound();
@@ -96,15 +129,15 @@ export default async function Zimmerliste({ params, searchParams }: PageProps<"/
         .fuss { margin-top: 6mm; font-size: 8pt; color: #5d6b63; }
       `}</style>
 
-      <div className="nur-bildschirm sticky top-0 z-10 flex flex-wrap items-center gap-3 border-b border-line bg-paper px-5 py-3 text-sm">
-        <p className="mr-auto"><span className="font-semibold">Zimmerliste · {d.modul.title}{d.hotels.length > 1 && d.hotel ? ` · ${d.hotel.name}` : ""}</span> · {zimmer.length} Zimmer, {gaeste} Gäste{echt ? "" : ` · automatische Einteilung mit ${zimmerArt[groesse]}n`}</p>
-        <p className="text-ink-soft">Zum Verschicken ans Hotel die PDF herunterladen. Drucken auf Papier: A4, 100 %, Kopf- und Fußzeilen aus.</p>
-        <a href={pdfAdresse} className="rounded-full bg-ink px-5 py-2 font-semibold text-paper">PDF herunterladen</a>
-        <button id="drucken" className="rounded-full px-5 py-2 font-semibold ring-1 ring-line">Drucken</button>
+      <div lang={l} className="nur-bildschirm sticky top-0 z-10 flex flex-wrap items-center gap-3 border-b border-line bg-paper px-5 py-3 text-sm">
+        <p className="mr-auto"><span className="font-semibold">{t.titel} · {d.modul.title}{d.hotels.length > 1 && d.hotel ? ` · ${d.hotel.name}` : ""}</span> · {t.stand(zimmer.length, gaeste)}{echt ? "" : ` · ${t.automatisch(groesse)}`}</p>
+        <p className="text-ink-soft">{t.hinweis}</p>
+        <a href={pdfAdresse} className="rounded-full bg-ink px-5 py-2 font-semibold text-paper">{t.pdf}</a>
+        <button id="drucken" className="rounded-full px-5 py-2 font-semibold ring-1 ring-line">{teamTexte[l].wort.drucken}</button>
         <script dangerouslySetInnerHTML={{ __html: "document.getElementById('drucken').onclick=()=>window.print()" }} />
       </div>
 
-      <main className="blatt">
+      <main lang="de" className="blatt">
         <div className="kopf">
           <img src="/brand/ses-logo.png" alt="SES Academy" />
           <span>Zimmerliste · Stand {heute}</span>

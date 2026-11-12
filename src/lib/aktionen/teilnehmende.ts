@@ -7,13 +7,66 @@ import { requireStaff } from "@/lib/auth";
 import { mailBereit, sendeTicketMail } from "@/lib/mail";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
+import type { TeamSprache } from "@/lib/team-sprache";
 
 const leer = (v: FormDataEntryValue | null) => String(v ?? "").trim() || null;
 
+// Fehlermeldungen in der Sprache des Teamkontos (?fehler= zeigt den Text direkt an). Die Prüfungen tragen nur Codes,
+// unbekannte Meldungen (z. B. von zod selbst oder der Datenbank) bleiben wie sie sind.
+const de = {
+  vorname: "Vorname fehlt",
+  email: "E-Mail-Adresse ist ungültig",
+  emailVergeben: "Diese E-Mail-Adresse gehört schon zu einer anderen Person.",
+  titel: "Titel fehlt",
+  link: "Link ist ungültig",
+  slug: "Slug nur a–z, 0–9 und Bindestriche",
+  keineMail: (email: string) => `„${email}“ ist keine gültige E-Mail-Adresse.`,
+  mentorVergeben: "Name oder E-Mail ist schon vergeben.",
+  nichtGespeichert: (ergebnis: string | undefined) => `Nicht gespeichert (${ergebnis}).`,
+  rueckfrage: "Bitte die Rückfrage bestätigen. Es wurde nichts verschickt.",
+  willkommen: (gesendet: number, fehler: number) => `Willkommensmail an ${gesendet} verschickt${fehler ? `, ${fehler} fehlgeschlagen` : ""}.`,
+};
+
+const T: Record<TeamSprache, typeof de> = {
+  de,
+  tr: {
+    vorname: "Ad eksik",
+    email: "E-posta adresi geçersiz",
+    emailVergeben: "Bu e-posta adresi zaten başka bir kişiye ait.",
+    titel: "Başlık eksik",
+    link: "Bağlantı geçersiz",
+    slug: "Slug yalnızca a–z, 0–9 ve kısa çizgi içerebilir",
+    keineMail: (email) => `“${email}” geçerli bir e-posta adresi değil.`,
+    mentorVergeben: "Bu ad veya e-posta zaten kullanılıyor.",
+    nichtGespeichert: (ergebnis) => `Kaydedilmedi (${ergebnis}).`,
+    rueckfrage: "Lütfen onay sorusunu onayla. Hiçbir şey gönderilmedi.",
+    willkommen: (gesendet, fehler) => `Hoş geldin e-postası ${gesendet} kişiye gönderildi${fehler ? `, ${fehler} gönderim başarısız oldu` : ""}.`,
+  },
+  fr: {
+    vorname: "Prénom manquant",
+    email: "Adresse e-mail invalide",
+    emailVergeben: "Cette adresse e-mail appartient déjà à une autre personne.",
+    titel: "Titre manquant",
+    link: "Lien invalide",
+    slug: "Slug uniquement a–z, 0–9 et tirets",
+    keineMail: (email) => `«\u00a0${email}\u00a0» n’est pas une adresse e-mail valide.`,
+    mentorVergeben: "Ce nom ou cet e-mail est déjà utilisé.",
+    nichtGespeichert: (ergebnis) => `Non enregistré (${ergebnis}).`,
+    rueckfrage: "Merci de confirmer la question. Rien n’a été envoyé.",
+    willkommen: (gesendet, fehler) => `E-mail de bienvenue envoyé à ${gesendet} personne${gesendet > 1 ? "s" : ""}${fehler ? `, ${fehler} en échec` : ""}.`,
+  },
+};
+
+/** Text zu einem Prüf-Code aus dem Schema (vorname, email, …), sonst die Meldung selbst. */
+function pruefText(t: typeof de, meldung: string): string {
+  const wert = Object.hasOwn(t, meldung) ? t[meldung as keyof typeof de] : null;
+  return typeof wert === "string" ? wert : meldung;
+}
+
 const schema = z.object({
-  first_name: z.string().trim().min(1, "Vorname fehlt"),
+  first_name: z.string().trim().min(1, "vorname"),
   last_name: z.string().trim(),
-  email: z.email("E-Mail-Adresse ist ungültig").nullable(),
+  email: z.email("email").nullable(),
   phone: z.string().nullable(),
   region_id: z.coerce.number().int().nullable(),
   country: z.enum(["DE", "AT", "FR", "CH", "NL", "BE", "other"]).nullable(),
@@ -25,7 +78,7 @@ const schema = z.object({
 
 /** Stammdaten einer Person speichern (nur admin/vorstand, siehe RLS participants_full). */
 export async function personSpeichern(formData: FormData) {
-  await requireStaff("alles");
+  const t = T[(await requireStaff("alles")).sprache];
   const id = String(formData.get("id"));
   const ziel = `/team/teilnehmende/${id}/`;
   const daten = schema.safeParse({
@@ -40,7 +93,7 @@ export async function personSpeichern(formData: FormData) {
     mentor_id: leer(formData.get("mentor_id")),
     active: formData.get("active") === "on",
   });
-  if (!daten.success) redirect(`${ziel}?fehler=${encodeURIComponent(daten.error.issues[0].message)}`);
+  if (!daten.success) redirect(`${ziel}?fehler=${encodeURIComponent(pruefText(t, daten.error.issues[0].message))}`);
   const supabase = await createClient();
   if (!daten.data.country && daten.data.region_id) {
     const { data: r } = await supabase.from("regions").select("country").eq("id", daten.data.region_id).single();
@@ -50,7 +103,7 @@ export async function personSpeichern(formData: FormData) {
   // Interne Notiz getrennt speichern (Teilnehmende dürfen ihre participants-Zeile lesen)
   // Die Einzelnotiz ist jetzt ein Verlauf (contact_log); nur alte Formulare schicken das Feld noch
   if (!error && formData.has("notes")) await supabase.from("participant_notes").upsert({ participant_id: id, body: String(formData.get("notes") ?? "") });
-  if (error) redirect(`${ziel}?fehler=${encodeURIComponent(error.code === "23505" ? "Diese E-Mail-Adresse gehört schon zu einer anderen Person." : error.message)}`);
+  if (error) redirect(`${ziel}?fehler=${encodeURIComponent(error.code === "23505" ? t.emailVergeben : error.message)}`);
   revalidatePath("/team/", "layout");
   redirect(`${ziel}?hinweis=gespeichert`);
 }
@@ -65,15 +118,15 @@ export async function ticketSenden(formData: FormData) {
 }
 
 export async function beitragHinzufuegen(formData: FormData) {
-  await requireStaff("alles");
+  const t = T[(await requireStaff("alles")).sprache];
   const participant_id = String(formData.get("participant_id"));
   const daten = z
     .object({
       kind: z.enum(["kommentar", "video", "grafik", "podcast", "rede", "artikel"]),
-      title: z.string().trim().min(2, "Titel fehlt"),
-      url: z.url("Link ist ungültig").nullable(),
+      title: z.string().trim().min(2, "titel"),
+      url: z.url("link").nullable(),
       outlet: z.string().nullable(),
-      website_slug: z.string().regex(/^[a-z0-9-]+$/, "Slug nur a–z, 0–9 und Bindestriche").nullable(),
+      website_slug: z.string().regex(/^[a-z0-9-]+$/, "slug").nullable(),
       published_on: z.iso.date().nullable(),
     })
     .safeParse({
@@ -84,7 +137,7 @@ export async function beitragHinzufuegen(formData: FormData) {
       website_slug: leer(formData.get("website_slug")),
       published_on: leer(formData.get("published_on")),
     });
-  if (!daten.success) redirect(`/team/teilnehmende/${participant_id}/?fehler=${encodeURIComponent(daten.error.issues[0].message)}`);
+  if (!daten.success) redirect(`/team/teilnehmende/${participant_id}/?fehler=${encodeURIComponent(pruefText(t, daten.error.issues[0].message))}`);
   const supabase = await createClient();
   const { error } = await supabase.from("contributions").insert({ participant_id, ...daten.data });
   if (error) redirect(`/team/teilnehmende/${participant_id}/?fehler=${encodeURIComponent(error.message)}`);
@@ -102,21 +155,21 @@ export async function beitragEntfernen(formData: FormData) {
 
 /** Verantwortliche (Sorumlu) anlegen oder E-Mail für den Login hinterlegen. */
 export async function mentorSpeichern(formData: FormData) {
-  await requireStaff("alles");
+  const t = T[(await requireStaff("alles")).sprache];
   const id = leer(formData.get("id"));
   const email = leer(formData.get("email"))?.toLowerCase() ?? null;
-  if (email && !z.email().safeParse(email).success) redirect(`/team/teilnehmende/?fehler=${encodeURIComponent(`„${email}“ ist keine gültige E-Mail-Adresse.`)}`);
+  if (email && !z.email().safeParse(email).success) redirect(`/team/teilnehmende/?fehler=${encodeURIComponent(t.keineMail(email))}`);
   const werte = { name: String(formData.get("name") ?? "").trim(), email };
   const supabase = await createClient();
   const { error } = id ? await supabase.from("mentors").update(werte).eq("id", id) : await supabase.from("mentors").insert(werte);
-  if (error) redirect(`/team/teilnehmende/?ansicht=verantwortliche&fehler=${encodeURIComponent(error.code === "23505" ? "Name oder E-Mail ist schon vergeben." : error.message)}`);
+  if (error) redirect(`/team/teilnehmende/?ansicht=verantwortliche&fehler=${encodeURIComponent(error.code === "23505" ? t.mentorVergeben : error.message)}`);
   revalidatePath("/team/teilnehmende/");
   redirect("/team/teilnehmende/?ansicht=verantwortliche&hinweis=gespeichert");
 }
 
 /** Anwesenheit an einem Modultag nachtragen oder zurücknehmen (über die Check-in-Funktionen der Datenbank, mit Protokoll). */
 export async function anwesenheitSetzen(formData: FormData) {
-  await requireStaff("alles");
+  const t = T[(await requireStaff("alles")).sprache];
   const supabase = await createClient();
   const participant = String(formData.get("participant_id"));
   const attendance = leer(formData.get("attendance_id"));
@@ -126,7 +179,7 @@ export async function anwesenheitSetzen(formData: FormData) {
   const ergebnis = (data as { result?: string } | null)?.result;
   revalidatePath(`/team/teilnehmende/${participant}/`);
   if (error || !["checked_in", "already_checked_in", "undone"].includes(ergebnis ?? ""))
-    redirect(`/team/teilnehmende/${participant}/?fehler=${encodeURIComponent(error?.message ?? `Nicht gespeichert (${ergebnis}).`)}`);
+    redirect(`/team/teilnehmende/${participant}/?fehler=${encodeURIComponent(error?.message ?? t.nichtGespeichert(ergebnis))}`);
 }
 
 /**
@@ -135,8 +188,9 @@ export async function anwesenheitSetzen(formData: FormData) {
  */
 export async function willkommenAnAlle(formData: FormData) {
   const staff = await requireStaff("alles");
+  const t = T[staff.sprache];
   // Geht an viele: nur nach der Rückfrage
-  if (formData.get("bestaetigt") !== "ja") redirect("/team/teilnehmende/?fehler=" + encodeURIComponent("Bitte die Rückfrage bestätigen. Es wurde nichts verschickt."));
+  if (formData.get("bestaetigt") !== "ja") redirect("/team/teilnehmende/?fehler=" + encodeURIComponent(t.rueckfrage));
   const db = createAdminClient();
   const [{ data: personen }, { data: schon }] = await Promise.all([
     db.from("participants").select("id").eq("affiliation_status", "academy_student").eq("active", true).not("email", "is", null).is("user_id", null),
@@ -155,5 +209,5 @@ export async function willkommenAnAlle(formData: FormData) {
   }
   await Promise.all(Array.from({ length: 3 }, arbeiter));
   revalidatePath("/team/teilnehmende/");
-  redirect(`/team/teilnehmende/?hinweis=${encodeURIComponent(`Willkommensmail an ${gesendet} verschickt${fehler ? `, ${fehler} fehlgeschlagen` : ""}.`)}`);
+  redirect(`/team/teilnehmende/?hinweis=${encodeURIComponent(t.willkommen(gesendet, fehler))}`);
 }

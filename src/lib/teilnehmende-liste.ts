@@ -3,16 +3,23 @@ import "server-only";
 import { istToken } from "@/lib/codes";
 import { faltName } from "@/lib/import/namen";
 import { createClient } from "@/lib/supabase/server";
+import { teamLocale, type TeamSprache } from "@/lib/team-sprache";
 import { jetztMs } from "@/lib/zeit";
 
 // Teilnehmendenliste mit allen Filtern. Seite, Excel-Export und Rundmail an die Auswahl rechnen damit dieselbe Menge.
+// Texte je Sprache des Team-Bereichs (Standard Deutsch); die Filterbeschreibung für die Rundmail bleibt deutsch (Freigabe).
 
-const tagZahl = new Intl.DateTimeFormat("de-DE", { day: "numeric", timeZone: "Europe/Berlin" });
-const monat = new Intl.DateTimeFormat("de-DE", { month: "short", timeZone: "Europe/Berlin" });
-/** Spaltenkopf eines Moduls: seine Termine statt eines Kürzels, z. B. „14./15. Nov.“ */
-export function termine(tage: { starts_at: string }[]) {
+const datumsTeile = Object.fromEntries((Object.keys(teamLocale) as TeamSprache[]).map((l) => [l, {
+  tagZahl: new Intl.DateTimeFormat(teamLocale[l], { day: "numeric", timeZone: "Europe/Berlin" }),
+  monat: new Intl.DateTimeFormat(teamLocale[l], { month: "short", timeZone: "Europe/Berlin" }),
+}])) as Record<TeamSprache, { tagZahl: Intl.DateTimeFormat; monat: Intl.DateTimeFormat }>;
+
+/** Spaltenkopf eines Moduls: seine Termine statt eines Kürzels, z. B. „14./15. Nov.“ (Türkisch „14/15 Kas“, Französisch „14/15 nov.“) */
+export function termine(tage: { starts_at: string }[], sprache: TeamSprache = "de") {
+  const { tagZahl, monat } = datumsTeile[sprache];
   const d = tage.map((t) => new Date(t.starts_at));
   const monate = [...new Set(d.map((x) => monat.format(x)))];
+  if (sprache !== "de") return monate.length === 1 ? `${d.map((x) => tagZahl.format(x)).join("/")} ${monate[0]}` : d.map((x) => `${tagZahl.format(x)} ${monat.format(x)}`).join(" / ");
   return monate.length === 1 ? `${d.map((x) => tagZahl.format(x)).join("./")}. ${monate[0]}` : d.map((x) => `${tagZahl.format(x)}. ${monat.format(x)}`).join(" / ");
 }
 
@@ -28,42 +35,76 @@ export type Person = {
  * Punkt je Modul: da (grün), teilweise (orange), zugesagt (gelb), keine Zusage bzw. nicht gekommen (rot), abgesagt (grau).
  * Rot für „keine Zusage“ erst, wenn für das Modul Zusagen eingesammelt werden; sonst nur „angemeldet“ (hell).
  */
-export function punkt(reg: ModulStand | undefined, tage: number, vorbei: boolean, zusagenLaufen: boolean) {
+export function punkt(reg: ModulStand | undefined, tage: number, vorbei: boolean, zusagenLaufen: boolean, sprache: TeamSprache = "de") {
   if (!reg) return null;
-  if (reg.d >= tage) return { farbe: "bg-mint", text: "alle Tage da" };
-  if (reg.d > 0) return { farbe: "bg-orange-400", text: `${reg.d} von ${tage} Tagen da` };
-  if (reg.s === "excused" || reg.s === "cancelled" || reg.r === "abgesagt") return { farbe: "bg-zinc-300", text: "abgesagt oder entschuldigt" };
-  if (vorbei) return { farbe: "bg-rot", text: "nicht da" };
-  if (reg.s === "waitlist") return { farbe: "bg-paper-deep ring-1 ring-line", text: "Warteliste" };
-  if (reg.r === "zugesagt") return { farbe: "bg-yellow-300", text: "zugesagt" };
-  return zusagenLaufen ? { farbe: "bg-rot", text: "noch keine Zusage" } : { farbe: "bg-paper-deep ring-1 ring-line", text: "angemeldet, Zusagen noch nicht abgefragt" };
+  const t = punktTexte[sprache];
+  if (reg.d >= tage) return { farbe: "bg-mint", text: t.alleDa };
+  if (reg.d > 0) return { farbe: "bg-orange-400", text: t.teilweise(reg.d, tage) };
+  if (reg.s === "excused" || reg.s === "cancelled" || reg.r === "abgesagt") return { farbe: "bg-zinc-300", text: t.abgesagt };
+  if (vorbei) return { farbe: "bg-rot", text: t.nichtDa };
+  if (reg.s === "waitlist") return { farbe: "bg-paper-deep ring-1 ring-line", text: t.warteliste };
+  if (reg.r === "zugesagt") return { farbe: "bg-yellow-300", text: t.zugesagt };
+  return zusagenLaufen ? { farbe: "bg-rot", text: t.keineZusage } : { farbe: "bg-paper-deep ring-1 ring-line", text: t.angemeldet };
 }
 
-// Filter für das gewählte Modul (wie früher in der Anrufliste)
+const punktDe = {
+  alleDa: "alle Tage da", teilweise: (d: number, tage: number) => `${d} von ${tage} Tagen da`, abgesagt: "abgesagt oder entschuldigt",
+  nichtDa: "nicht da", warteliste: "Warteliste", zugesagt: "zugesagt", keineZusage: "noch keine Zusage",
+  angemeldet: "angemeldet, Zusagen noch nicht abgefragt",
+};
+/** Texte der Punkte, auch für die Legende unter der Liste. */
+export const punktTexte: Record<TeamSprache, typeof punktDe> = {
+  de: punktDe,
+  tr: {
+    alleDa: "her gün geldi", teilweise: (d, tage) => `${d}/${tage} gün geldi`, abgesagt: "katılmayacak veya mazeretli",
+    nichtDa: "gelmedi", warteliste: "bekleme listesi", zugesagt: "katılacak", keineZusage: "henüz cevap yok",
+    angemeldet: "kayıtlı, katılım henüz sorulmadı",
+  },
+  fr: {
+    alleDa: "présent·e tous les jours", teilweise: (d, tage) => `présent·e ${d} jour${d > 1 ? "s" : ""} sur ${tage}`, abgesagt: "ne vient pas ou excusé·e",
+    nichtDa: "absent·e", warteliste: "liste d’attente", zugesagt: "vient", keineZusage: "pas encore de réponse",
+    angemeldet: "inscrit·e, réponses pas encore demandées",
+  },
+};
+
+// Filter für das gewählte Modul (wie früher in der Anrufliste); name je Sprache des Team-Bereichs
 export const zusagen = {
-  "": { name: "Alle", passt: () => true },
-  offen: { name: "Noch keine Zusage", passt: (p: Person) => p.registration_status === "confirmed" && !p.rsvp },
-  zugesagt: { name: "Zugesagt", passt: (p: Person) => p.rsvp === "zugesagt" },
-  abgesagt: { name: "Abgesagt", passt: (p: Person) => p.rsvp === "abgesagt" || p.registration_status === "excused" || p.registration_status === "cancelled" },
-} as const;
+  "": { name: { de: "Alle", tr: "Tümü", fr: "Tous" }, passt: () => true },
+  offen: { name: { de: "Noch keine Zusage", tr: "Henüz cevap yok", fr: "Sans réponse" }, passt: (p: Person) => p.registration_status === "confirmed" && !p.rsvp },
+  zugesagt: { name: { de: "Zugesagt", tr: "Katılacak", fr: "Viennent" }, passt: (p: Person) => p.rsvp === "zugesagt" },
+  abgesagt: {
+    name: { de: "Abgesagt", tr: "Katılmayacak", fr: "Ne viennent pas" },
+    passt: (p: Person) => p.rsvp === "abgesagt" || p.registration_status === "excused" || p.registration_status === "cancelled",
+  },
+} as const satisfies Record<string, { name: Record<TeamSprache, string>; passt: (p: Person) => boolean }>;
 export const kontakte = {
-  "": { name: "Kontakt: alle", passt: () => true },
-  offen: { name: "Noch nicht kontaktiert", passt: (p: Person) => p.module_contacts === 0 },
-  nachfassen: { name: "Nicht erreicht / Rückruf", passt: (p: Person) => p.last_outcome === "nicht_erreicht" || p.last_outcome === "rueckruf" },
-  erreicht: { name: "Erreicht", passt: (p: Person) => p.last_outcome === "erreicht" },
-} as const;
+  "": { name: { de: "Kontakt: alle", tr: "İletişim: tümü", fr: "Contact\u00a0: tous" }, passt: () => true },
+  offen: { name: { de: "Noch nicht kontaktiert", tr: "Henüz iletişime geçilmedi", fr: "Pas encore contacté·e" }, passt: (p: Person) => p.module_contacts === 0 },
+  nachfassen: {
+    name: { de: "Nicht erreicht / Rückruf", tr: "Ulaşılamadı / geri aranacak", fr: "Injoignable / à rappeler" },
+    passt: (p: Person) => p.last_outcome === "nicht_erreicht" || p.last_outcome === "rueckruf",
+  },
+  erreicht: { name: { de: "Erreicht", tr: "Ulaşıldı", fr: "Joint·e" }, passt: (p: Person) => p.last_outcome === "erreicht" },
+} as const satisfies Record<string, { name: Record<TeamSprache, string>; passt: (p: Person) => boolean }>;
 export const uebernachtungen = {
-  "": { name: "Übernachtung: alle", passt: () => true },
-  offen: { name: "Übernachtung: keine Angabe", passt: (p: Person) => !p.stay_answered },
-  ja: { name: "übernachtet", passt: (p: Person) => (p.nights?.length ?? 0) > 0 },
-  nein: { name: "übernachtet nicht", passt: (p: Person) => p.stay_answered && !p.nights?.length },
-} as const;
+  "": { name: { de: "Übernachtung: alle", tr: "Konaklama: tümü", fr: "Hébergement\u00a0: tous" }, passt: () => true },
+  offen: { name: { de: "Übernachtung: keine Angabe", tr: "Konaklama: bilgi yok", fr: "Hébergement\u00a0: non renseigné" }, passt: (p: Person) => !p.stay_answered },
+  ja: { name: { de: "übernachtet", tr: "konaklıyor", fr: "dort sur place" }, passt: (p: Person) => (p.nights?.length ?? 0) > 0 },
+  nein: { name: { de: "übernachtet nicht", tr: "konaklamıyor", fr: "ne dort pas sur place" }, passt: (p: Person) => p.stay_answered && !p.nights?.length },
+} as const satisfies Record<string, { name: Record<TeamSprache, string>; passt: (p: Person) => boolean }>;
 const wahl = <T extends object>(liste: T, wert: string) => (wert in liste ? wert : "") as keyof T;
 
+const herkunftNamen: Record<TeamSprache, { walkIn: string; guest: string; member: string; alumni: string }> = {
+  de: { walkIn: "Walk-in", guest: "Gast", member: "Mitglied", alumni: "Alumni" },
+  tr: { walkIn: "Kapıda kayıt", guest: "Misafir", member: "Üye", alumni: "Mezun" },
+  fr: { walkIn: "Inscription sur place", guest: "Invité·e", member: "Membre", alumni: "Alumni" },
+};
+
 /** Kennzeichen für alle, die nicht zum Jahrgang gehören (Gast, Walk-in, Mitglied, Alumni). */
-export function herkunft(p: Person): string | null {
-  if (p.modules.some((r) => r.q === "walk_in")) return "Walk-in";
-  return p.affiliation_status === "academy_student" ? null : ({ guest: "Gast", member: "Mitglied", alumni: "Alumni" } as Record<string, string>)[p.affiliation_status] ?? "Gast";
+export function herkunft(p: Person, sprache: TeamSprache = "de"): string | null {
+  const n = herkunftNamen[sprache];
+  if (p.modules.some((r) => r.q === "walk_in")) return n.walkIn;
+  return p.affiliation_status === "academy_student" ? null : ({ guest: n.guest, member: n.member, alumni: n.alumni } as Record<string, string>)[p.affiliation_status] ?? n.guest;
 }
 
 /** Filter aus der Adresse; dieselben Namen in Seite, Export und Rundmail. */
@@ -127,7 +168,10 @@ export async function ladeListe(f: Filter, alles: boolean) {
   return { jahrgang, modulListe, modul, jetzt, alle, grundmenge, liste, zusage, kontakt, ueb, gruppe };
 }
 
-/** Lesbare Beschreibung der gesetzten Filter (für Export-Dateiname und Rundmail-Antrag). */
+/**
+ * Lesbare Beschreibung der gesetzten Filter (für Export-Dateiname und Rundmail-Antrag). Bleibt deutsch: Sie landet in
+ * der Freigabe-Beschreibung, die die Datenbank auf Deutsch baut (create_approval) und eine zweite Person liest.
+ */
 export function filterBeschreibung(f: Filter, modulTitel: string | null): string {
   const teile: string[] = [];
   if (f.gruppe === "alle") teile.push("mit Gästen und Walk-ins");
@@ -139,9 +183,9 @@ export function filterBeschreibung(f: Filter, modulTitel: string | null): string
   if (f.filter === "ohne-mail") teile.push("ohne E-Mail");
   if (f.filter === "ohne-telefon") teile.push("ohne Telefon");
   if (f.filter === "inaktiv") teile.push("ausgeschieden");
-  const zusage = f.zusage && f.zusage in zusagen ? zusagen[f.zusage as keyof typeof zusagen].name : null;
-  const kontakt = f.kontakt && f.kontakt in kontakte ? kontakte[f.kontakt as keyof typeof kontakte].name : null;
-  const ueb = f.uebernachtung && f.uebernachtung in uebernachtungen ? uebernachtungen[f.uebernachtung as keyof typeof uebernachtungen].name : null;
+  const zusage = f.zusage && f.zusage in zusagen ? zusagen[f.zusage as keyof typeof zusagen].name.de : null;
+  const kontakt = f.kontakt && f.kontakt in kontakte ? kontakte[f.kontakt as keyof typeof kontakte].name.de : null;
+  const ueb = f.uebernachtung && f.uebernachtung in uebernachtungen ? uebernachtungen[f.uebernachtung as keyof typeof uebernachtungen].name.de : null;
   if (modulTitel && (zusage || kontakt || ueb)) teile.push([modulTitel, zusage, kontakt, ueb].filter(Boolean).join(", "));
   return teile.join(" · ");
 }

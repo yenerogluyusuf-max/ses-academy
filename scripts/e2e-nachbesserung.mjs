@@ -35,7 +35,7 @@ async function teamLogin(browser, email, breite = 1280) {
   await page.goto(`${BASIS}/team/login/`);
   await page.fill("#email", email);
   await page.fill("#passwort", "test1234");
-  await page.click("button[type=submit]");
+  await page.click("form:has(#passwort) button[type=submit]");
   await page.waitForURL(`${BASIS}/team/`);
   return page;
 }
