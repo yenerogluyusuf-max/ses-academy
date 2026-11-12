@@ -5,7 +5,7 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 
 /** Kopfleiste fürs Handy mit Menü-Knopf; das Menü (Navigation und Konto) kommt vom Server als children. */
-export function HandyMenue({ titel, children }: { titel: string; children: React.ReactNode }) {
+export function HandyMenue({ titel, menue = "Menü", children }: { titel: string; menue?: string; children: React.ReactNode }) {
   const [offen, setzeOffen] = useState(false);
   useEffect(() => {
     document.body.style.overflow = offen ? "hidden" : "";
@@ -18,7 +18,7 @@ export function HandyMenue({ titel, children }: { titel: string; children: React
         <p className="mr-auto truncate font-display text-lg font-bold">{titel}</p>
         <button type="button" onClick={() => setzeOffen(!offen)} aria-expanded={offen} aria-controls="handy-menue"
           className="flex items-center gap-2 rounded-full bg-ink px-3.5 py-2 text-sm font-semibold text-paper">
-          {offen ? <X aria-hidden className="h-4 w-4" /> : <Menu aria-hidden className="h-4 w-4" />} Menü
+          {offen ? <X aria-hidden className="h-4 w-4" /> : <Menu aria-hidden className="h-4 w-4" />} {menue}
         </button>
       </header>
       {offen && (

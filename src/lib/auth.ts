@@ -1,14 +1,16 @@
 import "server-only";
 
+import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { cache } from "react";
 import type { Database } from "@/lib/database.types";
 import { createClient } from "@/lib/supabase/server";
+import { TEAM_SPRACH_COOKIE, teamSprache, type TeamSprache } from "@/lib/team-sprache";
 
 export type StaffRole = Database["public"]["Enums"]["staff_role"];
 
 /** modulId: Zugang nur für dieses Modul (Einlass und Regieplan), sonst null. Die Datenbank erzwingt das ebenso. */
-export type Staff = { userId: string; email: string; role: StaffRole; name: string; gueltigBis: string | null; modulId: string | null };
+export type Staff = { userId: string; email: string; role: StaffRole; name: string; gueltigBis: string | null; modulId: string | null; sprache: TeamSprache };
 
 /** Wer darf was. Spiegelt has_full_access / has_orga_access / has_checkin_access in der Datenbank. */
 export const darf = {
@@ -39,7 +41,12 @@ export const getStaff = cache(async (): Promise<Staff | null> => {
   // Zugang auf Zeit (z. B. Helfer nur an den Modultagen), wie current_staff_role() in der Datenbank
   const jetzt = Date.now();
   if ((data.valid_from && Date.parse(data.valid_from) > jetzt) || (data.valid_until && Date.parse(data.valid_until) <= jetzt)) return null;
-  return { userId: auth.user.id, email: auth.user.email ?? "", role: data.role, name: data.display_name, gueltigBis: data.valid_until, modulId: data.module_id };
+  return {
+    userId: auth.user.id, email: auth.user.email ?? "", role: data.role, name: data.display_name, gueltigBis: data.valid_until, modulId: data.module_id,
+    // Sprache des Team-Bereichs pro Konto (Umschalter in der Seitenleiste, lib/aktionen/team-sprache.ts)
+    // (noch nie umgestellt: die auf der Anmeldeseite gewählte Sprache aus dem Cookie)
+    sprache: teamSprache(auth.user.user_metadata?.team_sprache ?? (await cookies()).get(TEAM_SPRACH_COOKIE)?.value),
+  };
 });
 
 /**

@@ -5,7 +5,10 @@ import {
 } from "lucide-react";
 import { HandyMenue } from "@/components/team/HandyMenue";
 import { abmelden } from "@/lib/aktionen/team";
-import { darf, modulBereiche, rollenName, type Staff, type StaffRole } from "@/lib/auth";
+import { teamSpracheSetzen } from "@/lib/aktionen/team-sprache";
+import { darf, modulBereiche, type Staff, type StaffRole } from "@/lib/auth";
+import { teamSprachen, teamSprachNamen } from "@/lib/team-sprache";
+import { teamTexte, type TeamTexte } from "@/lib/team-texte";
 
 type Bereich =
   | "start" | "einlass" | "regieplan" | "rollenplan" | "gruppen" | "module" | "bewerbungen" | "teilnehmende" | "anrufe" | "hausaufgaben"
@@ -14,6 +17,9 @@ type Bereich =
 type Eintrag = { id: Bereich; name: string; href: string; icon: LucideIcon; recht: (r: StaffRole) => boolean };
 
 const alle = () => true;
+/** Gruppenüberschrift (deutscher Schlüssel) → Begriff in teamTexte.gruppen. */
+const gruppenSchluessel: Record<string, keyof TeamTexte["gruppen"]> = { Eventtag: "eventtag", Programm: "programm", Teilnehmende: "teilnehmende", Organisation: "organisation" };
+
 const gruppen: { titel: string; eintraege: Eintrag[] }[] = [
   { titel: "", eintraege: [{ id: "start", name: "Übersicht", href: "/team/", icon: House, recht: alle }] },
   {
@@ -56,15 +62,16 @@ const gruppen: { titel: string; eintraege: Eintrag[] }[] = [
 ];
 
 function Navigation({ staff, aktiv }: { staff: Staff; aktiv: Bereich }) {
+  const t = teamTexte[staff.sprache];
   return (
-    <nav aria-label="Team-Bereich" className="space-y-6">
+    <nav aria-label={t.teamBereich} className="space-y-6">
       {gruppen.map((g) => {
         // Auf ein Modul begrenzte Zugänge: nur Übersicht, Einlass und Regieplan
         const sichtbar = g.eintraege.filter((e) => e.recht(staff.role) && (!staff.modulId || (modulBereiche as readonly string[]).includes(e.id)));
         if (sichtbar.length === 0) return null;
         return (
           <div key={g.titel || "start"}>
-            {g.titel && <p className="mb-1.5 px-3 text-[11px] font-semibold tracking-[0.12em] text-paper/45 uppercase">{g.titel}</p>}
+            {g.titel && <p className="mb-1.5 px-3 text-[11px] font-semibold tracking-[0.12em] text-paper/45 uppercase">{t.gruppen[gruppenSchluessel[g.titel]]}</p>}
             <ul className="space-y-0.5">
               {sichtbar.map((e) => {
                 const an = e.id === aktiv;
@@ -73,7 +80,7 @@ function Navigation({ staff, aktiv }: { staff: Staff; aktiv: Bereich }) {
                     <Link href={e.href} aria-current={an ? "page" : undefined}
                       className={`flex items-center gap-3 rounded-xl px-3 py-2 text-[15px] transition ${an ? "bg-signal font-semibold text-ink" : "text-paper/80 hover:bg-white/8 hover:text-paper"}`}>
                       <e.icon aria-hidden className="h-[18px] w-[18px] shrink-0" strokeWidth={an ? 2.4 : 1.8} />
-                      {e.name}
+                      {t.bereiche[e.id]}
                     </Link>
                   </li>
                 );
@@ -87,6 +94,7 @@ function Navigation({ staff, aktiv }: { staff: Staff; aktiv: Bereich }) {
 }
 
 function Konto({ staff }: { staff: Staff }) {
+  const t = teamTexte[staff.sprache];
   return (
     <div className="border-t border-white/10 pt-4">
       <div className="flex items-center gap-3 px-3">
@@ -95,27 +103,36 @@ function Konto({ staff }: { staff: Staff }) {
         </span>
         <span className="min-w-0">
           <span className="block truncate text-sm font-semibold text-paper">{staff.name}</span>
-          <span className="block text-xs text-paper/55">{rollenName[staff.role]}</span>
+          <span className="block text-xs text-paper/55">{t.rollen[staff.role]}</span>
         </span>
       </div>
       <div className="mt-3 flex gap-1 px-1">
         <Link href="/team/passwort/" className="flex flex-1 items-center justify-center gap-2 rounded-xl px-3 py-2 text-sm text-paper/75 hover:bg-white/8 hover:text-paper">
-          <KeyRound aria-hidden className="h-4 w-4" /> Passwort
+          <KeyRound aria-hidden className="h-4 w-4" /> {t.passwort}
         </Link>
         <form action={abmelden} className="flex-1">
           <button type="submit" className="flex w-full items-center justify-center gap-2 rounded-xl px-3 py-2 text-sm text-paper/75 hover:bg-white/8 hover:text-paper">
-            <LogOut aria-hidden className="h-4 w-4" /> Abmelden
+            <LogOut aria-hidden className="h-4 w-4" /> {t.abmelden}
           </button>
         </form>
       </div>
+      {/* Sprache des Team-Bereichs, gespeichert im Konto */}
+      <form action={teamSpracheSetzen} aria-label={t.sprache} className="mt-2 flex gap-1 px-1">
+        {teamSprachen.map((x) => (
+          <button key={x} type="submit" name="sprache" value={x} lang={x} aria-current={x === staff.sprache ? "true" : undefined}
+            className={x === staff.sprache ? "flex-1 rounded-lg bg-white/15 px-2 py-1.5 text-xs font-semibold text-paper" : "flex-1 rounded-lg px-2 py-1.5 text-xs text-paper/65 hover:bg-white/8 hover:text-paper"}>
+            {teamSprachNamen[x]}
+          </button>
+        ))}
+      </form>
     </div>
   );
 }
 
-const handyTabs: { id: Bereich; name: string; href: string; icon: LucideIcon }[] = [
-  { id: "start", name: "Übersicht", href: "/team/", icon: House },
-  { id: "einlass", name: "Einlass", href: "/team/einlass/", icon: ScanLine },
-  { id: "regieplan", name: "Regieplan", href: "/team/regieplan/", icon: CalendarClock },
+const handyTabs: { id: Bereich; href: string; icon: LucideIcon }[] = [
+  { id: "start", href: "/team/", icon: House },
+  { id: "einlass", href: "/team/einlass/", icon: ScanLine },
+  { id: "regieplan", href: "/team/regieplan/", icon: CalendarClock },
 ];
 
 /**
@@ -124,30 +141,31 @@ const handyTabs: { id: Bereich; name: string; href: string; icon: LucideIcon }[]
  * Zeigt nur, was die Rolle nutzen darf. (Der Seiteninhalt rückt über body:has(.team-leiste) nach rechts, siehe globals.css.)
  */
 export function TeamKopf({ staff, aktiv = "start" }: { staff: Staff; aktiv?: Bereich; breit?: boolean }) {
-  const titel = gruppen.flatMap((g) => g.eintraege).find((e) => e.id === aktiv)?.name ?? "Team";
+  const t = teamTexte[staff.sprache];
+  const titel = t.bereiche[aktiv] ?? t.team;
   return (
     <>
       {/* Computer */}
       <aside className="team-leiste fixed inset-y-0 left-0 z-40 hidden w-64 flex-col bg-forest px-3 py-5 lg:flex">
         <Link href="/team/" className="mb-6 flex items-center gap-3 px-3">
           <span className="rounded-xl bg-paper px-2 py-1"><img src="/brand/ses-logo.png" alt="SES Academy" className="h-7 w-auto" /></span>
-          <span className="font-display text-sm font-semibold tracking-wide text-paper/80">Team</span>
+          <span className="font-display text-sm font-semibold tracking-wide text-paper/80">{t.team}</span>
         </Link>
         <div className="-mr-1 flex-1 overflow-y-auto pr-1"><Navigation staff={staff} aktiv={aktiv} /></div>
         <Konto staff={staff} />
       </aside>
 
       {/* Handy und Tablet */}
-      <HandyMenue titel={titel}>
+      <HandyMenue titel={titel} menue={t.menue}>
         <Navigation staff={staff} aktiv={aktiv} />
         <div className="mt-6"><Konto staff={staff} /></div>
       </HandyMenue>
-      <nav aria-label="Schnellzugriff" className="fixed inset-x-0 bottom-0 z-40 grid grid-cols-3 border-t border-line bg-paper/95 pb-[env(safe-area-inset-bottom)] backdrop-blur lg:hidden">
-        {handyTabs.map((t) => (
-          <Link key={t.id} href={t.href} aria-current={t.id === aktiv ? "page" : undefined}
-            className={`flex flex-col items-center gap-0.5 py-2 text-[11px] font-semibold ${t.id === aktiv ? "text-ink" : "text-ink-soft/70"}`}>
-            <span className={`rounded-full px-4 py-1 ${t.id === aktiv ? "bg-signal" : ""}`}><t.icon aria-hidden className="h-5 w-5" /></span>
-            {t.name}
+      <nav aria-label={t.schnellzugriff} className="fixed inset-x-0 bottom-0 z-40 grid grid-cols-3 border-t border-line bg-paper/95 pb-[env(safe-area-inset-bottom)] backdrop-blur lg:hidden">
+        {handyTabs.map((tab) => (
+          <Link key={tab.id} href={tab.href} aria-current={tab.id === aktiv ? "page" : undefined}
+            className={`flex flex-col items-center gap-0.5 py-2 text-[11px] font-semibold ${tab.id === aktiv ? "text-ink" : "text-ink-soft/70"}`}>
+            <span className={`rounded-full px-4 py-1 ${tab.id === aktiv ? "bg-signal" : ""}`}><tab.icon aria-hidden className="h-5 w-5" /></span>
+            {t.bereiche[tab.id]}
           </Link>
         ))}
       </nav>
