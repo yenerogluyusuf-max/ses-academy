@@ -124,6 +124,11 @@ export function infoMailTitel(d: InfoDaten): string {
   return uebersetzt(d.modul.i18n, infoMailSprache(d.p.preferred_language), "title", d.modul.title) ?? d.modul.title;
 }
 
+/** Untertitel des Moduls in der Sprache der Mail (steht im Kopfbild). */
+export function infoMailUntertitel(d: InfoDaten): string | null {
+  return uebersetzt(d.modul.i18n, infoMailSprache(d.p.preferred_language), "subtitle", d.modul.subtitle);
+}
+
 /** Sprache der Info-Mail nach der Profilsprache: Türkisch, Französisch, sonst Deutsch. */
 export function infoMailSprache(preferred: string | null | undefined): Sprache {
   return preferred === "tr" || preferred === "fr" ? preferred : "de";
@@ -242,10 +247,7 @@ export function infoMailInhalt(d: InfoDaten, ticketLink: string, wallet: { apple
 
   const html = `<!doctype html><html lang="${l}"><body style="margin:0;background:#f3efe4;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;color:#13201a">
 <div style="max-width:580px;margin:0 auto;padding:28px 16px">
-  <div style="background:#ffffff;border:1px solid #e4e1d8;border-radius:20px;overflow:hidden;margin:0 0 16px">
-    <img src="cid:info-kopf" width="548" alt="SES Academy – ${esc(modulTitel)}" style="display:block;width:100%;height:auto;border:0">
-    ${modulUntertitel ? `<p style="margin:0;padding:14px 22px 18px;font-size:15px;line-height:1.45;color:#3c4a42">${esc(modulUntertitel)}</p>` : ""}
-  </div>
+  <img src="cid:info-kopf" width="548" alt="SES Academy – ${esc(modulTitel)}${modulUntertitel ? `: ${esc(modulUntertitel)}` : ""}" style="display:block;width:100%;height:auto;border:1px solid #e4e1d8;border-radius:20px;margin:0 0 18px;box-sizing:border-box">
   <p style="font-size:16px;line-height:1.6;margin:0 0 16px">${esc(t.anrede(d.p.first_name))}<br>${esc(t.einleitung(modulTitel))}</p>
   ${abschnitt(t.termin, `${terminHtml.map((z) => `<p style="margin:0 0 4px;font-weight:bold">${z}</p>`).join("")}${d.modul.location ? `<p style="margin:8px 0 0">${esc(d.modul.location)}${karte ? ` · <a href="${esc(karte)}" style="color:#3d7a61;font-weight:bold">${esc(t.karte)}</a>` : ""}</p>` : ""}`)}
   ${!d.modul.ticket_required ? "" : abschnitt(t.ticket, `<p style="margin:0 0 12px;font-size:14px;line-height:1.5">${esc(t.ticketText)}</p>

@@ -6,9 +6,8 @@ import { DATENSCHUTZ_URL, IMPRESSUM_URL, rechtlicheTexte } from "@/lib/rechtlich
 import { bereichSprache, bereichTexte, datumsSprache } from "@/lib/bereich-texte";
 import { portalTexte, sprachOder } from "@/lib/portal-texte";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { infoMailInhalt, infoMailSprache, infoMailTitel, ladeInfoMail } from "@/lib/infomail";
-import { walletStreifenTitel } from "@/lib/wallet-anzeige";
-import { walletStreifen } from "@/lib/wallet-streifen";
+import { infoMailInhalt, infoMailSprache, infoMailTitel, infoMailUntertitel, ladeInfoMail, type InfoDaten } from "@/lib/infomail";
+import { mailKopf } from "@/lib/mail-kopf";
 import { ladeTicket, modulZeitraum } from "@/lib/teilnahme";
 import { kurzcodeAnzeige, qrPng } from "@/lib/tickets";
 import { googleWalletAktiv } from "@/lib/google-wallet";
@@ -411,8 +410,8 @@ export async function sendeNachricht(an: { participant_id: string | null; email:
  * Kopfbild der Info-Mail im Stil der Wallet-Karte: Modultitel in der Website-Schrift mit Textmarker, Sirene rechts
  * (Entscheidung Yusuf 12.11.2026). Ein Bild sieht auch im Dunkelmodus von Gmail gleich aus.
  */
-export async function infoMailKopf(titel: string): Promise<Buffer> {
-  return (await walletStreifen(walletStreifenTitel({ slug: "", titel })))["strip@3x.png"];
+export function infoMailKopf(d: InfoDaten): Promise<Buffer> {
+  return mailKopf(infoMailTitel(d), infoMailUntertitel(d));
 }
 
 /** Sprachname am Ende der Dokumenttitel („Tagesordnung Teilnehmende · Deutsch“) je Mailsprache. */
@@ -466,7 +465,7 @@ export async function sendeInfoMail(participantId: string, moduleId: string, aus
   const an = test ?? d.p.email;
   if (!an) return { ok: false, fehler: "Keine E-Mail-Adresse hinterlegt." };
   const pdf = await tagesordnungAnhang(moduleId, infoMailSprache(d.p.preferred_language));
-  const kopf = await infoMailKopf(infoMailTitel(d));
+  const kopf = await infoMailKopf(d);
   const { betreff, text, html, sprache } = infoMailInhalt(d, seitenUrl(`/ticket/${d.p.link_token}/`), infoMailWallet(d.p), pdf !== null);
   const ergebnis = await senden({
     to: an,

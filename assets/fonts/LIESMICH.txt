@@ -1,0 +1,6 @@
+Schriften für Bilder, die der Server zeichnet (Wallet-Streifen, Kopf der Info-Mail):
+
+- BricolageGrotesque-ExtraBold.ttf: Bricolage Grotesque, Copyright 2022 The Bricolage Grotesque Project Authors
+- Inter-Medium.ttf: Inter, Copyright 2020 The Inter Project Authors (https://github.com/rsms/inter)
+
+Beide unter der SIL Open Font License 1.1, Lizenztext in OFL.txt. Bezogen über Google Fonts.
