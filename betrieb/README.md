@@ -70,6 +70,18 @@ Dann prüfen und neu starten (die Website und GoTrue lesen die Werte nur beim St
 
 Zum Schluss unter `/mein-bereich/login/` die eigene Adresse eingeben: Der Login-Code muss ankommen (auch im Spam-Ordner nachsehen). Danach im Team-Bereich eine Info-Mail als Test an sich selbst schicken.
 
+## Öffentliche Adresse (Domain)
+
+Ohne Domain ist die Plattform nur im selben WLAN erreichbar. Mit Domain leitet ein Cloudflare-Tunnel die Adresse auf diesen Rechner: kein Umzug, keine Router-Einstellung, HTTPS übernimmt Cloudflare. Nach außen geht nur die Website; Datenbank und Anmeldedienst bleiben auf diesem Rechner.
+
+1. Die Domain in ein (kostenloses) Cloudflare-Konto aufnehmen. Bei einer neuen Domain die Nameserver beim Registrar auf Cloudflare stellen. Eine Subdomain einer fremden Domain (z. B. `ses.islamrat.de`) geht im kostenlosen Tarif nicht; dann braucht es eine eigene Domain oder einen anderen Weg.
+2. Einmal anmelden: `cloudflared tunnel login` (öffnet den Browser, dort die Domain wählen).
+3. `./ses.sh tunnel ses-beispiel.de` legt den Tunnel an, trägt ihn ins DNS ein und startet ihn. `./ses.sh start` startet ihn künftig mit.
+4. `./ses.sh domain https://ses-beispiel.de` setzt `SITE_URL`, sichert, baut neu und startet neu. Neu bauen ist nötig, weil die Adresse fest in der App steckt (Links in Mails, Wallet, Anmeldung). Die alte `.env` liegt danach als `.env.vor-domain-…` daneben.
+5. Prüfen, am besten über mobile Daten: Startseite, „Anmelden“ mit Code aus der Mail, Ticket-Link aus einer Mail, Einlass-Scan.
+
+Solange die Domain gilt, muss dieser Rechner laufen, am Strom hängen, wach bleiben und Internet haben. Rundmails und Info-Mails erst nach Schritt 4 verschicken, sonst zeigen ihre Links auf die WLAN-Adresse.
+
 ## Alltag
 
 | Was | Befehl |

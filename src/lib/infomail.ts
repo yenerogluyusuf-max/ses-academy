@@ -3,6 +3,7 @@ import "server-only";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { kurzcodeAnzeige } from "@/lib/tickets";
 import { nachtName } from "@/lib/uebernachtung";
+import { istInterneZimmerbezeichnung } from "@/lib/zimmer-anzeige";
 
 /**
  * Info-Mail zu einem Modul: alles in EINER Mail statt getrennter Mails für Ticket, Tagesordnung und Zimmer.
@@ -28,6 +29,10 @@ const texte = {
     naechte: "Deine Nächte",
     zimmer: "Dein Zimmer",
     zimmerFolgt: "Die Zimmereinteilung bekommst du vor Ort.",
+    zimmerArt: (n: number) => (n === 1 ? "Einzelzimmer" : n === 2 ? "Doppelzimmer" : `${n}-Bett-Zimmer`),
+    zimmerNummer: (nr: string) => `Zimmer ${nr}`,
+    zimmerNummerFolgt: "die Zimmernummer bekommst du im Hotel",
+    mitImZimmer: "Mit im Zimmer",
     keineUebernachtung: "Du hast keine Übernachtung angegeben. Falls du doch eine brauchst, antworte einfach auf diese Mail.",
     keineAngabe: "Du hast noch nicht angegeben, ob du übernachtest. Bitte trag es in „Mein Bereich“ ein.",
     keineAngabeZu: "Du hast keine Übernachtung angegeben. Falls du doch eine brauchst, antworte einfach auf diese Mail.",
@@ -51,6 +56,10 @@ const texte = {
     naechte: "Konaklayacağın geceler",
     zimmer: "Odan",
     zimmerFolgt: "Oda dağılımını yerinde öğreneceksin.",
+    zimmerArt: (n: number) => (n === 1 ? "Tek kişilik oda" : n === 2 ? "Çift kişilik oda" : `${n} kişilik oda`),
+    zimmerNummer: (nr: string) => `Oda ${nr}`,
+    zimmerNummerFolgt: "oda numaranı otelde alacaksın",
+    mitImZimmer: "Oda arkadaşın",
     keineUebernachtung: "Konaklama ihtiyacı belirtmedin. Yine de ihtiyacın olursa bu e-postayı yanıtlaman yeterli.",
     keineAngabe: "Konaklayıp konaklamayacağını henüz belirtmedin. Lütfen „Mein Bereich“ sayfasında bildir.",
     keineAngabeZu: "Konaklama ihtiyacı belirtmedin. Yine de ihtiyacın olursa bu e-postayı yanıtlaman yeterli.",
@@ -73,7 +82,7 @@ export async function ladeInfoMail(participantId: string, modulId: string) {
     admin.from("modules").select("id, title, subtitle, location, ticket_required, stay_form_open, module_days(id, starts_at, ends_at, program_items(starts_at, ends_at, title, status))").eq("id", modulId).maybeSingle(),
     admin.from("registrations").select("id, status, rsvp, stay_requests(nights)").eq("module_id", modulId).eq("participant_id", participantId).maybeSingle(),
     admin.from("hotels").select("id, name, address, rooms_visible").eq("module_id", modulId).order("created_at"),
-    admin.from("room_assignments").select("hotel_id, rooms(label)").eq("participant_id", participantId),
+    admin.from("room_assignments").select("hotel_id, room_id, rooms(label, capacity)").eq("participant_id", participantId),
   ]);
   if (!p || !modul || !reg) return null;
   // Mehrere Hotels je Modul: das Hotel der Person, sobald ihre Zimmer freigegeben sind; bis dahin nur, wenn es
@@ -82,7 +91,16 @@ export async function ladeInfoMail(participantId: string, modulId: string) {
   const eigene = zuteilung?.find((z) => liste.some((h) => h.id === z.hotel_id));
   const eigenesHotel = liste.find((h) => h.id === eigene?.hotel_id);
   const hotel = eigenesHotel?.rooms_visible ? eigenesHotel : liste.length === 1 ? liste[0] : null;
-  const zimmer = eigenesHotel?.rooms_visible ? eigene?.rooms?.label ?? null : null;
+  // Zimmer erst nach Freigabe, dann mit Zimmerart und den Namen der anderen im selben Zimmer (wie Ticket-Seite und Mein Bereich)
+  let zimmer: { label: string; betten: number; mitbewohner: string[] } | null = null;
+  if (eigenesHotel?.rooms_visible && eigene?.rooms) {
+    const { data: andere } = await admin.from("room_assignments").select("participants!inner(first_name, last_name)")
+      .eq("room_id", eigene.room_id).neq("participant_id", participantId);
+    zimmer = {
+      label: eigene.rooms.label, betten: eigene.rooms.capacity,
+      mitbewohner: (andere ?? []).map((a) => `${a.participants.first_name} ${a.participants.last_name}`.trim()).sort((x, y) => x.localeCompare(y, "de")),
+    };
+  }
   const stay = Array.isArray(reg.stay_requests) ? reg.stay_requests[0] : reg.stay_requests;
   const tage = [...modul.module_days].sort((a, b) => a.starts_at.localeCompare(b.starts_at)).map((t) => ({
     ...t, punkte: t.program_items.filter((x) => x.status !== "entfaellt").sort((a, b) => a.starts_at.localeCompare(b.starts_at)),
@@ -113,7 +131,10 @@ export function infoMailInhalt(d: InfoDaten, ticketLink: string) {
     const zeilen: [string, string][] = [];
     if (d.hotel && d.hotel.name !== "Hotel (Name folgt)") zeilen.push([t.hotel, [d.hotel.name, d.hotel.address].filter(Boolean).join(", ")]);
     zeilen.push([t.naechte, d.naechte.map(nachtName).join(", ")]);
-    zeilen.push([t.zimmer, d.zimmer ?? t.zimmerFolgt]);
+    zeilen.push([t.zimmer, d.zimmer
+      ? `${t.zimmerArt(d.zimmer.betten)} · ${istInterneZimmerbezeichnung(d.zimmer.label) ? t.zimmerNummerFolgt : t.zimmerNummer(d.zimmer.label)}`
+      : t.zimmerFolgt]);
+    if (d.zimmer?.mitbewohner.length) zeilen.push([t.mitImZimmer, d.zimmer.mitbewohner.join(", ")]);
     return {
       text: zeilen.map(([k, v]) => `${k}: ${v}`),
       html: zeilen.map(([k, v]) => `<p style="margin:0 0 6px"><span style="color:#3c4a42">${esc(k)}:</span> <strong>${esc(v)}</strong></p>`).join(""),

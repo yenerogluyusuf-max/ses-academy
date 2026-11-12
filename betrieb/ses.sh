@@ -14,6 +14,8 @@
 #   ./ses.sh erinnerungen               Hausaufgaben-Erinnerung zwei Tage vor der Frist (läuft sonst täglich)
 #   ./ses.sh mailtest <adresse>         Testmail über die SMTP-Zugangsdaten aus der .env, mit klarer Fehlermeldung
 #   ./ses.sh autostart                  Start beim Anmelden, Sicherung 02:30, Erinnerungen 17:00, Notfall-Liste 20:00
+#   ./ses.sh tunnel <domain>            einmalig: Domain über Cloudflare Tunnel auf diesen Rechner leiten (vorher: cloudflared tunnel login)
+#   ./ses.sh domain https://<domain>    öffentliche Adresse setzen: SITE_URL, neu bauen (steckt fest in der App), neu starten
 set -euo pipefail
 
 HIER="$(cd "$(dirname "$0")" && pwd)"
@@ -112,11 +114,13 @@ case "$befehl" in
     [ -d "$APP/.next" ] || { echo "Noch nicht gebaut: ./ses.sh aktualisieren"; exit 1; }
     starte_dienst web bash -c "cd '$APP' && exec npx next start -p '${WEB_PORT:-3200}' -H 127.0.0.1"
     starte_dienst https node "$HIER/https-zugang.mjs"
+    if [ -f "$DATEN/tunnel.yml" ]; then starte_dienst tunnel cloudflared tunnel --no-autoupdate --config "$DATEN/tunnel.yml" run; fi
     sleep 4
     echo "Läuft: $SITE_URL  (im selben WLAN; beim ersten Öffnen das Zertifikat bestätigen)"
     ;;
 
   stopp)
+    stoppe_dienst tunnel
     stoppe_dienst https
     stoppe_dienst web
     "${COMPOSE[@]}" stop
@@ -125,7 +129,7 @@ case "$befehl" in
   status)
     lade_env
     "${COMPOSE[@]}" ps --format 'table {{.Service}}\t{{.Status}}'
-    for d in web https; do pid_laeuft "$DATEN/$d.pid" && echo "$d: läuft" || echo "$d: gestoppt"; done
+    for d in web https tunnel; do pid_laeuft "$DATEN/$d.pid" && echo "$d: läuft" || echo "$d: gestoppt"; done
     echo "Adresse: $SITE_URL"
     ;;
 
@@ -245,7 +249,55 @@ PLIST
     echo "Entfernen: launchctl bootout gui/$(id -u)/de.ses-organisation.<start|sicherung|erinnerungen|notfall> und die plist in $ziel löschen."
     ;;
 
+  tunnel)
+    # Domain über einen Cloudflare-Tunnel auf diesen Rechner leiten: kein Umzug, keine Router-Einstellung, HTTPS macht
+    # Cloudflare. Voraussetzung: Die Domain liegt in einem Cloudflare-Konto, und `cloudflared tunnel login` ist erledigt.
+    # Nach außen geht nur die Website (Port WEB_PORT); Datenbank und Anmeldedienst bleiben auf diesem Rechner.
+    lade_env
+    host="${1:?Domain fehlt: ./ses.sh tunnel ses-beispiel.de}"
+    [[ "$host" =~ ^[a-z0-9]([a-z0-9-]*[a-z0-9])?(\.[a-z0-9]([a-z0-9-]*[a-z0-9])?)+$ ]] || { echo "Bitte nur den Domainnamen angeben, z. B. ses-beispiel.de (ohne https://)."; exit 1; }
+    command -v cloudflared >/dev/null || { echo "cloudflared fehlt: brew install cloudflared"; exit 1; }
+    [ -f "$HOME/.cloudflared/cert.pem" ] || { echo "Zuerst einmal anmelden: cloudflared tunnel login (öffnet den Browser, dort die Domain wählen)"; exit 1; }
+    name="ses-betrieb"
+    cloudflared tunnel info "$name" >/dev/null 2>&1 || cloudflared tunnel create "$name"
+    id="$(cloudflared tunnel list --name "$name" --output json | python3 -c 'import json,sys; print(json.load(sys.stdin)[0]["id"])')"
+    cat >"$DATEN/tunnel.yml" <<YML
+tunnel: $id
+credentials-file: $HOME/.cloudflared/$id.json
+ingress:
+  - hostname: $host
+    service: http://127.0.0.1:${WEB_PORT:-3200}
+  - service: http_status:404
+YML
+    chmod 600 "$DATEN/tunnel.yml"
+    cloudflared tunnel route dns "$name" "$host"
+    stoppe_dienst tunnel
+    starte_dienst tunnel cloudflared tunnel --no-autoupdate --config "$DATEN/tunnel.yml" run
+    echo "Tunnel für $host läuft. Weiter: ./ses.sh domain https://$host"
+    ;;
+
+  domain)
+    # Öffentliche Adresse der App setzen. Die Adresse steckt nach dem Bauen fest in der App (Links in Mails, Wallet,
+    # Anmeldung), deshalb: .env sichern, SITE_URL ändern, Sicherung, neu bauen, neu starten.
+    neu="${1:?Adresse fehlt: ./ses.sh domain https://ses-beispiel.de}"
+    [[ "$neu" =~ ^https://[a-z0-9.-]+$ ]] || { echo "Bitte die volle Adresse mit https:// und ohne Pfad oder / am Ende angeben."; exit 1; }
+    lade_env
+    cp "$DATEN/.env" "$DATEN/.env.vor-domain-$(date +%Y%m%d-%H%M)"
+    chmod 600 "$DATEN"/.env.vor-domain-*
+    if grep -q '^SITE_URL=' "$DATEN/.env"; then
+      sed -i '' "s|^SITE_URL=.*|SITE_URL=$neu|" "$DATEN/.env"
+    else
+      printf '\nSITE_URL=%s\n' "$neu" >>"$DATEN/.env"
+    fi
+    echo "SITE_URL jetzt: $(grep '^SITE_URL=' "$DATEN/.env")"
+    "$0" sicherung
+    "$0" aktualisieren
+    "$0" stopp
+    "$0" start
+    echo "Fertig. Bitte prüfen: Anmeldung per Mail-Code, Ticket-Link aus einer Mail, Einlass-Scan über mobile Daten."
+    ;;
+
   *)
-    sed -n '2,16p' "$0"; exit 1
+    sed -n '2,18p' "$0"; exit 1
     ;;
 esac
