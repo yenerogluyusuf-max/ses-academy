@@ -267,10 +267,14 @@ credentials-file: $HOME/.cloudflared/$id.json
 ingress:
   - hostname: $host
     service: http://127.0.0.1:${WEB_PORT:-3200}
+  - hostname: www.$host
+    service: http://127.0.0.1:${WEB_PORT:-3200}
   - service: http_status:404
 YML
     chmod 600 "$DATEN/tunnel.yml"
-    cloudflared tunnel route dns "$name" "$host"
+    # -f: vorhandene Einträge (z. B. A/AAAA auf einen alten Webspace) durch den Tunnel ersetzen; Mail-Einträge bleiben
+    cloudflared tunnel route dns -f "$name" "$host"
+    cloudflared tunnel route dns -f "$name" "www.$host"
     stoppe_dienst tunnel
     starte_dienst tunnel cloudflared tunnel --no-autoupdate --config "$DATEN/tunnel.yml" run
     echo "Tunnel für $host läuft. Weiter: ./ses.sh domain https://$host"
