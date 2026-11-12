@@ -99,4 +99,19 @@ SELECT pg_temp.login('amina@example.test');
 SELECT pg_temp.ok('Amina: eigenes Zimmer', (SELECT hotel_name || ' ' || room_label FROM public.get_my_rooms()), 'Testhotel 101');
 SELECT pg_temp.ok('Amina sieht keine Zimmerbelegung', (SELECT count(*)::text FROM public.room_assignments), '0');
 
+-- 5) Zimmercode (20261206090000_zimmercode.sql): vor dem Eintragen leer, danach nur der eigene
+SELECT pg_temp.ok('Amina: noch kein Zimmercode', (SELECT coalesce(access_code, 'leer') FROM public.get_my_rooms()), 'leer');
+SELECT pg_temp.login('orga@ses.test');
+UPDATE public.rooms SET access_code = 'C-' || label WHERE hotel_id IN (SELECT id FROM public.hotels WHERE module_id = (SELECT ws FROM t));
+DO $$ BEGIN
+  UPDATE public.rooms SET access_code = '  ' WHERE hotel_id IN (SELECT id FROM public.hotels WHERE module_id = (SELECT ws FROM t));
+  RAISE EXCEPTION 'FEHLER leerer Zimmercode angenommen';
+EXCEPTION WHEN check_violation THEN RAISE NOTICE 'ok  Leerer Zimmercode abgelehnt';
+END $$;
+SELECT pg_temp.login('amina@example.test');
+SELECT pg_temp.ok('Amina: eigener Zimmercode', (SELECT string_agg(access_code, ',') FROM public.get_my_rooms()), 'C-101');
+SELECT pg_temp.ok('Amina liest keine fremden Zimmercodes', (SELECT count(*)::text FROM public.rooms), '0');
+SELECT pg_temp.login('yusuf@example.test');
+SELECT pg_temp.ok('Yusuf ohne Zimmer sieht keinen Code', (SELECT count(*)::text FROM public.get_my_rooms()), '0');
+
 ROLLBACK;

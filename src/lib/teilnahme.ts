@@ -20,7 +20,7 @@ export type TicketModul = {
 };
 
 /** Zimmer der Person in einem Modul, nur wenn das Team die Zimmer freigegeben hat (hotels.rooms_visible). */
-export type TicketZimmer = { moduleId: string; hotel: string | null; adresse: string | null; label: string; betten: number; mitbewohner: string[] };
+export type TicketZimmer = { moduleId: string; hotel: string | null; adresse: string | null; label: string; betten: number; mitbewohner: string[]; code: string | null };
 
 export type TicketDaten = {
   participant: Pick<Row<"participants">, "id" | "first_name" | "last_name" | "email" | "preferred_language" | "checkin_token" | "link_token" | "short_code">;
@@ -107,7 +107,7 @@ export function modulZeitraum(m: TicketModul, locale: string): string {
 async function ladeZimmer(admin: ReturnType<typeof createAdminClient>, participantId: string): Promise<TicketZimmer[]> {
   const { data: eigene } = await admin
     .from("room_assignments")
-    .select("room_id, room:rooms!inner(label, capacity), hotel:hotels!inner(module_id, name, address, rooms_visible)")
+    .select("room_id, room:rooms!inner(label, capacity, access_code), hotel:hotels!inner(module_id, name, address, rooms_visible)")
     .eq("participant_id", participantId)
     .eq("hotel.rooms_visible", true);
   if (!eigene?.length) return [];
@@ -122,6 +122,7 @@ async function ladeZimmer(admin: ReturnType<typeof createAdminClient>, participa
     adresse: e.hotel.address,
     label: e.room.label,
     betten: e.room.capacity,
+    code: e.room.access_code,
     mitbewohner: (andere ?? []).filter((a) => a.room_id === e.room_id)
       .map((a) => `${a.participant.first_name} ${a.participant.last_name}`.trim())
       .sort((x, y) => x.localeCompare(y, "de")),

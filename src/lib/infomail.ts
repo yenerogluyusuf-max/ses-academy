@@ -13,6 +13,12 @@ import { istInterneZimmerbezeichnung } from "@/lib/zimmer-anzeige";
 
 type Sprache = "de" | "tr" | "fr";
 
+/** „Deutsch und Türkisch“ aus den Sprachkürzeln der angehängten PDFs. */
+function liste(sprachen: string[], namen: Record<string, string>, und: string): string {
+  const n = sprachen.map((s) => namen[s] ?? s);
+  return n.length > 1 ? `${n.slice(0, -1).join(", ")} ${und} ${n[n.length - 1]}` : n.join("");
+}
+
 const texte = {
   de: {
     betreff: (modul: string) => `${modul}: Ticket, Programm und Übernachtung`,
@@ -31,14 +37,15 @@ const texte = {
     zimmerFolgt: "Die Zimmereinteilung bekommst du vor Ort.",
     zimmerArt: (n: number) => (n === 1 ? "Einzelzimmer" : n === 2 ? "Doppelzimmer" : `${n}-Bett-Zimmer`),
     zimmerNummer: (nr: string) => `Zimmer ${nr}`,
-    zimmerNummerFolgt: "die Zimmernummer bekommst du im Hotel",
+    zimmerCode: "Zimmercode",
+    zimmerCodeFolgt: (tag: string | null) => `Deinen Zimmercode bekommst du am Anreisetag${tag ? ` (${tag})` : ""} gegen 12–13 Uhr. Du findest ihn dann in deinem Profil: über „Ticket öffnen“ und in „Mein Bereich“.`,
     mitImZimmer: "Mit im Zimmer",
     keineUebernachtung: "Du hast keine Übernachtung angegeben. Falls du doch eine brauchst, antworte einfach auf diese Mail.",
     keineAngabe: "Du hast noch nicht angegeben, ob du übernachtest. Bitte trag es in „Mein Bereich“ ein.",
     keineAngabeZu: "Du hast keine Übernachtung angegeben. Falls du doch eine brauchst, antworte einfach auf diese Mail.",
     programm: "Tagesordnung",
     programmFolgt: "Das Programm für diesen Tag folgt.",
-    programmPdf: "Die Tagesordnung hängt auch als PDF an.",
+    programmPdf: (sprachen: string[]) => `Die Tagesordnung hängt auch als PDF an${sprachen.length > 1 ? `, auf ${liste(sprachen, { de: "Deutsch", tr: "Türkisch", fr: "Französisch" }, "und")}` : ""}.`,
     abmelden: "Falls du nicht teilnehmen kannst, melde dich bitte vorher über dein Ticket ab. Bei Fragen antworte einfach auf diese Mail.",
     gruss: "Viele Grüße\nDein Team der SES Academy",
   },
@@ -59,14 +66,15 @@ const texte = {
     zimmerFolgt: "Oda dağılımını yerinde öğreneceksin.",
     zimmerArt: (n: number) => (n === 1 ? "Tek kişilik oda" : n === 2 ? "Çift kişilik oda" : `${n} kişilik oda`),
     zimmerNummer: (nr: string) => `Oda ${nr}`,
-    zimmerNummerFolgt: "oda numaranı otelde alacaksın",
+    zimmerCode: "Oda kodu",
+    zimmerCodeFolgt: (tag: string | null) => `Oda kodunu varış gününde${tag ? ` (${tag})` : ""} saat 12–13 civarında alacaksın. Kodu o zaman profilinde görebilirsin: „Bileti aç“ bağlantısında ve „Mein Bereich“ sayfasında.`,
     mitImZimmer: "Oda arkadaşın",
     keineUebernachtung: "Konaklama ihtiyacı belirtmedin. Yine de ihtiyacın olursa bu e-postayı yanıtlaman yeterli.",
     keineAngabe: "Konaklayıp konaklamayacağını henüz belirtmedin. Lütfen „Mein Bereich“ sayfasında bildir.",
     keineAngabeZu: "Konaklama ihtiyacı belirtmedin. Yine de ihtiyacın olursa bu e-postayı yanıtlaman yeterli.",
     programm: "Program",
     programmFolgt: "Bu günün programı daha sonra bildirilecek.",
-    programmPdf: "Program PDF olarak da ekte.",
+    programmPdf: (sprachen: string[]) => `Program PDF olarak da ekte${sprachen.length > 1 ? ` (${liste(sprachen, { de: "Almanca", tr: "Türkçe", fr: "Fransızca" }, "ve")})` : ""}.`,
     abmelden: "Katılamayacaksan lütfen önceden biletin üzerinden bildir. Sorun olursa bu e-postayı yanıtlaman yeterli.",
     gruss: "Selamlarımızla\nSES Academy ekibi",
   },
@@ -87,14 +95,15 @@ const texte = {
     zimmerFolgt: "Tu recevras la répartition des chambres sur place.",
     zimmerArt: (n: number) => (n === 1 ? "Chambre individuelle" : n === 2 ? "Chambre double" : `Chambre pour ${n} personnes`),
     zimmerNummer: (nr: string) => `Chambre ${nr}`,
-    zimmerNummerFolgt: "tu recevras ton numéro de chambre à l’hôtel",
+    zimmerCode: "Code de chambre",
+    zimmerCodeFolgt: (tag: string | null) => `Tu recevras ton code de chambre le jour de ton arrivée${tag ? ` (${tag})` : ""} vers 12\u00a0h–13\u00a0h. Tu le trouveras ensuite dans ton profil\u00a0: via «\u00a0Ouvrir le billet\u00a0» et dans «\u00a0Mon espace\u00a0».`,
     mitImZimmer: "Avec toi dans la chambre",
     keineUebernachtung: "Tu n’as pas demandé d’hébergement. Si tu en as besoin malgré tout, réponds simplement à cet e-mail.",
     keineAngabe: "Tu n’as pas encore indiqué si tu as besoin d’un hébergement. Merci de le faire dans «\u00a0Mon espace\u00a0».",
     keineAngabeZu: "Tu n’as pas demandé d’hébergement. Si tu en as besoin malgré tout, réponds simplement à cet e-mail.",
     programm: "Programme",
     programmFolgt: "Le programme de cette journée suivra.",
-    programmPdf: "Le programme est aussi joint en PDF.",
+    programmPdf: (sprachen: string[]) => `Le programme est aussi joint en PDF${sprachen.length > 1 ? `, en ${liste(sprachen, { de: "allemand", tr: "turc", fr: "français" }, "et en")}` : ""}.`,
     abmelden: "Si tu ne peux pas participer, merci de te désinscrire à l’avance depuis ton billet. Pour toute question, réponds simplement à cet e-mail.",
     gruss: "À très bientôt\nL’équipe de la SES Academy",
   },
@@ -117,6 +126,11 @@ function nachtText(nacht: string, l: Sprache): string {
   const morgen = new Date(abend.getTime() + 86_400_000);
   const f = new Intl.DateTimeFormat("fr-FR", { day: "numeric", month: "short", timeZone: "UTC" });
   return abend.getUTCMonth() === morgen.getUTCMonth() ? `du ${abend.getUTCDate()} au ${f.format(morgen)}` : `du ${f.format(abend)} au ${f.format(morgen)}`;
+}
+
+/** Anreisetag zur ersten Nacht, z. B. „Freitag, 13. November“ / „13 Kasım Cuma“ / „vendredi 13 novembre“. */
+function anreiseTag(nacht: string, l: Sprache): string {
+  return new Intl.DateTimeFormat(locale[l], { weekday: "long", day: "numeric", month: "long", timeZone: "UTC" }).format(new Date(`${nacht}T12:00:00Z`));
 }
 
 /** Modultitel in der Sprache der Mail (auch für das Kopfbild, cid:info-kopf). */
@@ -144,7 +158,7 @@ export async function ladeInfoMail(participantId: string, modulId: string) {
     admin.from("modules").select("id, title, subtitle, i18n, location, ticket_required, stay_form_open, module_days(id, starts_at, ends_at, program_items(starts_at, ends_at, title, i18n, status))").eq("id", modulId).maybeSingle(),
     admin.from("registrations").select("id, status, rsvp, stay_requests(nights)").eq("module_id", modulId).eq("participant_id", participantId).maybeSingle(),
     admin.from("hotels").select("id, name, address, rooms_visible").eq("module_id", modulId).order("created_at"),
-    admin.from("room_assignments").select("hotel_id, room_id, rooms(label, capacity)").eq("participant_id", participantId),
+    admin.from("room_assignments").select("hotel_id, room_id, rooms(label, capacity, access_code)").eq("participant_id", participantId),
   ]);
   if (!p || !modul || !reg) return null;
   // Mehrere Hotels je Modul: das Hotel der Person, sobald ihre Zimmer freigegeben sind; bis dahin nur, wenn es
@@ -154,12 +168,12 @@ export async function ladeInfoMail(participantId: string, modulId: string) {
   const eigenesHotel = liste.find((h) => h.id === eigene?.hotel_id);
   const hotel = eigenesHotel?.rooms_visible ? eigenesHotel : liste.length === 1 ? liste[0] : null;
   // Zimmer erst nach Freigabe, dann mit Zimmerart und den Namen der anderen im selben Zimmer (wie Ticket-Seite und Mein Bereich)
-  let zimmer: { label: string; betten: number; mitbewohner: string[] } | null = null;
+  let zimmer: { label: string; betten: number; mitbewohner: string[]; code: string | null } | null = null;
   if (eigenesHotel?.rooms_visible && eigene?.rooms) {
     const { data: andere } = await admin.from("room_assignments").select("participants!inner(first_name, last_name)")
       .eq("room_id", eigene.room_id).neq("participant_id", participantId);
     zimmer = {
-      label: eigene.rooms.label, betten: eigene.rooms.capacity,
+      label: eigene.rooms.label, betten: eigene.rooms.capacity, code: eigene.rooms.access_code,
       mitbewohner: (andere ?? []).map((a) => `${a.participants.first_name} ${a.participants.last_name}`.trim()).sort((x, y) => x.localeCompare(y, "de")),
     };
   }
@@ -178,7 +192,7 @@ function esc(text: string): string {
  * Betreff, Text- und HTML-Fassung. Das QR-Bild steckt im HTML als cid:ticket-qr (Anhang beim Versand).
  * wallet: Links „Zu Apple Wallet hinzufügen“ / „In Google Wallet speichern“, nur wenn die Wallets eingerichtet sind.
  */
-export function infoMailInhalt(d: InfoDaten, ticketLink: string, wallet: { apple: string | null; google: string | null; appleText: string; googleText: string } | null = null, pdfAnhang = false) {
+export function infoMailInhalt(d: InfoDaten, ticketLink: string, wallet: { apple: string | null; google: string | null; appleText: string; googleText: string } | null = null, pdfSprachen: string[] = []) {
   const l = infoMailSprache(d.p.preferred_language);
   const t = texte[l];
   const modulTitel = infoMailTitel(d);
@@ -204,12 +218,17 @@ export function infoMailInhalt(d: InfoDaten, ticketLink: string, wallet: { apple
     if (d.hotel && d.hotel.name !== "Hotel (Name folgt)") zeilen.push([t.hotel, [d.hotel.name, d.hotel.address].filter(Boolean).join(", ")]);
     zeilen.push([t.naechte, d.naechte.map((n) => nachtText(n, l)).join(", ")]);
     zeilen.push([t.zimmer, d.zimmer
-      ? `${t.zimmerArt(d.zimmer.betten)} · ${istInterneZimmerbezeichnung(d.zimmer.label) ? t.zimmerNummerFolgt : t.zimmerNummer(d.zimmer.label)}`
+      ? [t.zimmerArt(d.zimmer.betten), istInterneZimmerbezeichnung(d.zimmer.label) ? "" : t.zimmerNummer(d.zimmer.label)].filter(Boolean).join(" · ")
       : t.zimmerFolgt]);
     if (d.zimmer?.mitbewohner.length) zeilen.push([t.mitImZimmer, d.zimmer.mitbewohner.join(", ")]);
+    if (d.zimmer?.code) zeilen.push([t.zimmerCode, d.zimmer.code]);
+    // Zimmercode gibt das Hotel erst am Anreisetag (erste Nacht) aus; bis dahin der Hinweis, wo er dann steht
+    const anreise = d.naechte[0] ? anreiseTag(d.naechte[0], l) : null;
+    const hinweis = d.zimmer && !d.zimmer.code ? t.zimmerCodeFolgt(anreise) : null;
     return {
-      text: zeilen.map(([k, v]) => `${k}${dp} ${v}`),
-      html: zeilen.map(([k, v]) => `<p style="margin:0 0 6px"><span style="color:#3c4a42">${esc(k)}${dp}</span> <strong>${esc(v)}</strong></p>`).join(""),
+      text: [...zeilen.map(([k, v]) => `${k}${dp} ${v}`), ...(hinweis ? [hinweis] : [])],
+      html: zeilen.map(([k, v]) => `<p style="margin:0 0 6px"><span style="color:#3c4a42">${esc(k)}${dp}</span> <strong>${esc(v)}</strong></p>`).join("")
+        + (hinweis ? `<p style="margin:10px 0 0;font-size:14px;line-height:1.5;color:#13201a">${esc(hinweis)}</p>` : ""),
     };
   })();
 
@@ -241,7 +260,7 @@ export function infoMailInhalt(d: InfoDaten, ticketLink: string, wallet: { apple
     `${t.termin}:`, ...termine, d.modul.location ?? "", ...(karte ? [`${t.karte}: ${karte}`] : []), "",
     ...(d.modul.ticket_required ? [`${t.ticket}:`, t.ticketText, `${t.kurzcode}: ${code}`, `${t.ticketLink}: ${ticketLink}`, ...walletText, ""] : []),
     `${t.uebernachtung}:`, ...uebernachtung.text, "",
-    `${t.programm}:`, ...(pdfAnhang ? [t.programmPdf] : []), ...programmText, "",
+    `${t.programm}:`, ...(pdfSprachen.length ? [t.programmPdf(pdfSprachen)] : []), ...programmText, "",
     t.abmelden, "", t.gruss,
   ].join("\n");
 
@@ -258,7 +277,7 @@ export function infoMailInhalt(d: InfoDaten, ticketLink: string, wallet: { apple
       <a href="${esc(ticketLink)}" style="display:inline-block;background:#13201a;color:#f3efe4;text-decoration:none;padding:12px 26px;border-radius:999px;font-weight:bold">${esc(t.ticketLink)}</a>${walletHtml}
     </div>`)}
   ${abschnitt(t.uebernachtung, uebernachtung.html)}
-  ${abschnitt(t.programm, `${pdfAnhang ? `<p style="margin:0;font-size:14px;color:#3c4a42">${esc(t.programmPdf)}</p>` : ""}${programmHtml}`)}
+  ${abschnitt(t.programm, `${pdfSprachen.length ? `<p style="margin:0;font-size:14px;color:#3c4a42">${esc(t.programmPdf(pdfSprachen))}</p>` : ""}${programmHtml}`)}
   <p style="font-size:14px;line-height:1.6;color:#3c4a42;margin:8px 4px">${esc(t.abmelden)}</p>
   <p style="font-size:14px;line-height:1.6;white-space:pre-line;margin:8px 4px">${esc(t.gruss)}</p>
 </div></body></html>`;

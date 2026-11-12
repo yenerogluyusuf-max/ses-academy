@@ -95,10 +95,11 @@ export default async function TicketSeite({ params, searchParams }: PageProps<"/
                   <p className="font-semibold">{t.zimmerTitel}: {t.zimmerArt(zimmer.betten)}</p>
                   {zimmer.mitbewohner.length > 0 && <p className="mt-1">{t.zimmerMit}: <span className="font-semibold">{zimmer.mitbewohner.join(", ")}</span></p>}
                   <p className="mt-1 text-ink-soft">
-                    {[zimmer.hotel, zimmer.adresse].filter(Boolean).join(" · ")}
-                    {zimmer.hotel || zimmer.adresse ? " · " : ""}
-                    {istInterneZimmerbezeichnung(zimmer.label) ? t.zimmerNummerFolgt : t.zimmerNummer(zimmer.label)}
+                    {[zimmer.hotel, zimmer.adresse, istInterneZimmerbezeichnung(zimmer.label) ? "" : t.zimmerNummer(zimmer.label)].filter(Boolean).join(" · ")}
                   </p>
+                  {zimmer.code
+                    ? <p className="mt-3">{t.zimmerCode}: <span className="font-mono text-2xl font-bold tracking-[0.15em]">{zimmer.code}</span></p>
+                    : <p className="mt-2">{t.zimmerCodeFolgt}</p>}
                 </div>
               )}
               {kannAbmelden && perLink && (

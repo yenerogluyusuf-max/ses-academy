@@ -434,6 +434,16 @@ export async function tagesordnungAnhang(moduleId: string, sprache: string): Pro
   return { filename: fassung.fileName, content: inhalt, contentType: "application/pdf" };
 }
 
+/**
+ * Tagesordnungen für die Info-Mail (Wunsch 12.11.2026): immer die türkische, dazu die in der Sprache der Mail
+ * (Deutsch oder Französisch). Reihenfolge: eigene Sprache zuerst. Fehlende Fassungen fallen weg.
+ */
+export async function tagesordnungAnhaenge(moduleId: string, sprache: string) {
+  const sprachen = [...new Set([sprache, "tr"])];
+  const anhaenge = await Promise.all(sprachen.map(async (l) => ({ sprache: l, anhang: await tagesordnungAnhang(moduleId, l) })));
+  return anhaenge.filter((a): a is { sprache: string; anhang: NonNullable<typeof a.anhang> } => a.anhang !== null);
+}
+
 /** Wallet-Links für die Info-Mail (wie in der Ticket-Mail), nur wenn Apple bzw. Google Wallet eingerichtet ist. */
 export function infoMailWallet(p: { checkin_token: string; preferred_language: string | null }) {
   const t = portalTexte[sprachOder(p.preferred_language)];
@@ -454,9 +464,9 @@ export async function sendeInfoMail(participantId: string, moduleId: string, aus
   if (!d) return { ok: false, fehler: "Nicht für dieses Modul angemeldet." };
   const an = test ?? d.p.email;
   if (!an) return { ok: false, fehler: "Keine E-Mail-Adresse hinterlegt." };
-  const pdf = await tagesordnungAnhang(moduleId, infoMailSprache(d.p.preferred_language));
+  const pdfs = await tagesordnungAnhaenge(moduleId, infoMailSprache(d.p.preferred_language));
   const kopf = await infoMailKopf(d);
-  const { betreff, text, html, sprache } = infoMailInhalt(d, seitenUrl(`/ticket/${d.p.link_token}/`), infoMailWallet(d.p), pdf !== null);
+  const { betreff, text, html, sprache } = infoMailInhalt(d, seitenUrl(`/ticket/${d.p.link_token}/`), infoMailWallet(d.p), pdfs.map((x) => x.sprache));
   const ergebnis = await senden({
     to: an,
     subject: test ? `[Test] ${betreff}` : betreff,
@@ -465,7 +475,7 @@ export async function sendeInfoMail(participantId: string, moduleId: string, aus
     attachments: [
       { filename: "ses-academy.png", content: kopf, cid: "info-kopf" },
       { filename: "ticket-qr.png", content: await qrPng(d.p.checkin_token), cid: "ticket-qr" },
-      ...(pdf ? [pdf] : []),
+      ...pdfs.map((x) => x.anhang),
     ],
   }, sprache);
   if (!test) {

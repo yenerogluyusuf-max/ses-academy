@@ -195,10 +195,11 @@ export default async function MeinBereich({ searchParams }: PageProps<"/mein-ber
                     <p className="font-semibold">{m?.modules.title ?? t.modul}: {t.zimmerArt(z.capacity)}</p>
                     {z.mates.length > 0 && <p className="mt-1">{t.zimmerMit}: <span className="font-semibold">{z.mates.join(", ")}</span></p>}
                     <p className="mt-1 text-sm text-ink-soft">
-                      {[z.hotel_name === "Hotel (Name folgt)" ? "" : z.hotel_name, z.hotel_address].filter(Boolean).join(" · ")}
-                      {(z.hotel_name !== "Hotel (Name folgt)" && z.hotel_name) || z.hotel_address ? " · " : ""}
-                      {istInterneZimmerbezeichnung(z.room_label) ? t.zimmerNummerFolgt : t.zimmerNummer(z.room_label)}
+                      {[z.hotel_name === "Hotel (Name folgt)" ? "" : z.hotel_name, z.hotel_address, istInterneZimmerbezeichnung(z.room_label) ? "" : t.zimmerNummer(z.room_label)].filter(Boolean).join(" · ")}
                     </p>
+                    {z.access_code
+                      ? <p className="mt-3">{t.zimmerCode}: <span className="font-mono text-2xl font-bold tracking-[0.15em]">{z.access_code}</span></p>
+                      : <p className="mt-2 text-sm">{t.zimmerCodeFolgt}</p>}
                   </div>
                 );
               })}

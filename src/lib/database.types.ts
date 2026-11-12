@@ -1041,14 +1041,14 @@ isOneToOne: false
                   ]
                 },"rooms": {
                   Row: {
-                    "capacity": number,"hotel_id": string,"id": string,"label": string,"section": string | null
+                    "access_code": string | null,"capacity": number,"hotel_id": string,"id": string,"label": string,"section": string | null
                   }
                   ComputedFields: never
                   Insert: {
-                    "capacity": number,"hotel_id": string,"id"?: string,"label": string,"section"?: string | null
+                    "access_code"?: string | null,"capacity": number,"hotel_id": string,"id"?: string,"label": string,"section"?: string | null
                   }
                   Update: {
-                    "capacity"?: number,"hotel_id"?: string,"id"?: string,"label"?: string,"section"?: string | null
+                    "access_code"?: string | null,"capacity"?: number,"hotel_id"?: string,"id"?: string,"label"?: string,"section"?: string | null
                   }
                   Relationships: [
                     {
@@ -1364,7 +1364,7 @@ isOneToOne: false
                            },
 "get_my_rooms":
 { Args: Record<PropertyKey, never>; Returns: {
-              "capacity": number,"hotel_address": string,"hotel_name": string,"mates": string[],"module_id": string,"room_label": string
+              "access_code": string | null,"capacity": number,"hotel_address": string,"hotel_name": string,"mates": string[],"module_id": string,"room_label": string
             }[]
                            },
 "get_participant_analytics":
