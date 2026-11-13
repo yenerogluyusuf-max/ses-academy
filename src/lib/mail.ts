@@ -184,14 +184,18 @@ export async function sendeAbmeldeBestaetigung(participantId: string, modulTitel
 
 /**
  * Zimmer-Mail (13.11.2026): Hotel, Zimmernummer, Zimmercode und Mitbewohner:innen einer Person für ein Modul,
- * in ihrer Sprache, mit Link zur Ticket-Seite. Ohne eingetragenen Code wird nichts verschickt.
- * test: an diese Adresse statt an die Person (Probe, wird nicht protokolliert).
+ * in ihrer Sprache, mit Kopfbild wie die Info-Mail und dem Hinweis, dass die Einteilung geändert werden musste.
+ * vorher: Hotel und Mitbewohner:innen laut Info-Mail; dann nennt die Mail genau, was sich für die Person geändert hat
+ * (anderes Hotel, wer neu dazukommt, wer nicht mehr dabei ist) oder dass sich für sie nichts ändert.
+ * Ohne eingetragenen Code wird nichts verschickt. test: an diese Adresse statt an die Person (Betreff „[Test]“, nicht protokolliert).
  */
-export async function sendeZimmerMail(participantId: string, moduleId: string, ausgeloestVon?: string, test?: string): Promise<Ergebnis> {
+export type ZimmerVorher = { hotel: string | null; mitbewohner: string[] };
+
+export async function sendeZimmerMail(participantId: string, moduleId: string, ausgeloestVon?: string, test?: string, vorher?: ZimmerVorher): Promise<Ergebnis> {
   const db = createAdminClient();
   const [{ data: p }, { data: m }, { data: eigene }] = await Promise.all([
     db.from("participants").select("id, first_name, email, preferred_language, link_token").eq("id", participantId).maybeSingle(),
-    db.from("modules").select("title, i18n").eq("id", moduleId).maybeSingle(),
+    db.from("modules").select("title, subtitle, i18n").eq("id", moduleId).maybeSingle(),
     db.from("room_assignments").select("room_id, room:rooms!inner(label, capacity, access_code), hotel:hotels!inner(module_id, name, address)")
       .eq("participant_id", participantId).eq("hotel.module_id", moduleId).limit(1),
   ]);
@@ -203,32 +207,63 @@ export async function sendeZimmerMail(participantId: string, moduleId: string, a
     .eq("room_id", zimmer.room_id).neq("participant_id", participantId);
   const l = sprachOder(p.preferred_language);
   const t = portalTexte[l];
-  const ue = (m.i18n as Record<string, { title?: string }> | null)?.[l]?.title;
-  const modul = l !== "de" && ue ? ue : m.title;
+  const ue = (m.i18n as Record<string, { title?: string; subtitle?: string }> | null)?.[l];
+  const modul = l !== "de" && ue?.title ? ue.title : m.title;
+  const untertitel = l !== "de" && ue?.subtitle ? ue.subtitle : (m.subtitle || null);
   const mit = (andere ?? []).map((a) => `${a.participant.first_name} ${a.participant.last_name}`.trim()).sort((x, y) => x.localeCompare(y, "de"));
+  // Was sich gegenüber der Info-Mail geändert hat (nur mit „vorher“)
+  const liste = (namen: string[]) => namen.join(", ");
+  const aenderungen: string[] = [];
+  if (vorher) {
+    if (vorher.hotel && vorher.hotel !== zimmer.hotel.name) aenderungen.push(t.mailZimmerHotelNeu(vorher.hotel, zimmer.hotel.name));
+    const neuDabei = mit.filter((n) => !vorher.mitbewohner.includes(n));
+    const weg = vorher.mitbewohner.filter((n) => !mit.includes(n));
+    if (vorher.mitbewohner.length === 0 && mit.length > 0) aenderungen.push(t.mailZimmerVorherAllein(liste(mit)));
+    else if (mit.length === 0 && vorher.mitbewohner.length > 0) aenderungen.push(t.mailZimmerJetztAllein(liste(vorher.mitbewohner)));
+    else {
+      if (neuDabei.length) aenderungen.push(t.mailZimmerNeuDabei(liste(neuDabei)));
+      if (weg.length) aenderungen.push(t.mailZimmerNichtMehr(liste(weg)));
+    }
+  }
+  const hinweisText = !vorher ? [t.mailZimmerAenderung] : aenderungen.length ? [t.mailZimmerAenderung, "", t.mailZimmerAnders, ...aenderungen.map((a) => `- ${a}`)] : [t.mailZimmerAenderung, "", t.mailZimmerGleich];
+  const hinweisHtml = !vorher ? html(t.mailZimmerAenderung)
+    : aenderungen.length
+      ? `${html(t.mailZimmerAenderung)}<p style="margin:10px 0 4px;font-weight:bold">${html(t.mailZimmerAnders)}</p><ul style="margin:0;padding-left:20px">${aenderungen.map((a) => `<li style="margin:2px 0;font-weight:bold">${html(a)}</li>`).join("")}</ul>`
+      : `${html(t.mailZimmerAenderung)}<p style="margin:10px 0 0;font-weight:bold">${html(t.mailZimmerGleich)}</p>`;
   const link = seitenUrl(`/ticket/${p.link_token}/`);
-  const zeilen = [
-    `${t.zimmerNummer(zimmer.room.label)} · ${t.zimmerArt(zimmer.room.capacity)}`,
-    `${t.zimmerCode}: ${zimmer.room.access_code}`,
-    ...(mit.length ? [`${t.zimmerMit}: ${mit.join(", ")}`] : []),
-    [zimmer.hotel.name, zimmer.hotel.address].filter(Boolean).join(", "),
-  ];
-  const text = [t.mailAnrede(p.first_name), t.mailZimmerIntro(modul), "", ...zeilen, "", t.mailZimmerHinweis, `${t.mailTicketLink}: ${link}`, "", t.mailGruss].join("\n");
-  const inhalt = `<!doctype html><html lang="${l}"><body style="margin:0;background:#f3efe4;font-family:Arial,Helvetica,sans-serif;color:#13201a">
-<div style="max-width:560px;margin:0 auto;padding:32px 20px;font-size:16px;line-height:1.6">
-  <p style="font-size:13px;letter-spacing:.08em;text-transform:uppercase;color:#3c4a42;margin:0 0 16px">SES Academy</p>
-  <p>${html(t.mailAnrede(p.first_name))}<br>${html(t.mailZimmerIntro(modul))}</p>
-  <div style="background:#e2f4ea;border-radius:16px;padding:18px 20px;margin:20px 0">
-    <p style="margin:0;font-weight:bold">${html(zeilen[0])}</p>
-    <p style="margin:10px 0 0">${html(t.zimmerCode)}: <span style="font-family:'Courier New',monospace;font-size:26px;font-weight:bold;letter-spacing:.12em">${html(zimmer.room.access_code)}</span></p>
-    ${mit.length ? `<p style="margin:10px 0 0">${html(t.zimmerMit)}: <b>${html(mit.join(", "))}</b></p>` : ""}
-    <p style="margin:10px 0 0;color:#3c4a42">${html(zeilen[zeilen.length - 1])}</p>
+  const hotelZeile = [zimmer.hotel.name, zimmer.hotel.address].filter(Boolean).join(", ");
+  const art = `${t.zimmerNummer(zimmer.room.label)} · ${t.zimmerArt(zimmer.room.capacity)}`;
+  const text = [
+    t.mailAnrede(p.first_name), t.mailZimmerIntro(modul), "", ...hinweisText, "",
+    hotelZeile, art, `${t.zimmerCode}: ${zimmer.room.access_code}`, ...(mit.length ? [`${t.zimmerMit}: ${mit.join(", ")}`] : []), "",
+    t.mailZimmerHinweis, `${t.mailTicketLink}: ${link}`, "", t.mailGruss,
+  ].join("\n");
+  const inhalt = `<!doctype html><html lang="${l}"><body style="margin:0;background:#f3efe4;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;color:#13201a">
+<div style="max-width:580px;margin:0 auto;padding:28px 16px">
+  <img src="cid:info-kopf" width="548" alt="SES Academy – ${html(modul)}" style="display:block;width:100%;height:auto;border:1px solid #e4e1d8;border-radius:20px;margin:0 0 18px;box-sizing:border-box">
+  <p style="font-size:16px;line-height:1.6;margin:0 0 16px">${html(t.mailAnrede(p.first_name))}<br>${html(t.mailZimmerIntro(modul))}</p>
+  <div style="background:${aenderungen.length ? "#fff3cd" : "#e2f4ea"};border-radius:16px;padding:14px 18px;margin:0 0 16px;font-size:15px;line-height:1.55">${hinweisHtml}</div>
+  <div style="background:#ffffff;border-radius:20px;padding:20px 22px;margin:0 0 16px">
+    <p style="margin:0 0 10px;font-size:12px;letter-spacing:.12em;text-transform:uppercase;color:#3d7a61;font-weight:bold">${html(t.zimmerTitel)}</p>
+    <p style="margin:0;font-weight:bold;font-size:16px">${html(zimmer.hotel.name)}</p>
+    <p style="margin:2px 0 14px;font-size:14px;color:#3c4a42">${html(zimmer.hotel.address ?? "")}</p>
+    <p style="margin:0;font-size:16px">${html(art)}</p>
+    <p style="margin:14px 0 2px;font-size:13px;color:#3c4a42">${html(t.zimmerCode)}</p>
+    <p style="margin:0;font-family:Menlo,Consolas,monospace;font-size:30px;font-weight:bold;letter-spacing:.14em">${html(zimmer.room.access_code)}</p>
+    ${mit.length ? `<p style="margin:14px 0 0;font-size:15px">${html(t.zimmerMit)}: <b>${html(mit.join(", "))}</b></p>` : ""}
   </div>
-  <p>${html(t.mailZimmerHinweis)}</p>
-  <p style="margin:24px 0"><a href="${html(link)}" style="display:inline-block;background:#13201a;color:#f3efe4;text-decoration:none;padding:14px 28px;border-radius:999px;font-weight:bold">${html(t.mailTicketLink)}</a></p>
-  <p style="font-size:14px;white-space:pre-line">${html(t.mailGruss)}</p>
+  <p style="font-size:15px;line-height:1.6;margin:0 4px 16px">${html(t.mailZimmerHinweis)}</p>
+  <p style="margin:0 0 20px;text-align:center"><a href="${html(link)}" style="display:inline-block;background:#13201a;color:#f3efe4;text-decoration:none;padding:12px 26px;border-radius:999px;font-weight:bold">${html(t.mailTicketLink)}</a></p>
+  <p style="font-size:14px;line-height:1.6;white-space:pre-line;margin:8px 4px">${html(t.mailGruss)}</p>
 </div></body></html>`;
-  const ergebnis = await senden({ to: test ?? p.email, subject: t.mailZimmerBetreff(zimmer.hotel.name, zimmer.room.label), text, html: inhalt }, l);
+  const betreff = t.mailZimmerBetreff(zimmer.hotel.name, zimmer.room.label);
+  const ergebnis = await senden({
+    to: test ?? p.email,
+    subject: test ? `[Test] ${betreff}` : betreff,
+    text,
+    html: inhalt,
+    attachments: [{ filename: "ses-academy.png", content: await mailKopf(modul, untertitel), cid: "info-kopf" }],
+  }, l);
   if (!test) await protokolliere({ participantId: p.id, art: "zimmer", an: p.email, ergebnis, von: ausgeloestVon, moduleId });
   return ergebnis;
 }
