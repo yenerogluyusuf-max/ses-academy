@@ -98,7 +98,13 @@ export default async function TicketSeite({ params, searchParams }: PageProps<"/
                 <ModulProgramm tage={programm} locale={locale[l]} ort={m.ort} pdfHref={pdf ? `/programm/${m.moduleId}/${l}/` : null}
                   texte={{ ansehen: t.programmAnsehen, pdf: t.programmPdf, karte: t.ortKarte, fragen: t.fragenMail }} />
               )}
-              {zimmer && (
+              {zimmer?.versteckt && (
+                <div className="mt-3 rounded-2xl bg-paper-deep p-4 text-sm">
+                  <p className="font-semibold">{t.zimmerTitel}</p>
+                  <p className="mt-1">{t.zimmerWirdAktualisiert}</p>
+                </div>
+              )}
+              {zimmer && !zimmer.versteckt && (
                 <div className="mt-3 rounded-2xl bg-gruen-hell p-4 text-sm">
                   <p className="font-semibold">{t.zimmerTitel}: {t.zimmerArt(zimmer.betten)}</p>
                   {zimmer.mitbewohner.length > 0 && <p className="mt-1">{t.zimmerMit}: <span className="font-semibold">{zimmer.mitbewohner.join(", ")}</span></p>}

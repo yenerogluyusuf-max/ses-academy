@@ -19,8 +19,11 @@ export type TicketModul = {
   beginn: string | null;
 };
 
-/** Zimmer der Person in einem Modul, nur wenn das Team die Zimmer freigegeben hat (hotels.rooms_visible). */
-export type TicketZimmer = { moduleId: string; hotel: string | null; adresse: string | null; label: string; betten: number; mitbewohner: string[]; code: string | null };
+/**
+ * Zimmer der Person in einem Modul. Einzelheiten nur, wenn das Team die Zimmer freigegeben hat (hotels.rooms_visible);
+ * sonst versteckt = true und alle Felder leer.
+ */
+export type TicketZimmer = { moduleId: string; versteckt: boolean; hotel: string | null; adresse: string | null; label: string; betten: number; mitbewohner: string[]; code: string | null };
 
 export type TicketDaten = {
   participant: Pick<Row<"participants">, "id" | "first_name" | "last_name" | "email" | "preferred_language" | "checkin_token" | "link_token" | "short_code">;
@@ -103,21 +106,30 @@ export function modulZeitraum(m: TicketModul, locale: string): string {
   return m.tage.length === 1 ? f.format(von) : f.formatRange(von, bis);
 }
 
-/** Freigegebene Zimmer einer Person mit den Namen der anderen im selben Zimmer (wie get_my_rooms in der Datenbank). */
+/**
+ * Zimmer einer Person mit den Namen der anderen im selben Zimmer (wie get_my_rooms in der Datenbank).
+ * Hat das Team die Zimmer eines Hotels wieder ausgeblendet (rooms_visible = false, z. B. weil sich die Einteilung noch
+ * ändert), kommt nur ein Platzhalter ohne Hotel, Zimmer, Code und Namen zurück („wird aktualisiert“).
+ */
 async function ladeZimmer(admin: ReturnType<typeof createAdminClient>, participantId: string): Promise<TicketZimmer[]> {
-  const { data: eigene } = await admin
+  const { data: alle } = await admin
     .from("room_assignments")
     .select("room_id, room:rooms!inner(label, capacity, access_code), hotel:hotels!inner(module_id, name, address, rooms_visible)")
-    .eq("participant_id", participantId)
-    .eq("hotel.rooms_visible", true);
-  if (!eigene?.length) return [];
+    .eq("participant_id", participantId);
+  if (!alle?.length) return [];
+  const eigene = alle.filter((e) => e.hotel.rooms_visible);
+  const versteckt = alle.filter((e) => !e.hotel.rooms_visible).map((e): TicketZimmer => ({
+    moduleId: e.hotel.module_id, versteckt: true, hotel: null, adresse: null, label: "", betten: 0, code: null, mitbewohner: [],
+  }));
+  if (!eigene.length) return versteckt;
   const { data: andere } = await admin
     .from("room_assignments")
     .select("room_id, participant:participants!inner(first_name, last_name)")
     .in("room_id", eigene.map((e) => e.room_id))
     .neq("participant_id", participantId);
-  return eigene.map((e) => ({
+  return [...eigene.map((e): TicketZimmer => ({
     moduleId: e.hotel.module_id,
+    versteckt: false,
     hotel: e.hotel.name === "Hotel (Name folgt)" ? null : e.hotel.name,
     adresse: e.hotel.address,
     label: e.room.label,
@@ -126,5 +138,5 @@ async function ladeZimmer(admin: ReturnType<typeof createAdminClient>, participa
     mitbewohner: (andere ?? []).filter((a) => a.room_id === e.room_id)
       .map((a) => `${a.participant.first_name} ${a.participant.last_name}`.trim())
       .sort((x, y) => x.localeCompare(y, "de")),
-  }));
+  })), ...versteckt];
 }
