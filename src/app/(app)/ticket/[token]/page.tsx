@@ -19,6 +19,9 @@ import { linkSpracheSetzen } from "@/lib/aktionen/sprache";
 
 export const metadata: Metadata = { title: "Ticket | SES Academy", robots: { index: false, follow: false }, referrer: "same-origin" };
 
+/** Nummer im Hinweis „Zimmereinteilung wird aktualisiert“ (portal-texte), wird als Anruf-Link gezeigt. */
+const ZIMMER_TELEFON = "+49 151 70543675";
+
 export default async function TicketSeite({ params, searchParams }: PageProps<"/ticket/[token]">) {
   const { token } = await params;
   const { hinweis, sprache } = await searchParams;
@@ -101,7 +104,12 @@ export default async function TicketSeite({ params, searchParams }: PageProps<"/
               {zimmer?.versteckt && (
                 <div className="mt-3 rounded-2xl bg-paper-deep p-4 text-sm">
                   <p className="font-semibold">{t.zimmerTitel}</p>
-                  <p className="mt-1">{t.zimmerWirdAktualisiert}</p>
+                  <p className="mt-1">
+                    {/* Telefonnummer im Text antippbar machen (Android erkennt Nummern nicht von selbst) */}
+                    {t.zimmerWirdAktualisiert.split(ZIMMER_TELEFON).flatMap((teil, i) => i === 0 ? [teil] : [
+                      <a key={i} href={`tel:${ZIMMER_TELEFON.replace(/\s/g, "")}`} className="font-semibold whitespace-nowrap underline underline-offset-2">{ZIMMER_TELEFON}</a>, teil,
+                    ])}
+                  </p>
                 </div>
               )}
               {zimmer && !zimmer.versteckt && (
