@@ -183,6 +183,57 @@ export async function sendeAbmeldeBestaetigung(participantId: string, modulTitel
 }
 
 /**
+ * Zimmer-Mail (13.11.2026): Hotel, Zimmernummer, Zimmercode und Mitbewohner:innen einer Person für ein Modul,
+ * in ihrer Sprache, mit Link zur Ticket-Seite. Ohne eingetragenen Code wird nichts verschickt.
+ * test: an diese Adresse statt an die Person (Probe, wird nicht protokolliert).
+ */
+export async function sendeZimmerMail(participantId: string, moduleId: string, ausgeloestVon?: string, test?: string): Promise<Ergebnis> {
+  const db = createAdminClient();
+  const [{ data: p }, { data: m }, { data: eigene }] = await Promise.all([
+    db.from("participants").select("id, first_name, email, preferred_language, link_token").eq("id", participantId).maybeSingle(),
+    db.from("modules").select("title, i18n").eq("id", moduleId).maybeSingle(),
+    db.from("room_assignments").select("room_id, room:rooms!inner(label, capacity, access_code), hotel:hotels!inner(module_id, name, address)")
+      .eq("participant_id", participantId).eq("hotel.module_id", moduleId).limit(1),
+  ]);
+  const zimmer = eigene?.[0];
+  if (!p?.email) return { ok: false, fehler: "Keine E-Mail-Adresse hinterlegt." };
+  if (!m || !zimmer) return { ok: false, fehler: "Kein Zimmer in diesem Modul." };
+  if (!zimmer.room.access_code) return { ok: false, fehler: "Für dieses Zimmer ist noch kein Code eingetragen." };
+  const { data: andere } = await db.from("room_assignments").select("participant:participants!inner(first_name, last_name)")
+    .eq("room_id", zimmer.room_id).neq("participant_id", participantId);
+  const l = sprachOder(p.preferred_language);
+  const t = portalTexte[l];
+  const ue = (m.i18n as Record<string, { title?: string }> | null)?.[l]?.title;
+  const modul = l !== "de" && ue ? ue : m.title;
+  const mit = (andere ?? []).map((a) => `${a.participant.first_name} ${a.participant.last_name}`.trim()).sort((x, y) => x.localeCompare(y, "de"));
+  const link = seitenUrl(`/ticket/${p.link_token}/`);
+  const zeilen = [
+    `${t.zimmerNummer(zimmer.room.label)} · ${t.zimmerArt(zimmer.room.capacity)}`,
+    `${t.zimmerCode}: ${zimmer.room.access_code}`,
+    ...(mit.length ? [`${t.zimmerMit}: ${mit.join(", ")}`] : []),
+    [zimmer.hotel.name, zimmer.hotel.address].filter(Boolean).join(", "),
+  ];
+  const text = [t.mailAnrede(p.first_name), t.mailZimmerIntro(modul), "", ...zeilen, "", t.mailZimmerHinweis, `${t.mailTicketLink}: ${link}`, "", t.mailGruss].join("\n");
+  const inhalt = `<!doctype html><html lang="${l}"><body style="margin:0;background:#f3efe4;font-family:Arial,Helvetica,sans-serif;color:#13201a">
+<div style="max-width:560px;margin:0 auto;padding:32px 20px;font-size:16px;line-height:1.6">
+  <p style="font-size:13px;letter-spacing:.08em;text-transform:uppercase;color:#3c4a42;margin:0 0 16px">SES Academy</p>
+  <p>${html(t.mailAnrede(p.first_name))}<br>${html(t.mailZimmerIntro(modul))}</p>
+  <div style="background:#e2f4ea;border-radius:16px;padding:18px 20px;margin:20px 0">
+    <p style="margin:0;font-weight:bold">${html(zeilen[0])}</p>
+    <p style="margin:10px 0 0">${html(t.zimmerCode)}: <span style="font-family:'Courier New',monospace;font-size:26px;font-weight:bold;letter-spacing:.12em">${html(zimmer.room.access_code)}</span></p>
+    ${mit.length ? `<p style="margin:10px 0 0">${html(t.zimmerMit)}: <b>${html(mit.join(", "))}</b></p>` : ""}
+    <p style="margin:10px 0 0;color:#3c4a42">${html(zeilen[zeilen.length - 1])}</p>
+  </div>
+  <p>${html(t.mailZimmerHinweis)}</p>
+  <p style="margin:24px 0"><a href="${html(link)}" style="display:inline-block;background:#13201a;color:#f3efe4;text-decoration:none;padding:14px 28px;border-radius:999px;font-weight:bold">${html(t.mailTicketLink)}</a></p>
+  <p style="font-size:14px;white-space:pre-line">${html(t.mailGruss)}</p>
+</div></body></html>`;
+  const ergebnis = await senden({ to: test ?? p.email, subject: t.mailZimmerBetreff(zimmer.hotel.name, zimmer.room.label), text, html: inhalt }, l);
+  if (!test) await protokolliere({ participantId: p.id, art: "zimmer", an: p.email, ergebnis, von: ausgeloestVon, moduleId });
+  return ergebnis;
+}
+
+/**
  * Willkommensmail für ein neues Teamkonto (nach der Vier-Augen-Freigabe): Rolle, ggf. Modul und Zeitraum, wie die
  * Anmeldung per E-Mail-Code funktioniert. Bisher bekam die Person gar nichts und musste vom Admin informiert werden.
  */

@@ -81,6 +81,10 @@ export type PortalTexte = {
   zimmerCodeFolgt: string;
   /** Zimmer vom Team wieder ausgeblendet (Einteilung ändert sich noch) */
   zimmerWirdAktualisiert: string;
+  /** Zimmer-Mail (Nummer, Code, Mitbewohner) */
+  mailZimmerBetreff: (hotel: string, nr: string) => string;
+  mailZimmerIntro: (modul: string) => string;
+  mailZimmerHinweis: string;
   mailAbmeldungBetreff: (titel: string) => string;
   mailAbmeldungText: (titel: string) => string;
   mailAbmeldungZurueck: string;
@@ -163,6 +167,9 @@ export const portalTexte: Record<Sprache, PortalTexte> = {
     zimmerCode: "Zimmercode",
     zimmerCodeFolgt: "Deinen Zimmercode bekommst du am Anreisetag gegen 12–13 Uhr. Er steht dann hier.",
     zimmerWirdAktualisiert: "Deine Zimmereinteilung wird gerade aktualisiert und steht so schnell wie möglich wieder hier. Wenn du schon im Hotel bist, ruf Yusuf an: +49 151 70543675. Er teilt dir sofort ein Zimmer zu.",
+    mailZimmerBetreff: (h, nr) => `Dein Zimmer: ${h}, Zimmer ${nr}`,
+    mailZimmerIntro: (m) => `hier ist dein Zimmer für „${m}“. Bitte heb diese Mail auf.`,
+    mailZimmerHinweis: "Alles steht auch auf deiner Ticket-Seite. Wenn etwas nicht passt, ruf Yusuf an: +49 151 70543675.",
     mailAbmeldungBetreff: (t) => `Abmeldung gespeichert: ${t}`,
     mailAbmeldungText: (t) => `du hast dich von „${t}“ abgemeldet. Danke, dass du Bescheid gesagt hast.`,
     mailAbmeldungZurueck: "Falls das ein Versehen war oder du doch kommen kannst: Auf deiner Ticket-Seite kannst du die Abmeldung bis zum Beginn des Moduls zurücknehmen. Wenn du dich nicht selbst abgemeldet hast, antworte bitte auf diese Mail.",
@@ -243,6 +250,9 @@ export const portalTexte: Record<Sprache, PortalTexte> = {
     zimmerCode: "Oda kodu",
     zimmerCodeFolgt: "Oda kodunu varış gününde saat 12–13 civarında alacaksın. Kod o zaman burada görünecek.",
     zimmerWirdAktualisiert: "Oda dağılımın şu anda güncelleniyor ve en kısa sürede yeniden burada görünecek. Otele vardıysan Yusuf’u ara: +49 151 70543675. Sana hemen bir oda verecek.",
+    mailZimmerBetreff: (h, nr) => `Odan: ${h}, oda ${nr}`,
+    mailZimmerIntro: (m) => `„${m}“ için odan aşağıda. Lütfen bu e-postayı sakla.`,
+    mailZimmerHinweis: "Hepsi bilet sayfanda da yazıyor. Bir sorun olursa Yusuf’u ara: +49 151 70543675.",
     mailAbmeldungBetreff: (t) => `Kaydın iptal edildi: ${t}`,
     mailAbmeldungText: (t) => `„${t}“ programına katılamayacağını bildirdin. Haber verdiğin için teşekkürler.`,
     mailAbmeldungZurueck: "Yanlışlıkla olduysa ya da yine de gelebileceksen: Bilet sayfanda modül başlayana kadar iptali geri alabilirsin. Kaydını sen iptal etmediysen lütfen bu e-postayı yanıtla.",
@@ -323,6 +333,9 @@ export const portalTexte: Record<Sprache, PortalTexte> = {
     zimmerCode: "Room code",
     zimmerCodeFolgt: "You will get your room code on your arrival day at around 12–1 pm. It will then appear here.",
     zimmerWirdAktualisiert: "Your room allocation is being updated and will appear here again as soon as possible. If you are already at the hotel, call Yusuf: +49 151 70543675. He will give you a room right away.",
+    mailZimmerBetreff: (h, nr) => `Your room: ${h}, room ${nr}`,
+    mailZimmerIntro: (m) => `here is your room for “${m}”. Please keep this email.`,
+    mailZimmerHinweis: "Everything is also on your ticket page. If anything is wrong, call Yusuf: +49 151 70543675.",
     mailAbmeldungBetreff: (t) => `Cancellation saved: ${t}`,
     mailAbmeldungText: (t) => `you cancelled your place for “${t}”. Thanks for letting us know.`,
     mailAbmeldungZurueck: "If this was a mistake or you can come after all, you can undo the cancellation on your ticket page until the module begins. If you did not cancel yourself, please reply to this email.",
@@ -403,6 +416,9 @@ export const portalTexte: Record<Sprache, PortalTexte> = {
     zimmerCode: "Code de chambre",
     zimmerCodeFolgt: "Tu recevras ton code de chambre le jour de ton arrivée vers 12 h–13 h. Il s’affichera alors ici.",
     zimmerWirdAktualisiert: "La répartition des chambres est en cours de mise à jour et s’affichera de nouveau ici dès que possible. Si tu es déjà à l’hôtel, appelle Yusuf au +49 151 70543675. Il t’attribuera tout de suite une chambre.",
+    mailZimmerBetreff: (h, nr) => `Ta chambre\u00a0: ${h}, chambre ${nr}`,
+    mailZimmerIntro: (m) => `voici ta chambre pour «\u00a0${m}\u00a0». Garde bien cet e-mail.`,
+    mailZimmerHinweis: "Tout est aussi sur ta page billet. Si quelque chose ne va pas, appelle Yusuf au +49 151 70543675.",
     mailAbmeldungBetreff: (t) => `Désinscription enregistrée : ${t}`,
     mailAbmeldungText: (t) => `tu t’es désinscrit·e de « ${t} ». Merci de nous avoir prévenus.`,
     mailAbmeldungZurueck: "Si c’était une erreur ou si tu peux finalement venir, tu peux annuler la désinscription sur ta page de billet jusqu’au début du module. Si tu ne t’es pas désinscrit·e toi-même, réponds à cet e-mail.",
@@ -483,6 +499,9 @@ export const portalTexte: Record<Sprache, PortalTexte> = {
     zimmerCode: "Kamercode",
     zimmerCodeFolgt: "Je kamercode krijg je op de dag van aankomst rond 12–13 uur. Hij verschijnt dan hier.",
     zimmerWirdAktualisiert: "Je kamerindeling wordt bijgewerkt en staat hier zo snel mogelijk weer. Ben je al in het hotel, bel dan Yusuf: +49 151 70543675. Hij geeft je meteen een kamer.",
+    mailZimmerBetreff: (h, nr) => `Je kamer: ${h}, kamer ${nr}`,
+    mailZimmerIntro: (m) => `hier is je kamer voor „${m}”. Bewaar deze e-mail goed.`,
+    mailZimmerHinweis: "Alles staat ook op je ticketpagina. Klopt er iets niet, bel Yusuf: +49 151 70543675.",
     mailAbmeldungBetreff: (t) => `Afmelding opgeslagen: ${t}`,
     mailAbmeldungText: (t) => `je hebt je afgemeld voor „${t}”. Bedankt voor het laten weten.`,
     mailAbmeldungZurueck: "Was dit een vergissing of kun je toch komen? Op je ticketpagina kun je de afmelding tot het begin van de module terugdraaien. Heb je je niet zelf afgemeld, beantwoord dan deze mail.",

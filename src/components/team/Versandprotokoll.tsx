@@ -20,7 +20,7 @@ const de = {
   mitTicket: "mit Ticket",
   arten: {
     info: "Info-Mail", ticket: "Ticket", absage: "Absage des Moduls", abmeldung: "Abmeldebestätigung", application_received: "Bewerbung erhalten",
-    feedback: "Feedback-Einladung", submission_received: "Abgabe erhalten", team_willkommen: "Teamkonto", zimmerliste: "Zimmerliste ans Hotel",
+    feedback: "Feedback-Einladung", submission_received: "Abgabe erhalten", team_willkommen: "Teamkonto", zimmerliste: "Zimmerliste ans Hotel", zimmer: "Zimmer und Code",
   } as Record<string, string>,
   mehr: (n: number) => `Gezeigt werden die neuesten ${n}.`,
 };
@@ -45,7 +45,7 @@ const T: Record<TeamSprache, typeof de> = {
     mitTicket: "biletle",
     arten: {
       info: "Bilgi e-postası", ticket: "Bilet", absage: "Modül iptali", abmeldung: "Kayıt iptali onayı", application_received: "Başvuru alındı",
-      feedback: "Geri bildirim daveti", submission_received: "Ödev teslim alındı", team_willkommen: "Ekip hesabı", zimmerliste: "Otele oda listesi",
+      feedback: "Geri bildirim daveti", submission_received: "Ödev teslim alındı", team_willkommen: "Ekip hesabı", zimmerliste: "Otele oda listesi", zimmer: "Oda ve kod",
     },
     mehr: (n) => `En yeni ${n} kayıt gösteriliyor.`,
   },
@@ -67,7 +67,7 @@ const T: Record<TeamSprache, typeof de> = {
     mitTicket: "avec billet",
     arten: {
       info: "E-mail d’information", ticket: "Billet", absage: "Annulation du module", abmeldung: "Confirmation de désinscription", application_received: "Candidature reçue",
-      feedback: "Invitation à donner son avis", submission_received: "Devoir reçu", team_willkommen: "Compte d’équipe", zimmerliste: "Liste des chambres pour l’hôtel",
+      feedback: "Invitation à donner son avis", submission_received: "Devoir reçu", team_willkommen: "Compte d’équipe", zimmerliste: "Liste des chambres pour l’hôtel", zimmer: "Chambre et code",
     },
     mehr: (n) => `Les ${n} plus récents sont affichés.`,
   },
