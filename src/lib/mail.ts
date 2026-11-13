@@ -192,7 +192,7 @@ export async function sendeAbmeldeBestaetigung(participantId: string, modulTitel
  */
 export type ZimmerVorher = { hotel: string | null; mitbewohner: string[] };
 
-async function zimmerMailBauen(participantId: string, moduleId: string, vorher?: ZimmerVorher): Promise<{ ok: true; id: string; an: string; sprache: Sprache; nachricht: SendMailOptions } | { ok: false; fehler: string }> {
+async function zimmerMailBauen(participantId: string, moduleId: string, vorher?: ZimmerVorher, alsKopie = false): Promise<{ ok: true; id: string; an: string; sprache: Sprache; nachricht: SendMailOptions } | { ok: false; fehler: string }> {
   const db = createAdminClient();
   const [{ data: p }, { data: m }, { data: eigene }] = await Promise.all([
     db.from("participants").select("id, first_name, email, preferred_language, link_token").eq("id", participantId).maybeSingle(),
@@ -231,7 +231,8 @@ async function zimmerMailBauen(participantId: string, moduleId: string, vorher?:
     : aenderungen.length
       ? `${html(t.mailZimmerAenderung)}<p style="margin:10px 0 4px;font-weight:bold">${html(t.mailZimmerAnders)}</p><ul style="margin:0;padding-left:20px">${aenderungen.map((a) => `<li style="margin:2px 0;font-weight:bold">${html(a)}</li>`).join("")}</ul>`
       : `${html(t.mailZimmerAenderung)}<p style="margin:10px 0 0;font-weight:bold">${html(t.mailZimmerGleich)}</p>`;
-  const link = seitenUrl(`/ticket/${p.link_token}/`);
+  // In der Kopie für „Gesendet“ ohne persönlichen Ticket-Link: das Postfach sieht das ganze Orga-Team
+  const link = alsKopie ? seitenUrl("/ticket/…") : seitenUrl(`/ticket/${p.link_token}/`);
   const hotelZeile = [zimmer.hotel.name, zimmer.hotel.address].filter(Boolean).join(", ");
   const art = `${t.zimmerNummer(zimmer.room.label)} · ${t.zimmerArt(zimmer.room.capacity)}`;
   const text = [
@@ -269,9 +270,12 @@ async function zimmerMailBauen(participantId: string, moduleId: string, vorher?:
   };
 }
 
-/** Fertige Zimmer-Mail als Rohfassung (wie verschickt, mit Fuß), z. B. um eine Kopie in „Gesendet“ abzulegen. */
+/**
+ * Zimmer-Mail als Rohfassung für die Kopie in „Gesendet“: wie verschickt (mit Fuß), aber ohne den persönlichen
+ * Ticket-Link (der öffnet die Ticket-Seite der Person mit Abmelden; das Postfach sieht das ganze Orga-Team).
+ */
 export async function zimmerMailRoh(participantId: string, moduleId: string, vorher?: ZimmerVorher, datum = new Date()): Promise<{ ok: true; roh: Buffer; an: string; text: string } | { ok: false; fehler: string }> {
-  const b = await zimmerMailBauen(participantId, moduleId, vorher);
+  const b = await zimmerMailBauen(participantId, moduleId, vorher, true);
   if (!b.ok) return b;
   const n = mitFuss(b.nachricht, b.sprache);
   const roh = await new MailComposer({ from: process.env.MAIL_FROM ?? "SES Academy <info@ses-academy.org>", date: datum, ...n }).compile().build();
