@@ -184,3 +184,23 @@ export async function postfachNachAntwort(ordner: OrdnerId, uid: number, roh: Bu
     }
   });
 }
+
+/** Kopie einer von der App verschickten Mail in „Gesendet“ ablegen (fürs Postfach im Team-Bereich und das Webmail). */
+export async function postfachKopieAblegen(roh: Buffer, datum?: Date): Promise<void> {
+  await mitPostfach(async (c) => {
+    await c.append(await pfad(c, "gesendet"), roh, ["\\Seen"], datum);
+  });
+}
+
+/** Neueste Mail in „Gesendet“ an diese Adresse seit einem Zeitpunkt (für „ansehen“ im Versandprotokoll). */
+export async function postfachGesendetFinden(an: string, seit: Date): Promise<number | null> {
+  return mitPostfach(async (c) => {
+    const lock = await c.getMailboxLock(await pfad(c, "gesendet"), { readOnly: true });
+    try {
+      const uids = await c.search({ to: an, since: seit }, { uid: true });
+      return uids && uids.length ? Math.max(...uids) : null;
+    } finally {
+      lock.release();
+    }
+  });
+}

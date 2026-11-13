@@ -17,6 +17,7 @@ const de = {
   fehler: "fehlgeschlagen",
   ansehen: "ansehen",
   ansehenTitel: "Vorschau dieser Info-Mail mit dem heutigen Stand",
+  kopieTitel: "Die gespeicherte Kopie dieser Mail im Ordner „Gesendet“ öffnen",
   mitTicket: "mit Ticket",
   arten: {
     info: "Info-Mail", ticket: "Ticket", absage: "Absage des Moduls", abmeldung: "Abmeldebestätigung", application_received: "Bewerbung erhalten",
@@ -42,6 +43,7 @@ const T: Record<TeamSprache, typeof de> = {
     fehler: "gönderilemedi",
     ansehen: "görüntüle",
     ansehenTitel: "Bu bilgi e-postasının bugünkü hâliyle önizlemesi",
+    kopieTitel: "Bu e-postanın Gönderilenler klasöründeki kopyasını aç",
     mitTicket: "biletle",
     arten: {
       info: "Bilgi e-postası", ticket: "Bilet", absage: "Modül iptali", abmeldung: "Kayıt iptali onayı", application_received: "Başvuru alındı",
@@ -64,6 +66,7 @@ const T: Record<TeamSprache, typeof de> = {
     fehler: "échec",
     ansehen: "voir",
     ansehenTitel: "Aperçu de cet e-mail d’information avec les données actuelles",
+    kopieTitel: "Ouvrir la copie de cet e-mail enregistrée dans «\u00a0Envoyés\u00a0»",
     mitTicket: "avec billet",
     arten: {
       info: "E-mail d’information", ticket: "Billet", absage: "Annulation du module", abmeldung: "Confirmation de désinscription", application_received: "Candidature reçue",
@@ -106,6 +109,10 @@ export function Versandprotokoll({ eintraege, sprache, suche, vorschau, grenze }
               <span className="text-sm whitespace-nowrap text-ink-soft">{zeit.format(new Date(e.zeit))}</span>
               <span className="flex flex-wrap items-center gap-x-2 text-sm text-ink-soft">
                 <span>{t.arten[e.art] ?? e.art}{e.mitTicket ? ` (${t.mitTicket})` : ""}{e.modulTitel ? ` · ${e.modulTitel}` : ""}</span>
+                {e.art === "zimmer" && e.status === "sent" && (
+                  // Kein <Link>: das Vorladen würde bei jedem Anzeigen das Postfach durchsuchen
+                  <a href={`/team/postfach/kopie/?an=${encodeURIComponent(e.an)}&zeit=${encodeURIComponent(e.zeit)}`} title={t.kopieTitel} className="font-semibold text-ink underline underline-offset-2">{t.ansehen}</a>
+                )}
                 {vorschau && e.art === "info" && e.modulId && e.personId && (
                   <Link href={`/team/module/${e.modulId}/infomail/?person=${e.personId}`} title={t.ansehenTitel} className="font-semibold text-ink underline underline-offset-2">{t.ansehen}</Link>
                 )}

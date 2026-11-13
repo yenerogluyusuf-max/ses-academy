@@ -9,6 +9,7 @@ import { portalTexte, sprachOder } from "@/lib/portal-texte";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { infoMailInhalt, infoMailSprache, infoMailTitel, infoMailUntertitel, ladeInfoMail, type InfoDaten } from "@/lib/infomail";
 import { mailKopf } from "@/lib/mail-kopf";
+import { postfachBereit, postfachKopieAblegen } from "@/lib/postfach";
 import { tagesordnungFassung } from "@/lib/modul-programm";
 import { ladeTicket, modulZeitraum } from "@/lib/teilnahme";
 import { kurzcodeAnzeige, qrPng } from "@/lib/tickets";
@@ -191,7 +192,7 @@ export async function sendeAbmeldeBestaetigung(participantId: string, modulTitel
  */
 export type ZimmerVorher = { hotel: string | null; mitbewohner: string[] };
 
-export async function sendeZimmerMail(participantId: string, moduleId: string, ausgeloestVon?: string, test?: string, vorher?: ZimmerVorher): Promise<Ergebnis> {
+async function zimmerMailBauen(participantId: string, moduleId: string, vorher?: ZimmerVorher): Promise<{ ok: true; id: string; an: string; sprache: Sprache; nachricht: SendMailOptions } | { ok: false; fehler: string }> {
   const db = createAdminClient();
   const [{ data: p }, { data: m }, { data: eigene }] = await Promise.all([
     db.from("participants").select("id, first_name, email, preferred_language, link_token").eq("id", participantId).maybeSingle(),
@@ -256,15 +257,39 @@ export async function sendeZimmerMail(participantId: string, moduleId: string, a
   <p style="margin:0 0 20px;text-align:center"><a href="${html(link)}" style="display:inline-block;background:#13201a;color:#f3efe4;text-decoration:none;padding:12px 26px;border-radius:999px;font-weight:bold">${html(t.mailTicketLink)}</a></p>
   <p style="font-size:14px;line-height:1.6;white-space:pre-line;margin:8px 4px">${html(t.mailGruss)}</p>
 </div></body></html>`;
-  const betreff = t.mailZimmerBetreff(zimmer.hotel.name, zimmer.room.label);
-  const ergebnis = await senden({
-    to: test ?? p.email,
-    subject: test ? `[Test] ${betreff}` : betreff,
-    text,
-    html: inhalt,
-    attachments: [{ filename: "ses-academy.png", content: await mailKopf(modul, untertitel), cid: "info-kopf" }],
-  }, l);
-  if (!test) await protokolliere({ participantId: p.id, art: "zimmer", an: p.email, ergebnis, von: ausgeloestVon, moduleId });
+  return {
+    ok: true, id: p.id, an: p.email, sprache: l,
+    nachricht: {
+      to: p.email,
+      subject: t.mailZimmerBetreff(zimmer.hotel.name, zimmer.room.label),
+      text,
+      html: inhalt,
+      attachments: [{ filename: "ses-academy.png", content: await mailKopf(modul, untertitel), cid: "info-kopf" }],
+    },
+  };
+}
+
+/** Fertige Zimmer-Mail als Rohfassung (wie verschickt, mit Fuß), z. B. um eine Kopie in „Gesendet“ abzulegen. */
+export async function zimmerMailRoh(participantId: string, moduleId: string, vorher?: ZimmerVorher, datum = new Date()): Promise<{ ok: true; roh: Buffer; an: string; text: string } | { ok: false; fehler: string }> {
+  const b = await zimmerMailBauen(participantId, moduleId, vorher);
+  if (!b.ok) return b;
+  const n = mitFuss(b.nachricht, b.sprache);
+  const roh = await new MailComposer({ from: process.env.MAIL_FROM ?? "SES Academy <info@ses-academy.org>", date: datum, ...n }).compile().build();
+  return { ok: true, roh, an: b.an, text: typeof n.text === "string" ? n.text : "" };
+}
+
+export async function sendeZimmerMail(participantId: string, moduleId: string, ausgeloestVon?: string, test?: string, vorher?: ZimmerVorher): Promise<Ergebnis> {
+  const b = await zimmerMailBauen(participantId, moduleId, vorher);
+  if (!b.ok) return b;
+  const ergebnis = await senden({ ...b.nachricht, to: test ?? b.an, subject: test ? `[Test] ${b.nachricht.subject}` : b.nachricht.subject }, b.sprache);
+  if (!test) {
+    await protokolliere({ participantId: b.id, art: "zimmer", an: b.an, ergebnis, von: ausgeloestVon, moduleId });
+    // Kopie in „Gesendet“, damit man die Mail im Postfach öffnen kann (Fehler hier ändern nichts am Versand)
+    if (ergebnis.ok && postfachBereit()) {
+      const r = await zimmerMailRoh(participantId, moduleId, vorher);
+      if (r.ok) await postfachKopieAblegen(r.roh).catch(() => undefined);
+    }
+  }
   return ergebnis;
 }
 

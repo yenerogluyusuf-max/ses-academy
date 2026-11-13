@@ -30,7 +30,8 @@ const de = {
   an: "An: ", unbekannt: "(unbekannt)", ungelesen: " (ungelesen)", beantwortet: "beantwortet", mitAnhang: "mit Anhang", ohneBetreff: "(ohne Betreff)",
   mehr: (gezeigt: number, gesamt: number) => `Gezeigt werden die neuesten ${gezeigt} von ${gesamt} Mails. Ältere im Webmail von Hetzner.`,
   geteilt: "Das Postfach teilen sich alle im Orga-Team: Eine geöffnete Mail gilt für alle als gelesen, auch im Webmail.",
-  antworten: "Antworten aus dem Postfach",
+  antworten: "Im Ordner „Gesendet“ gespeichert (Antworten und Kopien)",
+  kopieFehlt: "Für diese Mail liegt keine Kopie im Postfach. Die App hat bis zum 13.11. nur protokolliert, was sie verschickt.",
 };
 
 const T: Record<TeamSprache, typeof de> = {
@@ -45,7 +46,8 @@ const T: Record<TeamSprache, typeof de> = {
     an: "Alıcı: ", unbekannt: "(bilinmiyor)", ungelesen: " (okunmadı)", beantwortet: "yanıtlandı", mitAnhang: "ekli", ohneBetreff: "(konu yok)",
     mehr: (gezeigt, gesamt) => `${gesamt} e-postadan en yeni ${gezeigt} tanesi gösteriliyor. Daha eskileri Hetzner web postasında.`,
     geteilt: "Posta kutusunu organizasyon ekibindeki herkes ortak kullanır: Açılan bir e-posta herkes için okunmuş sayılır, web postasında da.",
-    antworten: "Posta kutusundan yanıtlar",
+    antworten: "Gönderilenler klasöründe kayıtlı (yanıtlar ve kopyalar)",
+    kopieFehlt: "Bu e-postanın posta kutusunda kopyası yok. Uygulama 13.11’e kadar gönderdiklerini yalnızca kaydediyordu.",
   },
   fr: {
     intro: `E-mails envoyés à ${ADRESSE}. Les réponses partent depuis ${ADRESSE}.`,
@@ -57,7 +59,8 @@ const T: Record<TeamSprache, typeof de> = {
     an: "À : ", unbekannt: "(inconnu)", ungelesen: " (non lu)", beantwortet: "répondu", mitAnhang: "avec pièce jointe", ohneBetreff: "(sans objet)",
     mehr: (gezeigt, gesamt) => `Affichage des ${gezeigt} e-mails les plus récents sur ${gesamt}. Les plus anciens sont dans le webmail de Hetzner.`,
     geteilt: "Toute l’équipe d’organisation partage la boîte mail : un e-mail ouvert compte comme lu pour tout le monde, y compris dans le webmail.",
-    antworten: "Réponses depuis la boîte mail",
+    antworten: "Enregistrés dans «\u00a0Envoyés\u00a0» (réponses et copies)",
+    kopieFehlt: "Aucune copie de cet e-mail dans la boîte mail. Jusqu’au 13/11, l’application ne faisait que consigner ses envois.",
   },
 };
 
@@ -79,7 +82,7 @@ export default async function Postfach({ searchParams }: PageProps<"/team/postfa
   const staff = await requireStaff("orga");
   const l = staff.sprache;
   const t = T[l];
-  const { ordner: o, suche: s } = await searchParams;
+  const { ordner: o, suche: s, kopie } = await searchParams;
   const suche = typeof s === "string" ? s : "";
   const ordner: OrdnerId = istOrdner(o) ? o : "eingang";
   const ergebnis = postfachBereit() ? await postfachListe(ordner).catch(() => null) : null;
@@ -106,6 +109,7 @@ export default async function Postfach({ searchParams }: PageProps<"/team/postfa
           ))}
         </nav>
 
+        {kopie === "fehlt" && <p role="status" className="mt-6 rounded-2xl bg-amber-100 p-4 text-amber-950">{t.kopieFehlt}</p>}
         {protokoll && <Versandprotokoll eintraege={protokoll} sprache={l} suche={suche} vorschau={darf.alles(staff.role)} grenze={GRENZE} />}
         {gesendet && <h2 className="font-display mt-10 text-xl font-bold">{t.antworten}</h2>}
 
