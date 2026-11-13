@@ -15,7 +15,8 @@ export type TicketModul = {
   status: Row<"registrations">["status"];
   ticketNoetig: boolean;
   abgesagt: boolean;
-  tage: { id: string; tag: string; beginn: string; ende: string; besucht: boolean }[];
+  /** eingecheckt: Zeitpunkt des Einlasses an diesem Tag (pro Tag neu), sonst null */
+  tage: { id: string; tag: string; beginn: string; ende: string; besucht: boolean; eingecheckt: string | null }[];
   beginn: string | null;
 };
 
@@ -60,15 +61,15 @@ export async function ladeTicket(filter: { token: string } | { participantId: st
 
   const { data: regs } = await admin
     .from("registrations")
-    .select("id, status, module:modules!inner(id, slug, title, location, status, ticket_required, cancelled_at, module_days(id, day, starts_at, ends_at)), attendances(module_day_id)")
+    .select("id, status, module:modules!inner(id, slug, title, location, status, ticket_required, cancelled_at, module_days(id, day, starts_at, ends_at)), attendances(module_day_id, checked_in_at)")
     .eq("participant_id", participant.id)
     .eq("module.status", "published");
 
   const liste: TicketModul[] = (regs ?? []).map((r) => {
-    const besucht = new Set(r.attendances.map((a) => a.module_day_id));
+    const besucht = new Map(r.attendances.map((a) => [a.module_day_id, a.checked_in_at] as const));
     const tage = [...r.module.module_days]
       .sort((a, b) => a.starts_at.localeCompare(b.starts_at))
-      .map((d) => ({ id: d.id, tag: d.day, beginn: d.starts_at, ende: d.ends_at, besucht: besucht.has(d.id) }));
+      .map((d) => ({ id: d.id, tag: d.day, beginn: d.starts_at, ende: d.ends_at, besucht: besucht.has(d.id), eingecheckt: besucht.get(d.id) ?? null }));
     return {
       registrationId: r.id,
       moduleId: r.module.id,

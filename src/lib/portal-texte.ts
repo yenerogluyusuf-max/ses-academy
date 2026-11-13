@@ -20,6 +20,27 @@ export type PortalTexte = {
   ortKarte: string;
   fragenMail: string;
   moduleTitel: string;
+  /** Neuer Aufbau der Ticket-Seite (14.11.2026) */
+  navTicket: string;
+  navZimmer: string;
+  navProgramm: string;
+  navHilfe: string;
+  programmTitel: string;
+  ortTitel: string;
+  route: string;
+  hilfeTitel: string;
+  hilfeAnruf: string;
+  bisherigeModule: string;
+  heute: string;
+  ticketKurz: string;
+  qrHinweis: string;
+  qrOeffnen: string;
+  qrSchliessen: string;
+  einlassJedenTag: string;
+  eingechecktUm: (zeit: string) => string;
+  heuteNochNicht: string;
+  nochOffen: string;
+  nichtEingecheckt: string;
   ortOffen: string;
   status: Record<Anmeldestatus, string>;
   besucht: string;
@@ -115,6 +136,26 @@ export const portalTexte: Record<Sprache, PortalTexte> = {
     ortKarte: "Ort auf der Karte",
     fragenMail: "Fragen? Schreib uns an",
     moduleTitel: "Deine Module",
+    navTicket: "Ticket",
+    navZimmer: "Zimmer",
+    navProgramm: "Programm",
+    navHilfe: "Hilfe",
+    programmTitel: "Programm",
+    ortTitel: "Veranstaltungsort",
+    route: "Route planen",
+    hilfeTitel: "Hilfe",
+    hilfeAnruf: "Fragen oder Probleme vor Ort? Ruf Yusuf an:",
+    bisherigeModule: "Bisherige Module",
+    heute: "Heute",
+    ticketKurz: "Zeig diesen QR-Code beim Einlass.",
+    qrHinweis: "Doppelt tippen: QR-Code groß anzeigen",
+    qrOeffnen: "QR-Code im Vollbild zeigen",
+    qrSchliessen: "Schließen",
+    einlassJedenTag: "Wichtig: Du musst dich an jedem Tag neu einchecken.",
+    eingechecktUm: (z) => `eingecheckt um ${z}`,
+    heuteNochNicht: "heute noch nicht eingecheckt",
+    nochOffen: "noch offen",
+    nichtEingecheckt: "nicht eingecheckt",
     ortOffen: "Ort folgt",
     status: { confirmed: "Angemeldet", pending: "Wird geprüft", waitlist: "Warteliste", cancelled: "Abgemeldet", excused: "Entschuldigt", rejected: "Abgelehnt" },
     besucht: "Besucht",
@@ -206,6 +247,26 @@ export const portalTexte: Record<Sprache, PortalTexte> = {
     ortKarte: "Haritada göster",
     fragenMail: "Sorun mu var? Bize yaz:",
     moduleTitel: "Modüllerin",
+    navTicket: "Bilet",
+    navZimmer: "Oda",
+    navProgramm: "Program",
+    navHilfe: "Yardım",
+    programmTitel: "Program",
+    ortTitel: "Etkinlik yeri",
+    route: "Yol tarifi",
+    hilfeTitel: "Yardım",
+    hilfeAnruf: "Soruların ya da sorunların mı var? Yusuf’u ara:",
+    bisherigeModule: "Önceki modüller",
+    heute: "Bugün",
+    ticketKurz: "Girişte bu QR kodunu göster.",
+    qrHinweis: "Büyük göstermek için QR koda iki kez dokun",
+    qrOeffnen: "QR kodu tam ekran göster",
+    qrSchliessen: "Kapat",
+    einlassJedenTag: "Önemli: Her gün girişte yeniden check-in yapman gerekiyor.",
+    eingechecktUm: (z) => `${z}’de giriş yapıldı`,
+    heuteNochNicht: "bugün henüz giriş yapılmadı",
+    nochOffen: "henüz değil",
+    nichtEingecheckt: "giriş yapılmadı",
     ortOffen: "Yer daha sonra bildirilecek",
     status: { confirmed: "Kayıtlı", pending: "İnceleniyor", waitlist: "Bekleme listesi", cancelled: "Kayıt iptal", excused: "Mazeretli", rejected: "Reddedildi" },
     besucht: "Katıldın",
@@ -297,6 +358,26 @@ export const portalTexte: Record<Sprache, PortalTexte> = {
     ortKarte: "Show on map",
     fragenMail: "Questions? Write to us at",
     moduleTitel: "Your modules",
+    navTicket: "Ticket",
+    navZimmer: "Room",
+    navProgramm: "Programme",
+    navHilfe: "Help",
+    programmTitel: "Programme",
+    ortTitel: "Venue",
+    route: "Get directions",
+    hilfeTitel: "Help",
+    hilfeAnruf: "Questions or problems on site? Call Yusuf:",
+    bisherigeModule: "Previous modules",
+    heute: "Today",
+    ticketKurz: "Show this QR code at the entrance.",
+    qrHinweis: "Double-tap to show the QR code full screen",
+    qrOeffnen: "Show QR code full screen",
+    qrSchliessen: "Close",
+    einlassJedenTag: "Important: you need to check in again every day.",
+    eingechecktUm: (z) => `checked in at ${z}`,
+    heuteNochNicht: "not checked in yet today",
+    nochOffen: "still to come",
+    nichtEingecheckt: "not checked in",
     ortOffen: "Venue to be announced",
     status: { confirmed: "Registered", pending: "Under review", waitlist: "Waiting list", cancelled: "Cancelled", excused: "Excused", rejected: "Declined" },
     besucht: "Attended",
@@ -388,6 +469,26 @@ export const portalTexte: Record<Sprache, PortalTexte> = {
     ortKarte: "Voir sur la carte",
     fragenMail: "Des questions\u00a0? Écris-nous à",
     moduleTitel: "Tes modules",
+    navTicket: "Billet",
+    navZimmer: "Chambre",
+    navProgramm: "Programme",
+    navHilfe: "Aide",
+    programmTitel: "Programme",
+    ortTitel: "Lieu",
+    route: "Itinéraire",
+    hilfeTitel: "Aide",
+    hilfeAnruf: "Une question ou un problème sur place\u00a0? Appelle Yusuf\u00a0:",
+    bisherigeModule: "Modules précédents",
+    heute: "Aujourd’hui",
+    ticketKurz: "Montre ce QR code à l’entrée.",
+    qrHinweis: "Touche deux fois pour afficher le QR code en grand",
+    qrOeffnen: "Afficher le QR code en plein écran",
+    qrSchliessen: "Fermer",
+    einlassJedenTag: "Important\u00a0: tu dois enregistrer ton arrivée chaque jour.",
+    eingechecktUm: (z) => `arrivée enregistrée à ${z}`,
+    heuteNochNicht: "pas encore enregistré·e aujourd’hui",
+    nochOffen: "à venir",
+    nichtEingecheckt: "pas d’arrivée enregistrée",
     ortOffen: "Lieu à venir",
     status: { confirmed: "Inscrit·e", pending: "En cours d’examen", waitlist: "Liste d’attente", cancelled: "Désinscrit·e", excused: "Excusé·e", rejected: "Refusé" },
     besucht: "Présent·e",
@@ -479,6 +580,26 @@ export const portalTexte: Record<Sprache, PortalTexte> = {
     ortKarte: "Op de kaart",
     fragenMail: "Vragen? Schrijf ons op",
     moduleTitel: "Je modules",
+    navTicket: "Ticket",
+    navZimmer: "Kamer",
+    navProgramm: "Programma",
+    navHilfe: "Hulp",
+    programmTitel: "Programma",
+    ortTitel: "Locatie",
+    route: "Route plannen",
+    hilfeTitel: "Hulp",
+    hilfeAnruf: "Vragen of problemen ter plaatse? Bel Yusuf:",
+    bisherigeModule: "Eerdere modules",
+    heute: "Vandaag",
+    ticketKurz: "Laat deze QR-code bij de ingang zien.",
+    qrHinweis: "Dubbeltik om de QR-code groot te tonen",
+    qrOeffnen: "QR-code op volledig scherm tonen",
+    qrSchliessen: "Sluiten",
+    einlassJedenTag: "Belangrijk: je moet je elke dag opnieuw aanmelden bij de ingang.",
+    eingechecktUm: (z) => `ingecheckt om ${z}`,
+    heuteNochNicht: "vandaag nog niet ingecheckt",
+    nochOffen: "nog niet",
+    nichtEingecheckt: "niet ingecheckt",
     ortOffen: "Locatie volgt",
     status: { confirmed: "Aangemeld", pending: "Wordt beoordeeld", waitlist: "Wachtlijst", cancelled: "Afgemeld", excused: "Afgemeld met reden", rejected: "Afgewezen" },
     besucht: "Aanwezig",
