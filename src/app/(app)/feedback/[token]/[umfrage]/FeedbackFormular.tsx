@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useActionState } from "react";
 import { feedbackAbsenden } from "@/lib/aktionen/feedback";
 import { bereichTexte, type BereichSprache } from "@/lib/bereich-texte";
@@ -14,7 +15,7 @@ const ANDERE = "__andere";
  * bleiben die Eingaben stehen (React leert Formulare sonst nach einer Aktion).
  * token: link_token aus der Mail oder der Zugang aus /umfrage/ (Person-ID mit Signatur).
  */
-export function FeedbackFormular({ l, token, umfrage, fragen }: { l: BereichSprache; token: string; umfrage: string; fragen: UmfrageFrage[] }) {
+export function FeedbackFormular({ l, token, umfrage, fragen, zurueck }: { l: BereichSprache; token: string; umfrage: string; fragen: UmfrageFrage[]; zurueck: string }) {
   const t = bereichTexte[l];
   const u = umfrageTexte[l];
   const [zustand, absenden, laeuft] = useActionState(feedbackAbsenden, { ergebnis: null, runde: 0 });
@@ -23,7 +24,12 @@ export function FeedbackFormular({ l, token, umfrage, fragen }: { l: BereichSpra
   const mitPflicht = fragen.some((f) => f.pflicht);
   // Anonym gespeichert: kein Formular mehr, nur der Dank (ändern geht nicht, die Antwort ist keiner Person zugeordnet)
   if (zustand.ergebnis === "saved" || zustand.ergebnis === "already") {
-    return <p role="status" className="mt-6 rounded-2xl bg-gruen-hell p-5 font-semibold">{zustand.ergebnis === "saved" ? u.danke : u.schonBeantwortet}</p>;
+    return (
+      <>
+        <p role="status" className="mt-6 rounded-2xl bg-gruen-hell p-5 font-semibold">{zustand.ergebnis === "saved" ? u.danke : u.schonBeantwortet}</p>
+        <Link href={zurueck} className="knopf mt-4 inline-block !px-8 !py-3.5 text-base">{u.zurueck}</Link>
+      </>
+    );
   }
   return (
     <form key={zustand.runde} action={absenden} className="mt-6 space-y-6">

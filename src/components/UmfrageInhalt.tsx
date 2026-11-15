@@ -1,6 +1,7 @@
 import { bereichTexte, type BereichSprache } from "@/lib/bereich-texte";
 import { umfrageTexte } from "@/lib/umfrage-texte";
 import type { ladeUmfrage } from "@/lib/umfrage";
+import Link from "next/link";
 import { jetztMs } from "@/lib/zeit";
 import { FeedbackFormular } from "@/app/(app)/feedback/[token]/[umfrage]/FeedbackFormular";
 
@@ -9,7 +10,7 @@ import { FeedbackFormular } from "@/app/(app)/feedback/[token]/[umfrage]/Feedbac
  * Die Umfrage ist anonym (seit 15.11.2026): gespeichert wird nur, DASS jemand teilgenommen hat; wer das hat, sieht
  * nur den Dank, abgeschickte Antworten lassen sich nicht mehr ansehen oder ändern.
  */
-export function UmfrageInhalt({ l, token, daten }: { l: BereichSprache; token: string; daten: NonNullable<Awaited<ReturnType<typeof ladeUmfrage>>> }) {
+export function UmfrageInhalt({ l, token, daten, zurueck }: { l: BereichSprache; token: string; daten: NonNullable<Awaited<ReturnType<typeof ladeUmfrage>>>; zurueck: string }) {
   const t = bereichTexte[l];
   const u = umfrageTexte[l];
   const jetzt = jetztMs();
@@ -21,13 +22,16 @@ export function UmfrageInhalt({ l, token, daten }: { l: BereichSprache; token: s
       <p className="mt-1 text-lg">{daten.modulTitel}</p>
       <p className="mt-4 text-ink-soft">{daten.anwesend ? u.hallo(daten.person.first_name) : t.feedbackHallo(daten.person.first_name, false).split(".")[0] + "."}</p>
       {daten.beantwortet ? (
-        <p className="karte mt-6 font-semibold">{u.schonBeantwortet}</p>
+        <>
+          <p className="karte mt-6 font-semibold">{u.schonBeantwortet}</p>
+          <Link href={zurueck} className="knopf mt-4 inline-block !px-8 !py-3.5 text-base">{u.zurueck}</Link>
+        </>
       ) : offen && !daten.anwesend ? (
         <p className="karte mt-6">{t.feedbackNichtDa}</p>
       ) : offen ? (
         <>
           <p className="mt-3 rounded-2xl bg-gruen-hell p-4 text-sm">{u.anonym}</p>
-          <FeedbackFormular l={l} token={token} umfrage={umfrage.id} fragen={daten.fragen} />
+          <FeedbackFormular l={l} token={token} umfrage={umfrage.id} fragen={daten.fragen} zurueck={zurueck} />
         </>
       ) : (
         <p className="karte mt-6">{jetzt < Date.parse(umfrage.opensAt) ? t.feedbackOeffnet : t.feedbackBeendet}</p>

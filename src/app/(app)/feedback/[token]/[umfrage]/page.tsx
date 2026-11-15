@@ -25,7 +25,7 @@ export default async function FeedbackSeite({ params }: PageProps<"/feedback/[to
         <img src="/brand/ses-logo.png" alt="SES Academy" className="h-10 w-auto" />
         <SprachUmschalter aktiv={l} action={linkSpracheSetzen} felder={{ token: token.toLowerCase(), umfrage: daten.umfrage.id }} />
       </div>
-      <UmfrageInhalt l={l} token={token.toLowerCase()} daten={daten} />
+      <UmfrageInhalt l={l} token={token.toLowerCase()} daten={daten} zurueck={`/ticket/${token.toLowerCase()}/`} />
     </main>
   );
 }
