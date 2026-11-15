@@ -23,6 +23,11 @@ export type PortalTexte = {
   /** Neuer Aufbau der Ticket-Seite (14.11.2026) */
   navTicket: string;
   navZimmer: string;
+  /** Arbeitsgruppe (15.11.2026) */
+  navGruppe: string;
+  gruppeTitel: string;
+  gruppeRaum: string;
+  gruppeMit: string;
   navProgramm: string;
   navHilfe: string;
   programmTitel: string;
@@ -138,6 +143,10 @@ export const portalTexte: Record<Sprache, PortalTexte> = {
     moduleTitel: "Deine Module",
     navTicket: "Ticket",
     navZimmer: "Zimmer",
+    navGruppe: "Gruppe",
+    gruppeTitel: "Deine Gruppe",
+    gruppeRaum: "Raum",
+    gruppeMit: "In deiner Gruppe",
     navProgramm: "Programm",
     navHilfe: "Hilfe",
     programmTitel: "Programm",
@@ -249,6 +258,10 @@ export const portalTexte: Record<Sprache, PortalTexte> = {
     moduleTitel: "Modüllerin",
     navTicket: "Bilet",
     navZimmer: "Oda",
+    navGruppe: "Ekip",
+    gruppeTitel: "Ekibin",
+    gruppeRaum: "Salon",
+    gruppeMit: "Ekip arkadaşların",
     navProgramm: "Program",
     navHilfe: "Yardım",
     programmTitel: "Program",
@@ -360,6 +373,10 @@ export const portalTexte: Record<Sprache, PortalTexte> = {
     moduleTitel: "Your modules",
     navTicket: "Ticket",
     navZimmer: "Room",
+    navGruppe: "Group",
+    gruppeTitel: "Your group",
+    gruppeRaum: "Room",
+    gruppeMit: "In your group",
     navProgramm: "Programme",
     navHilfe: "Help",
     programmTitel: "Programme",
@@ -471,6 +488,10 @@ export const portalTexte: Record<Sprache, PortalTexte> = {
     moduleTitel: "Tes modules",
     navTicket: "Billet",
     navZimmer: "Chambre",
+    navGruppe: "Groupe",
+    gruppeTitel: "Ton groupe",
+    gruppeRaum: "Salle",
+    gruppeMit: "Dans ton groupe",
     navProgramm: "Programme",
     navHilfe: "Aide",
     programmTitel: "Programme",
@@ -582,6 +603,10 @@ export const portalTexte: Record<Sprache, PortalTexte> = {
     moduleTitel: "Je modules",
     navTicket: "Ticket",
     navZimmer: "Kamer",
+    navGruppe: "Groep",
+    gruppeTitel: "Jouw groep",
+    gruppeRaum: "Zaal",
+    gruppeMit: "In jouw groep",
     navProgramm: "Programma",
     navHilfe: "Hulp",
     programmTitel: "Programma",

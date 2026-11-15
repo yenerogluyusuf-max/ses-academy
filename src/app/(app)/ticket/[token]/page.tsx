@@ -63,6 +63,8 @@ export default async function TicketSeite({ params, searchParams }: PageProps<"/
   const [programm, pdf] = naechstes ? await Promise.all([ladeModulProgramm(naechstes.moduleId, l), tagesordnungFassung(naechstes.moduleId, l, true)]) : [[] as ProgrammTag[], null];
   // Zimmer mit Zimmerpartner:innen nur über den Mail-Link, nicht über den QR-Inhalt (der wird gezeigt und fotografiert)
   const zimmer = perLink && naechstes ? daten.zimmer.find((z) => z.moduleId === naechstes.moduleId) : undefined;
+  const gruppe = naechstes ? daten.gruppen.find((g) => g.moduleId === naechstes.moduleId) : undefined;
+  const [gruppeKurz, ...gruppeRest] = gruppe ? gruppe.name.split(" · ") : [""];
   const frueher = daten.module.filter((m) => !m.abgesagt && m !== naechstes).sort((a, b) => (b.beginn ?? "").localeCompare(a.beginn ?? ""));
 
   const kommt = naechstes?.beginn != null && Date.parse(naechstes.beginn) > jetzt;
@@ -81,6 +83,7 @@ export default async function TicketSeite({ params, searchParams }: PageProps<"/
 
   const abschnitte = [
     { id: "ticket", name: t.navTicket },
+    ...(gruppe ? [{ id: "gruppe", name: t.navGruppe }] : []),
     ...(zimmer ? [{ id: "zimmer", name: t.navZimmer }] : []),
     ...(mitProgramm ? [{ id: "programm", name: t.navProgramm }] : []),
     { id: "hilfe", name: t.navHilfe },
@@ -159,6 +162,27 @@ export default async function TicketSeite({ params, searchParams }: PageProps<"/
 
         {/* Rechte Spalte */}
         <div className="grid gap-3 lg:gap-4">
+          {gruppe && (
+            <section id="gruppe" className={karte}>
+              <h2 className={titel}>{t.gruppeTitel}</h2>
+              <div className="mt-3 grid grid-cols-2 gap-2">
+                <div className="rounded-2xl bg-paper-deep px-3 py-2">
+                  <p className="text-xs font-semibold uppercase tracking-wide text-ink-soft">{t.navGruppe}</p>
+                  <p className="text-2xl font-bold">{gruppeKurz}</p>
+                </div>
+                {gruppe.raum && (
+                  <div className="rounded-2xl bg-gruen-hell px-3 py-2">
+                    <p className="text-xs font-semibold uppercase tracking-wide text-ink-soft">{t.gruppeRaum}</p>
+                    <p className="text-2xl font-bold">{gruppe.raum}</p>
+                  </div>
+                )}
+              </div>
+              {gruppeRest.length > 0 && <p className="mt-3 text-sm font-semibold">{gruppeRest.join(" · ")}</p>}
+              {perLink && gruppe.mit.length > 0 && (
+                <p className="mt-1 text-sm">{t.gruppeMit}: <span className="font-semibold">{gruppe.mit.join(", ")}</span></p>
+              )}
+            </section>
+          )}
           {zimmer?.versteckt && (
             <section id="zimmer" className={karte}>
               <h2 className={titel}>{t.zimmerTitel}</h2>

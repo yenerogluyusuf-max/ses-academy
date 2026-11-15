@@ -26,11 +26,16 @@ export type TicketModul = {
  */
 export type TicketZimmer = { moduleId: string; versteckt: boolean; hotel: string | null; adresse: string | null; label: string; betten: number; mitbewohner: string[]; code: string | null };
 
+/** Arbeitsgruppe der Person in einem Modul (module_groups) mit Raum und den Namen der anderen in der Gruppe. */
+export type TicketGruppe = { moduleId: string; name: string; raum: string | null; mit: string[] };
+
 export type TicketDaten = {
   participant: Pick<Row<"participants">, "id" | "first_name" | "last_name" | "email" | "preferred_language" | "checkin_token" | "link_token" | "short_code">;
   module: TicketModul[];
   /** Freigegebene Zimmer mit Zimmerpartner:innen. Die Ticket-Seite zeigt sie nur über den Mail-Link (perLink). */
   zimmer: TicketZimmer[];
+  /** Arbeitsgruppen (Einteilung durch das Team). Die Namen der anderen zeigt die Ticket-Seite nur über den Mail-Link. */
+  gruppen: TicketGruppe[];
   /** Über den Mail-Link (link_token) geöffnet. Nur dann darf die Seite abmelden; der QR-Inhalt (checkin_token) zeigt nur das Ticket. */
   perLink: boolean;
 };
@@ -84,7 +89,7 @@ export async function ladeTicket(filter: { token: string } | { participantId: st
     };
   });
   liste.sort((a, b) => (a.beginn ?? "").localeCompare(b.beginn ?? ""));
-  return { participant, module: nurNaechstesKommendes(liste), perLink, zimmer: await ladeZimmer(admin, participant.id) };
+  return { participant, module: nurNaechstesKommendes(liste), perLink, zimmer: await ladeZimmer(admin, participant.id), gruppen: await ladeGruppen(admin, participant.id) };
 }
 
 /**
@@ -140,4 +145,26 @@ async function ladeZimmer(admin: ReturnType<typeof createAdminClient>, participa
       .map((a) => `${a.participant.first_name} ${a.participant.last_name}`.trim())
       .sort((x, y) => x.localeCompare(y, "de")),
   })), ...versteckt];
+}
+
+/** Arbeitsgruppen einer Person mit Raum und den Namen der anderen Mitglieder (Einteilung im Team-Bereich unter Gruppen). */
+async function ladeGruppen(admin: ReturnType<typeof createAdminClient>, participantId: string): Promise<TicketGruppe[]> {
+  const { data: eigene } = await admin
+    .from("group_members")
+    .select("group_id, module_id, gruppe:module_groups!inner(name, room)")
+    .eq("participant_id", participantId);
+  if (!eigene?.length) return [];
+  const { data: andere } = await admin
+    .from("group_members")
+    .select("group_id, participant:participants!inner(first_name, last_name)")
+    .in("group_id", eigene.map((e) => e.group_id))
+    .neq("participant_id", participantId);
+  return eigene.map((e): TicketGruppe => ({
+    moduleId: e.module_id,
+    name: e.gruppe.name,
+    raum: e.gruppe.room,
+    mit: (andere ?? []).filter((a) => a.group_id === e.group_id)
+      .map((a) => `${a.participant.first_name} ${a.participant.last_name}`.trim())
+      .sort((x, y) => x.localeCompare(y, "de")),
+  }));
 }
