@@ -101,7 +101,7 @@ export async function feedbackEinladen(formData: FormData) {
 
 export type FeedbackAntworten = Record<string, number | string>;
 /** antworten: was gerade abgeschickt wurde bzw. schon gespeichert ist, damit das Formular es weiter zeigt. */
-export type FeedbackZustand = { ergebnis: "saved" | "empty" | "missing" | "closed" | "not_attended" | "not_found" | "fehler" | null; antworten?: FeedbackAntworten; runde?: number };
+export type FeedbackZustand = { ergebnis: "saved" | "empty" | "missing" | "already" | "closed" | "not_attended" | "not_found" | "fehler" | null; antworten?: FeedbackAntworten; runde?: number };
 
 /**
  * Antwort aus dem Formular. token: link_token aus der Mail (/feedback/<token>/<umfrage>/) oder der Zugang aus dem
@@ -127,7 +127,19 @@ export async function feedbackAbsenden(vorher: FeedbackZustand, formData: FormDa
     }
     antworten[id] = art === "skala" && /^(10|[1-9])$/.test(wert) ? Number(wert) : wert.slice(0, 2000);
   }
+  // „Sonstiges“: nur ins Textfeld geschrieben, ohne die Auswahl anzuklicken, zählt auch
+  for (const [schluessel, eingabe] of formData.entries()) {
+    if (!schluessel.startsWith("andere_") || typeof eingabe !== "string" || !eingabe.trim()) continue;
+    const id = schluessel.slice(7);
+    if (istToken(id) && formData.get(`art_${id}`) === "auswahl" && antworten[id] === undefined) antworten[id] = eingabe.trim().slice(0, 300);
+  }
   const db = createAdminClient();
+  // Über den allgemeinen Link (nur E-Mail-Adresse) keine schon gespeicherte Antwort überschreiben; ändern geht nur
+  // über den persönlichen Link aus der Mail bzw. die Ticket-Seite
+  if (perZugang) {
+    const { count } = await db.from("feedback_responses").select("id", { count: "exact", head: true }).eq("survey_id", umfrage).eq("participant_id", perZugang);
+    if (count) return { ergebnis: "already", runde: (vorher.runde ?? 0) + 1 };
+  }
   const { data, error } = perZugang
     ? await db.rpc("feedback_speichern", { p_participant_id: perZugang, p_survey_id: umfrage, p_answers: antworten })
     : await db.rpc("submit_feedback", { p_token: token, p_survey_id: umfrage, p_answers: antworten });

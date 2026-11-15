@@ -1,10 +1,15 @@
 import { bereichTexte, type BereichSprache } from "@/lib/bereich-texte";
+import { umfrageTexte } from "@/lib/umfrage-texte";
 import type { ladeUmfrage } from "@/lib/umfrage";
 import { jetztMs } from "@/lib/zeit";
 import { FeedbackFormular } from "@/app/(app)/feedback/[token]/[umfrage]/FeedbackFormular";
 
-/** Kopf und Formular der Feedback-Umfrage, gleich für den Mail-Link und den allgemeinen Link /umfrage/. */
-export function UmfrageInhalt({ l, token, daten }: { l: BereichSprache; token: string; daten: NonNullable<Awaited<ReturnType<typeof ladeUmfrage>>> }) {
+/**
+ * Kopf und Formular der Feedback-Umfrage, gleich für den Mail-Link und den allgemeinen Link /umfrage/.
+ * oeffentlich (allgemeiner Link, Person nur per E-Mail-Adresse erkannt): gespeicherte Antworten werden weder gezeigt
+ * noch überschrieben; wer schon geantwortet hat, ändert über den persönlichen Link.
+ */
+export function UmfrageInhalt({ l, token, daten, oeffentlich = false }: { l: BereichSprache; token: string; daten: NonNullable<Awaited<ReturnType<typeof ladeUmfrage>>>; oeffentlich?: boolean }) {
   const t = bereichTexte[l];
   const jetzt = jetztMs();
   const { umfrage } = daten;
@@ -16,8 +21,10 @@ export function UmfrageInhalt({ l, token, daten }: { l: BereichSprache; token: s
       <p className="mt-4 text-ink-soft">{t.feedbackHallo(daten.person.first_name, daten.anwesend)}</p>
       {offen && !daten.anwesend ? (
         <p className="karte mt-6">{t.feedbackNichtDa}</p>
+      ) : offen && oeffentlich && daten.gespeichert ? (
+        <p className="karte mt-6">{umfrageTexte[l].schonBeantwortet}</p>
       ) : offen ? (
-        <FeedbackFormular l={l} token={token} umfrage={umfrage.id} fragen={daten.fragen} gespeichert={daten.gespeichert} />
+        <FeedbackFormular l={l} token={token} umfrage={umfrage.id} fragen={daten.fragen} gespeichert={oeffentlich ? null : daten.gespeichert} />
       ) : (
         <p className="karte mt-6">{jetzt < Date.parse(umfrage.opensAt) ? t.feedbackOeffnet : t.feedbackBeendet}</p>
       )}

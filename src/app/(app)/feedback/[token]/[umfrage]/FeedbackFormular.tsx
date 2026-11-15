@@ -18,7 +18,7 @@ export function FeedbackFormular({ l, token, umfrage, fragen, gespeichert }: { l
   const t = bereichTexte[l];
   const u = umfrageTexte[l];
   const [zustand, absenden, laeuft] = useActionState(feedbackAbsenden, { ergebnis: null, antworten: gespeichert ?? undefined, runde: 0 });
-  const meldung = zustand.ergebnis === "missing" ? { text: u.fehlt, gut: false } : zustand.ergebnis ? t.feedbackMeldungen[zustand.ergebnis] : null;
+  const meldung = zustand.ergebnis === "missing" ? { text: u.fehlt, gut: false } : zustand.ergebnis === "already" ? { text: u.schonBeantwortet, gut: false } : zustand.ergebnis ? t.feedbackMeldungen[zustand.ergebnis] : null;
   const werte = zustand.antworten ?? {};
   const mitPflicht = fragen.some((f) => f.pflicht);
   return (
@@ -59,7 +59,9 @@ export function FeedbackFormular({ l, token, umfrage, fragen, gespeichert }: { l
                   <label className="flex cursor-pointer flex-wrap items-center gap-3 rounded-2xl bg-white px-4 py-3 ring-1 ring-line has-[:checked]:ring-2 has-[:checked]:ring-ink">
                     <input type="radio" name={`q_${f.id}`} value={ANDERE} defaultChecked={istAndere} />
                     <span>{u.sonstiges}:</span>
-                    <input type="text" name={`andere_${f.id}`} maxLength={300} defaultValue={istAndere ? String(wert) : ""} placeholder={u.sonstigesFeld} aria-label={`${u.sonstiges}: ${u.sonstigesFeld}`} className="feld min-w-0 flex-1 !py-1.5" />
+                    <input type="text" name={`andere_${f.id}`} maxLength={300} defaultValue={istAndere ? String(wert) : ""} placeholder={u.sonstigesFeld}
+                      onInput={(e) => { const r = e.currentTarget.parentElement?.querySelector<HTMLInputElement>("input[type=radio]"); if (r) r.checked = true; }}
+                      aria-label={`${u.sonstiges}: ${u.sonstigesFeld}`} className="feld min-w-0 flex-1 !py-1.5" />
                   </label>
                 )}
               </div>

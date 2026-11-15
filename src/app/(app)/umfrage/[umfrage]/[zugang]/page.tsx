@@ -22,7 +22,7 @@ export default async function UmfrageZugang({ params, searchParams }: PageProps<
         <img src="/brand/ses-logo.png" alt="SES Academy" className="h-10 w-auto" />
         <SprachUmschalter aktiv={l} href={(x) => `/umfrage/${umfrage}/${zugang}/?sprache=${x}`} />
       </div>
-      <UmfrageInhalt l={l} token={zugang} daten={daten} />
+      <UmfrageInhalt l={l} token={zugang} daten={daten} oeffentlich />
     </main>
   );
 }
