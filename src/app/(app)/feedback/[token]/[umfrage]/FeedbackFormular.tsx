@@ -1,7 +1,7 @@
 "use client";
 
 import { useActionState } from "react";
-import { feedbackAbsenden, type FeedbackAntworten } from "@/lib/aktionen/feedback";
+import { feedbackAbsenden } from "@/lib/aktionen/feedback";
 import { bereichTexte, type BereichSprache } from "@/lib/bereich-texte";
 import { umfrageTexte } from "@/lib/umfrage-texte";
 import type { UmfrageFrage } from "@/lib/umfrage";
@@ -10,22 +10,25 @@ const ANDERE = "__andere";
 
 /**
  * Formular der Feedback-Umfrage (Mail-Link und allgemeiner Link /umfrage/). Skalen 1–5 oder 1–10, Freitext,
- * Auswahl mit „Sonstiges“; Pflichtfragen mit *. Zeigt gespeicherte Antworten vorausgefüllt (auch nach dem Absenden,
- * React leert Formulare sonst nach einer Aktion).
+ * Auswahl mit „Sonstiges“; Pflichtfragen mit *. Anonym: nach dem Absenden nur der Dank. Bei einer Fehlermeldung
+ * bleiben die Eingaben stehen (React leert Formulare sonst nach einer Aktion).
  * token: link_token aus der Mail oder der Zugang aus /umfrage/ (Person-ID mit Signatur).
  */
-export function FeedbackFormular({ l, token, umfrage, fragen, gespeichert }: { l: BereichSprache; token: string; umfrage: string; fragen: UmfrageFrage[]; gespeichert: FeedbackAntworten | null }) {
+export function FeedbackFormular({ l, token, umfrage, fragen }: { l: BereichSprache; token: string; umfrage: string; fragen: UmfrageFrage[] }) {
   const t = bereichTexte[l];
   const u = umfrageTexte[l];
-  const [zustand, absenden, laeuft] = useActionState(feedbackAbsenden, { ergebnis: null, antworten: gespeichert ?? undefined, runde: 0 });
-  const meldung = zustand.ergebnis === "missing" ? { text: u.fehlt, gut: false } : zustand.ergebnis === "already" ? { text: u.schonBeantwortet, gut: false } : zustand.ergebnis ? t.feedbackMeldungen[zustand.ergebnis] : null;
+  const [zustand, absenden, laeuft] = useActionState(feedbackAbsenden, { ergebnis: null, runde: 0 });
+  const meldung = zustand.ergebnis === "missing" ? { text: u.fehlt, gut: false } : zustand.ergebnis === "already" ? { text: u.schonBeantwortet, gut: true } : zustand.ergebnis ? t.feedbackMeldungen[zustand.ergebnis] : null;
   const werte = zustand.antworten ?? {};
   const mitPflicht = fragen.some((f) => f.pflicht);
+  // Anonym gespeichert: kein Formular mehr, nur der Dank (ändern geht nicht, die Antwort ist keiner Person zugeordnet)
+  if (zustand.ergebnis === "saved" || zustand.ergebnis === "already") {
+    return <p role="status" className="mt-6 rounded-2xl bg-gruen-hell p-5 font-semibold">{zustand.ergebnis === "saved" ? u.danke : u.schonBeantwortet}</p>;
+  }
   return (
     <form key={zustand.runde} action={absenden} className="mt-6 space-y-6">
       <input type="hidden" name="token" value={token} />
       <input type="hidden" name="survey_id" value={umfrage} />
-      {gespeichert && !zustand.ergebnis && <p role="status" className="rounded-2xl bg-gruen-hell p-4 text-sm">{t.feedbackSchonGespeichert}</p>}
       <p className="text-sm text-ink-soft">{mitPflicht ? u.pflichtHinweis : t.feedbackFreiwillig}</p>
       {fragen.map((f, i) => {
         const wert = werte[f.id];
@@ -72,7 +75,7 @@ export function FeedbackFormular({ l, token, umfrage, fragen, gespeichert }: { l
         );
       })}
       {meldung && <p role="status" className={`rounded-2xl p-4 font-semibold ${meldung.gut ? "bg-gruen-hell" : "bg-gelb-hell"}`}>{meldung.text}</p>}
-      <button type="submit" disabled={laeuft} className="knopf w-full !py-3.5 text-base lg:w-auto lg:px-10">{laeuft ? t.feedbackSpeichert : gespeichert || zustand.ergebnis === "saved" ? t.feedbackAktualisieren : t.feedbackAbsenden}</button>
+      <button type="submit" disabled={laeuft} className="knopf w-full !py-3.5 text-base lg:w-auto lg:px-10">{laeuft ? t.feedbackSpeichert : t.feedbackAbsenden}</button>
     </form>
   );
 }

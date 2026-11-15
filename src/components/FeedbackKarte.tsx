@@ -3,7 +3,7 @@ import type { OffeneUmfrage } from "@/lib/feedback";
 
 /**
  * Hinweis „Dein Feedback“ für offene Umfragen (Ticket-Seite und „Mein Bereich“). Der Link nutzt den persönlichen
- * Link-Token wie die Einladungsmail; wer schon geantwortet hat, kann die Antworten ansehen und ändern.
+ * Link-Token wie die Einladungsmail; wer schon geantwortet hat, sieht nur den Dank (die Antworten sind anonym).
  */
 export function FeedbackKarte({ umfragen, token, texte }: {
   umfragen: OffeneUmfrage[];
@@ -17,10 +17,12 @@ export function FeedbackKarte({ umfragen, token, texte }: {
         <div key={u.surveyId} className="rounded-3xl bg-signal/40 p-5 ring-1 ring-forest/20">
           <p className="font-display text-xl font-bold">{u.beantwortet ? texte.danke : texte.titel}</p>
           {!u.beantwortet && <p className="mt-1">{texte.text(u.modulTitel)}</p>}
-          <Link href={`/feedback/${token}/${u.surveyId}/`}
-            className={u.beantwortet ? "mt-3 inline-block font-semibold underline underline-offset-4" : "mt-4 inline-block rounded-full bg-ink px-6 py-3 font-semibold text-paper"}>
-            {u.beantwortet ? texte.aendern : texte.geben}
-          </Link>
+          {/* Antworten sind anonym (seit 15.11.2026): nach dem Absenden nichts mehr zum Ansehen oder Ändern */}
+          {!u.beantwortet && (
+            <Link href={`/feedback/${token}/${u.surveyId}/`} className="mt-4 inline-block rounded-full bg-ink px-6 py-3 font-semibold text-paper">
+              {texte.geben}
+            </Link>
+          )}
         </div>
       ))}
     </section>

@@ -403,14 +403,14 @@ isOneToOne: false
                   ]
                 },"feedback_responses": {
                   Row: {
-                    "answers": NonNullable<Json>,"id": string,"participant_id": string,"submitted_at": string,"survey_id": string
+                    "answers": NonNullable<Json>,"id": string,"participant_id": string | null,"submitted_at": string,"survey_id": string
                   }
                   ComputedFields: never
                   Insert: {
-                    "answers"?: NonNullable<Json>,"id"?: string,"participant_id": string,"submitted_at"?: string,"survey_id": string
+                    "answers"?: NonNullable<Json>,"id"?: string,"participant_id"?: string | null,"submitted_at"?: string,"survey_id": string
                   }
                   Update: {
-                    "answers"?: NonNullable<Json>,"id"?: string,"participant_id"?: string,"submitted_at"?: string,"survey_id"?: string
+                    "answers"?: NonNullable<Json>,"id"?: string,"participant_id"?: string | null,"submitted_at"?: string,"survey_id"?: string
                   }
                   Relationships: [
                     {
@@ -427,6 +427,18 @@ isOneToOne: false
       referencedColumns: ["id"]
     }
                   ]
+                },"feedback_teilnahmen": {
+                  Row: {
+                    "participant_id": string,"survey_id": string
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "participant_id": string,"survey_id": string
+                  }
+                  Update: {
+                    "participant_id"?: string,"survey_id"?: string
+                  }
+                  Relationships: []
                 },"feedback_surveys": {
                   Row: {
                     "closes_at": string,"created_at": string,"id": string,"module_id": string,"opens_at": string,"sent_at": string | null

@@ -26,7 +26,7 @@ function optionenText(i18n: unknown, sprache: string, deutsch: string[]): string
 
 /**
  * Umfrage für eine Person: Fragen in ihrer Sprache (Ländergruppen-Fragen nur fürs eigene Land; ohne Land alle),
- * gespeicherte Antworten, ob sie beim Modul eingecheckt war. Für den Mail-Link und den allgemeinen Link.
+ * ob sie schon teilgenommen hat (Antworten sind anonym) und ob sie beim Modul eingecheckt war. Für den Mail-Link und den allgemeinen Link.
  */
 export async function ladeUmfrage(participantId: string, surveyId: string, sprache: string) {
   const db = createAdminClient();
@@ -37,8 +37,8 @@ export async function ladeUmfrage(participantId: string, surveyId: string, sprac
       .eq("id", surveyId).maybeSingle(),
   ]);
   if (!person || !u) return null;
-  const [{ data: antwort }, { count: anwesend }] = await Promise.all([
-    db.from("feedback_responses").select("answers").eq("survey_id", u.id).eq("participant_id", person.id).maybeSingle(),
+  const [{ data: teilnahme }, { count: anwesend }] = await Promise.all([
+    db.from("feedback_teilnahmen").select("survey_id").eq("survey_id", u.id).eq("participant_id", person.id).maybeSingle(),
     db.from("attendances").select("registration_id, registrations!inner(participant_id, module_id)", { count: "exact", head: true })
       .eq("registrations.participant_id", person.id).eq("registrations.module_id", u.module_id),
   ]);
@@ -59,7 +59,8 @@ export async function ladeUmfrage(participantId: string, surveyId: string, sprac
     modulTitel: feedbackText(u.module?.i18n, sprache, "title", u.module?.title ?? ""),
     fragen,
     anwesend: Boolean(anwesend),
-    gespeichert: (antwort?.answers as Record<string, number | string> | null) ?? null,
+    /** schon teilgenommen; die Antworten selbst sind anonym und lassen sich nicht mehr zuordnen */
+    beantwortet: Boolean(teilnahme),
   };
 }
 

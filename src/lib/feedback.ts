@@ -25,7 +25,7 @@ export async function offeneUmfragen(participantId: string, sprache: string | nu
   const { data: umfragen } = await db.from("feedback_surveys").select("id, module:modules(title, i18n)")
     .in("module_id", modulIds).lte("opens_at", jetzt).gt("closes_at", jetzt);
   if (!umfragen?.length) return [];
-  const { data: antworten } = await db.from("feedback_responses").select("survey_id").eq("participant_id", participantId).in("survey_id", umfragen.map((u) => u.id));
+  const { data: antworten } = await db.from("feedback_teilnahmen").select("survey_id").eq("participant_id", participantId).in("survey_id", umfragen.map((u) => u.id));
   const fertig = new Set((antworten ?? []).map((a) => a.survey_id));
   return umfragen.map((u) => ({
     surveyId: u.id,

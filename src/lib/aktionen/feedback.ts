@@ -79,7 +79,7 @@ export async function feedbackEinladen(formData: FormData) {
   const db = createAdminClient();
   const [{ data: anwesend }, { data: geantwortet }] = await Promise.all([
     db.from("attendances").select("registration:registrations!inner(participant_id, module_id)").eq("registration.module_id", modulId),
-    db.from("feedback_responses").select("participant_id").eq("survey_id", umfrage),
+    db.from("feedback_teilnahmen").select("participant_id").eq("survey_id", umfrage),
   ]);
   const fertig = new Set((geantwortet ?? []).map((r) => r.participant_id));
   const personen = [...new Set((anwesend ?? []).map((a) => a.registration.participant_id))].filter((p) => !fertig.has(p));
@@ -134,17 +134,11 @@ export async function feedbackAbsenden(vorher: FeedbackZustand, formData: FormDa
     if (istToken(id) && formData.get(`art_${id}`) === "auswahl" && antworten[id] === undefined) antworten[id] = eingabe.trim().slice(0, 300);
   }
   const db = createAdminClient();
-  // Über den allgemeinen Link (nur E-Mail-Adresse) keine schon gespeicherte Antwort überschreiben; ändern geht nur
-  // über den persönlichen Link aus der Mail bzw. die Ticket-Seite
-  if (perZugang) {
-    const { count } = await db.from("feedback_responses").select("id", { count: "exact", head: true }).eq("survey_id", umfrage).eq("participant_id", perZugang);
-    if (count) return { ergebnis: "already", runde: (vorher.runde ?? 0) + 1 };
-  }
+  // Antworten sind anonym: wer schon teilgenommen hat, bekommt „already“ (die Datenbank prüft feedback_teilnahmen)
   const { data, error } = perZugang
     ? await db.rpc("feedback_speichern", { p_participant_id: perZugang, p_survey_id: umfrage, p_answers: antworten })
     : await db.rpc("submit_feedback", { p_token: token, p_survey_id: umfrage, p_answers: antworten });
   const runde = (vorher.runde ?? 0) + 1;
   if (error) return { ergebnis: "fehler", antworten, runde };
-  // Leer abgeschickt: die bisher gespeicherten Antworten bleiben stehen
-  return { ergebnis: data as FeedbackZustand["ergebnis"], antworten: data === "empty" ? vorher.antworten : antworten, runde };
+  return { ergebnis: data as FeedbackZustand["ergebnis"], antworten: data === "saved" ? undefined : antworten, runde };
 }
