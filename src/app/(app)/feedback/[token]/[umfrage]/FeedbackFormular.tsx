@@ -37,7 +37,7 @@ export function FeedbackFormular({ l, token, umfrage, fragen, gespeichert }: { l
             <p className="font-semibold" aria-hidden>{i + 1}. {f.prompt}{f.pflicht && <span className="text-rot"> *</span>}</p>
             {f.kind === "skala" ? (
               <>
-                <div className="mt-3 grid grid-cols-5 gap-2">
+                <div className={`mt-3 grid grid-cols-5 gap-2 ${f.max === 10 ? "lg:grid-cols-10" : "lg:max-w-md"}`}>
                   {Array.from({ length: f.max }, (_, n) => n + 1).map((n) => (
                     <label key={n} className="flex cursor-pointer items-center justify-center rounded-2xl bg-white py-2.5 ring-1 ring-line has-[:checked]:bg-ink has-[:checked]:text-paper">
                       <input type="radio" name={`q_${f.id}`} value={n} required={f.pflicht && n === 1} defaultChecked={wert === n} className="sr-only" />
@@ -48,7 +48,7 @@ export function FeedbackFormular({ l, token, umfrage, fragen, gespeichert }: { l
                 <p className="mt-2 text-xs text-ink-soft">{u.skalaEnden(f.max)}</p>
               </>
             ) : f.kind === "auswahl" ? (
-              <div className="mt-3 grid gap-2">
+              <div className="mt-3 grid gap-2 lg:grid-cols-3">
                 {f.optionen.map((o, n) => (
                   <label key={o.wert} className="flex cursor-pointer items-center gap-3 rounded-2xl bg-white px-4 py-3 ring-1 ring-line has-[:checked]:ring-2 has-[:checked]:ring-ink">
                     <input type="radio" name={`q_${f.id}`} value={o.wert} required={f.pflicht && n === 0} defaultChecked={wert === o.wert} />
@@ -72,7 +72,7 @@ export function FeedbackFormular({ l, token, umfrage, fragen, gespeichert }: { l
         );
       })}
       {meldung && <p role="status" className={`rounded-2xl p-4 font-semibold ${meldung.gut ? "bg-gruen-hell" : "bg-gelb-hell"}`}>{meldung.text}</p>}
-      <button type="submit" disabled={laeuft} className="knopf w-full !py-3.5 text-base">{laeuft ? t.feedbackSpeichert : gespeichert || zustand.ergebnis === "saved" ? t.feedbackAktualisieren : t.feedbackAbsenden}</button>
+      <button type="submit" disabled={laeuft} className="knopf w-full !py-3.5 text-base lg:w-auto lg:px-10">{laeuft ? t.feedbackSpeichert : gespeichert || zustand.ergebnis === "saved" ? t.feedbackAktualisieren : t.feedbackAbsenden}</button>
     </form>
   );
 }

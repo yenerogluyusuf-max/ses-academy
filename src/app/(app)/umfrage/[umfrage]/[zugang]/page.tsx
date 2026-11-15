@@ -17,7 +17,7 @@ export default async function UmfrageZugang({ params, searchParams }: PageProps<
   const daten = await ladeUmfrage(pid, umfrage, l);
   if (!daten) notFound();
   return (
-    <main lang={l} className="mx-auto max-w-lg px-4 py-10">
+    <main lang={l} className="mx-auto max-w-lg px-4 py-10 lg:max-w-4xl lg:px-8">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <img src="/brand/ses-logo.png" alt="SES Academy" className="h-10 w-auto" />
         <SprachUmschalter aktiv={l} href={(x) => `/umfrage/${umfrage}/${zugang}/?sprache=${x}`} />
