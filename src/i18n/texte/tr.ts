@@ -7,7 +7,7 @@ export const tr: Texte = {
     beschreibung:
       "SES Academy, Avrupa’daki 18–30 yaş arası genç Müslümanlar için İslam Konseyi’nin eğitim programıdır: konferanslar, atölyeler ve ülke grupları – Nisan 2026’dan Haziran 2028’e kadar.",
   },
-  nav: { programm: "Program", kompetenzen: "Neler öğreneceksin", rueckblick: "Geriye bakış", faq: "SSS", kontakt: "İletişim", menue: "Menüyü aç", schliessen: "Menüyü kapat", anmelden: "Giriş yap" },
+  nav: { programm: "Program", kompetenzen: "Neler öğreneceksin", rueckblick: "Geriye bakış", faq: "FAQ", kontakt: "İletişim", menue: "Menüyü aç", schliessen: "Menüyü kapat", anmelden: "Giriş yap" },
   hero: {
     kicker: "Sosyal ve Siyasal Eğitim Semineri",
     zeilen: ["Senin", "sesin.", "Senin Avrupan."],
@@ -82,9 +82,9 @@ export const tr: Texte = {
     ],
   },
   faq: {
-    kicker: "SSS",
+    kicker: "FAQ",
     titel: "Sıkça Sorulan Sorular",
-    suche: "SSS’de ara …",
+    suche: "FAQ’da ara …",
     keineTreffer: "Sonuç bulunamadı. Bize yazman yeterli.",
     liste: [
       { frage: "SES Akademisi’nin amacı nedir?", antwort: ["Amaç, Avrupa’da siyaset ve toplum konularına ilgi duyan genç Müslümanlara katkı sağlamak, siyasi ve toplumsal süreçler hakkındaki bilgilerini derinleştirmek ve toplumsal katılımlarını sürdürülebilir bir şekilde güçlendirmektir."] },
