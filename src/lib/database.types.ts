@@ -383,14 +383,14 @@ isOneToOne: false
                   ]
                 },"feedback_questions": {
                   Row: {
-                    "i18n": Json,"id": string,"kind": string,"position": number,"prompt": string,"survey_id": string
+                    "country": string | null,"i18n": Json,"id": string,"kind": string,"options": Json | null,"other_option": boolean,"position": number,"prompt": string,"required": boolean,"scale_max": number | null,"survey_id": string
                   }
                   ComputedFields: never
                   Insert: {
-                    "i18n"?: Json,"id"?: string,"kind": string,"position": number,"prompt": string,"survey_id": string
+                    "country"?: string | null,"i18n"?: Json,"id"?: string,"kind": string,"options"?: Json | null,"other_option"?: boolean,"position": number,"prompt": string,"required"?: boolean,"scale_max"?: number | null,"survey_id": string
                   }
                   Update: {
-                    "i18n"?: Json,"id"?: string,"kind"?: string,"position"?: number,"prompt"?: string,"survey_id"?: string
+                    "country"?: string | null,"i18n"?: Json,"id"?: string,"kind"?: string,"options"?: Json | null,"other_option"?: boolean,"position"?: number,"prompt"?: string,"required"?: boolean,"scale_max"?: number | null,"survey_id"?: string
                   }
                   Relationships: [
                     {
@@ -1319,9 +1319,12 @@ isOneToOne: false
               "checked_in": number,"counts_for_streak": boolean,"day_id": string,"ends_at": string,"expected": number,"module_id": string,"module_title": string,"starts_at": string,"walk_ins": number
             }[]
                            },
+"feedback_speichern":
+{ Args: { "p_answers": Json,"p_participant_id": string,"p_survey_id": string }; Returns: string
+                           },
 "get_feedback_results":
 { Args: { "p_survey_id": string }; Returns: {
-              "answers": number,"average": number,"distribution": (number)[],"kind": string,"nr": number,"prompt": string,"question_id": string,"texts": (string)[]
+              "answers": number,"average": number,"country": string,"distribution": (number)[],"kind": string,"nr": number,"options": (string)[],"prompt": string,"question_id": string,"scale_max": number,"texts": (string)[]
             }[]
                            },
 "get_group_attendance":

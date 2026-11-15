@@ -295,7 +295,7 @@ export default async function ModulDetail({ params, searchParams }: PageProps<"/
   const { data: tagesordnungen } = await supabase.from("documents").select("id, title").eq("module_id", m.id)
     .contains("tags", ["Tagesordnung"]).gt("current_version", 0).neq("status", "archiv");
 
-  const { data: umfrage } = await supabase.from("feedback_surveys").select("id, opens_at, closes_at, sent_at, feedback_questions(id, position, kind, prompt)").eq("module_id", m.id).maybeSingle();
+  const { data: umfrage } = await supabase.from("feedback_surveys").select("id, opens_at, closes_at, sent_at, feedback_questions(id, position, kind, prompt, scale_max, required, country)").eq("module_id", m.id).maybeSingle();
   const { data: ergebnisse } = umfrage ? await supabase.rpc("get_feedback_results", { p_survey_id: umfrage.id }) : { data: null };
   const { count: anwesende } = await supabase.from("attendances").select("registration_id, registrations!inner(module_id)", { count: "exact", head: true }).eq("registrations.module_id", m.id);
   const fragen = umfrage ? [...umfrage.feedback_questions].sort((a, b) => a.position - b.position) : [];
@@ -429,14 +429,22 @@ export default async function ModulDetail({ params, searchParams }: PageProps<"/
                       <p className="font-semibold">{e.nr}. {e.prompt}</p>
                       {e.kind === "skala" ? (
                         <div className="mt-1">
-                          <p className="text-sm text-ink-soft">{e.average !== null ? t.durchschnitt(String(e.average).replace(".", ",")) : t.keineAntworten} · {t.antworten(e.answers)}</p>
+                          <p className="text-sm text-ink-soft">{e.average !== null ? `${t.durchschnitt(String(e.average).replace(".", ","))} / ${e.scale_max ?? 5}` : t.keineAntworten} · {t.antworten(e.answers)}</p>
                           <div className="mt-2 flex h-6 overflow-hidden rounded-full ring-1 ring-line" role="img" aria-label={t.verteilung((e.distribution ?? []).join(", "))}>
-                            {(e.distribution ?? []).map((n, i) => n > 0 && (
-                              <div key={i} className={["bg-rot-hell", "bg-amber-100", "bg-paper-deep", "bg-emerald-100", "bg-emerald-300"][i]} style={{ width: `${(n / e.answers) * 100}%` }}>
+                            {(e.distribution ?? []).map((n, i, alle) => n > 0 && (
+                              <div key={i} style={{ width: `${(n / e.answers) * 100}%`, background: `hsl(${Math.round((i / Math.max(alle.length - 1, 1)) * 130)} 55% 82%)` }}>
                                 <span className="block text-center text-xs leading-6 font-semibold">{i + 1}</span>
                               </div>
                             ))}
                           </div>
+                        </div>
+                      ) : e.kind === "auswahl" ? (
+                        <div className="mt-1 text-sm">
+                          <p className="text-ink-soft">{t.antworten(e.answers)}</p>
+                          <ul className="mt-1 space-y-0.5">
+                            {(e.options ?? []).map((o, i) => <li key={o}>{o}: <span className="font-semibold">{e.distribution?.[i] ?? 0}</span></li>)}
+                            {(e.texts ?? []).length > 0 && <li>{(e.texts ?? []).length}× anders: {(e.texts ?? []).join(" · ")}</li>}
+                          </ul>
                         </div>
                       ) : (
                         <ul className="mt-1 list-disc space-y-1 pl-5 text-sm">{(e.texts ?? []).map((x, i) => <li key={i}>{x}</li>)}</ul>
@@ -451,7 +459,7 @@ export default async function ModulDetail({ params, searchParams }: PageProps<"/
                 <ol className="mt-3 space-y-2">
                   {fragen.map((f) => (
                     <li key={f.id} className="flex flex-wrap items-center gap-2 text-sm">
-                      <span className="mr-auto">{f.position}. {f.prompt} <span className="text-ink-soft">({f.kind === "skala" ? t.skala : t.freitext})</span></span>
+                      <span className="mr-auto">{f.position}. {f.prompt} <span className="text-ink-soft">({f.kind === "skala" ? t.skala.replace("5", String(f.scale_max ?? 5)) : f.kind === "auswahl" ? "Auswahl" : t.freitext}{f.required ? ", Pflicht" : ""}{f.country ? `, nur ${f.country}` : ""})</span></span>
                       {antworten === 0 && (
                         <form action={frageEntfernen}>
                           <input type="hidden" name="module_id" value={m.id} /><input type="hidden" name="survey_id" value={umfrage.id} /><input type="hidden" name="id" value={f.id} />

@@ -9,6 +9,7 @@ import { sendeFeedbackMail } from "@/lib/mail";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
 import { berlinerZeit } from "@/lib/zeit";
+import { pruefeZugang } from "@/lib/umfrage";
 
 function zurModulseite(modulId: string, hinweis: string): never {
   revalidatePath(`/team/module/${modulId}/`);
@@ -100,21 +101,36 @@ export async function feedbackEinladen(formData: FormData) {
 
 export type FeedbackAntworten = Record<string, number | string>;
 /** antworten: was gerade abgeschickt wurde bzw. schon gespeichert ist, damit das Formular es weiter zeigt. */
-export type FeedbackZustand = { ergebnis: "saved" | "empty" | "closed" | "not_attended" | "not_found" | "fehler" | null; antworten?: FeedbackAntworten; runde?: number };
+export type FeedbackZustand = { ergebnis: "saved" | "empty" | "missing" | "closed" | "not_attended" | "not_found" | "fehler" | null; antworten?: FeedbackAntworten; runde?: number };
 
-/** Antwort aus dem Formular /feedback/<token>/<umfrage>/. Der Link-Token aus der Mail ist der Nachweis. */
+/**
+ * Antwort aus dem Formular. token: link_token aus der Mail (/feedback/<token>/<umfrage>/) oder der Zugang aus dem
+ * allgemeinen Link (/umfrage/, Person-ID mit Signatur für genau diese Umfrage).
+ */
 export async function feedbackAbsenden(vorher: FeedbackZustand, formData: FormData): Promise<FeedbackZustand> {
-  const token = String(formData.get("token") ?? "").toLowerCase();
+  const roh = String(formData.get("token") ?? "");
+  // link_token in Kleinbuchstaben; der Zugang (Person-ID.Signatur) bleibt wie er ist, die Signatur unterscheidet Groß/klein
+  const token = istToken(roh) ? roh.toLowerCase() : roh;
   const umfrage = String(formData.get("survey_id") ?? "");
-  if (!istToken(token) || !istToken(umfrage)) return { ergebnis: "not_found" };
+  const perZugang = istToken(token) ? null : pruefeZugang(token, umfrage);
+  if ((!istToken(token) && !perZugang) || !istToken(umfrage)) return { ergebnis: "not_found" };
   const antworten: FeedbackAntworten = {};
-  for (const [schluessel, wert] of formData.entries()) {
-    if (!schluessel.startsWith("q_") || typeof wert !== "string" || !wert.trim()) continue;
+  for (const [schluessel, eingabe] of formData.entries()) {
+    if (!schluessel.startsWith("q_") || typeof eingabe !== "string" || !eingabe.trim()) continue;
     const id = schluessel.slice(2);
     if (!istToken(id)) continue;
-    antworten[id] = /^[1-5]$/.test(wert) && formData.get(`art_${id}`) === "skala" ? Number(wert) : wert.slice(0, 2000);
+    const art = formData.get(`art_${id}`);
+    let wert = eingabe;
+    if (art === "auswahl" && wert === "__andere") {
+      wert = String(formData.get(`andere_${id}`) ?? "").trim();
+      if (!wert) continue;
+    }
+    antworten[id] = art === "skala" && /^(10|[1-9])$/.test(wert) ? Number(wert) : wert.slice(0, 2000);
   }
-  const { data, error } = await createAdminClient().rpc("submit_feedback", { p_token: token, p_survey_id: umfrage, p_answers: antworten });
+  const db = createAdminClient();
+  const { data, error } = perZugang
+    ? await db.rpc("feedback_speichern", { p_participant_id: perZugang, p_survey_id: umfrage, p_answers: antworten })
+    : await db.rpc("submit_feedback", { p_token: token, p_survey_id: umfrage, p_answers: antworten });
   const runde = (vorher.runde ?? 0) + 1;
   if (error) return { ergebnis: "fehler", antworten, runde };
   // Leer abgeschickt: die bisher gespeicherten Antworten bleiben stehen
