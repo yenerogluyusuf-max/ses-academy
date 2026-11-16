@@ -131,14 +131,14 @@ export default async function ModulSeite({ searchParams }: PageProps<"/team/modu
     return null;
   };
 
-  const Karte = ({ m }: { m: (typeof liste)[number] }) => {
+  const karte = (m: (typeof liste)[number]) => {
     const z = zustand(m);
     const vorbei = m.ende !== null && m.ende < jetzt;
     const zahlen = vorbei && m.stats
       ? [[m.angemeldet, t.angemeldet], [m.stats.attended_people, t.da], [`${Math.round(m.stats.attendance_rate)} %`, t.quote]]
       : [[m.angemeldet, t.angemeldet], [m.zugesagt, t.zugesagt]];
     return (
-      <li>
+      <li key={m.id}>
         <Link href={`/team/module/${m.id}/${alles ? "" : "teilnehmende/"}`}
           className="grid gap-4 rounded-3xl bg-weiss p-5 ring-1 ring-line transition hover:ring-ink sm:grid-cols-[minmax(0,1fr)_auto] sm:items-center">
           <div className="min-w-0">
@@ -177,13 +177,13 @@ export default async function ModulSeite({ searchParams }: PageProps<"/team/modu
         {kommend.length > 0 && (
           <section className="mt-8">
             <h2 className="mb-3 text-sm font-semibold tracking-wide text-ink-soft uppercase">{t.kommend}</h2>
-            <ul className="grid gap-3">{kommend.map((m) => <Karte key={m.id} m={m} />)}</ul>
+            <ul className="grid gap-3">{kommend.map(karte)}</ul>
           </section>
         )}
         {vergangen.length > 0 && (
           <section className="mt-10">
             <h2 className="mb-3 text-sm font-semibold tracking-wide text-ink-soft uppercase">{t.vergangen}</h2>
-            <ul className="grid gap-3">{vergangen.map((m) => <Karte key={m.id} m={m} />)}</ul>
+            <ul className="grid gap-3">{vergangen.map(karte)}</ul>
           </section>
         )}
 

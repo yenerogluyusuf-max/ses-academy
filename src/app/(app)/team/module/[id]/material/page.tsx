@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
-import { DokumentFormular, DokumentListe, TagesordnungKnoepfe } from "@/components/team/Dokumente";
+import { DokumentFormular, DokumentListe } from "@/components/team/Dokumente";
 import { Hinweis } from "@/components/team/Hinweis";
 import { ModulReiter } from "@/components/team/ModulReiter";
 import { Rueckfrage } from "@/components/team/Rueckfrage";
@@ -153,7 +153,18 @@ export default async function Material({ params, searchParams }: PageProps<"/tea
         <Hinweis code={hinweis} texte={t.hinweise} />
         {hinweisText && <p role="status" className="mt-4 rounded-2xl bg-emerald-100 p-4 text-emerald-950">{hinweisText}</p>}
 
-        <section id="materialliste" className="karte mt-6 mb-10 scroll-mt-4">
+        {/* Umbau 16.11.2026: zuerst die Unterlagen (Tagesordnung, Workshop, Folien), dann Medien, dann die Materialliste */}
+        <h2 className="font-display mb-3 text-xl font-bold">{t.unterlagen}</h2>
+        <DokumentListe dokumente={material} ohneModul sprache={l} />
+        {medien.length > 0 && <>
+          <h2 className="font-display mt-8 mb-3 text-xl font-bold">{t.medien}</h2>
+          <DokumentListe dokumente={medien} ohneModul sprache={l} />
+        </>}
+        <details className="mt-4 rounded-3xl bg-white/60 ring-1 ring-line">
+          <summary className="cursor-pointer px-6 py-4 font-semibold">+ {t.ablegen}</summary>
+          <div className="px-6 pb-6"><DokumentFormular zurueck={zurueck} modulId={id} art="material" sprache={l} /></div>
+        </details>
+        <section id="materialliste" className="karte mt-10 scroll-mt-4">
           <div className="flex flex-wrap items-baseline gap-3">
             <h2 className="font-display mr-auto text-xl font-bold">{t.materialliste}</h2>
             {liste.length > 0 && <span className="text-sm text-ink-soft">{offen === 0 ? t.allesErledigt : t.offen(offen, liste.length)}</span>}
@@ -207,13 +218,7 @@ export default async function Material({ params, searchParams }: PageProps<"/tea
             </form>
           )}
         </section>
-        <TagesordnungKnoepfe dokumente={material} sprache={l} />
-        <h2 className="font-display mt-2 mb-3 text-xl font-bold">{t.unterlagen}</h2>
-        <DokumentListe dokumente={material} ohneModul sprache={l} />
-        <h2 className="font-display mt-8 mb-3 text-xl font-bold">{t.medien}</h2>
-        <DokumentListe dokumente={medien} ohneModul sprache={l} />
-        <h2 className="font-display mt-10 mb-3 text-xl font-bold">{t.ablegen}</h2>
-        <DokumentFormular zurueck={zurueck} modulId={id} art="material" sprache={l} />
+
       </main>
     </>
   );

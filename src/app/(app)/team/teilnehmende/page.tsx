@@ -18,6 +18,8 @@ import type { TeamSprache } from "@/lib/team-sprache";
 import { teamTexte } from "@/lib/team-texte";
 import { telLink } from "@/lib/telefon";
 import { nachtName } from "@/lib/uebernachtung";
+import { alterHeute } from "@/lib/bewerbung-felder";
+import { jetztMs } from "@/lib/zeit";
 
 const de = {
   meta: "Teilnehmende | SES Academy",
@@ -217,16 +219,17 @@ export default async function Teilnehmende({ searchParams }: PageProps<"/team/te
   const supabase = await createClient();
   const filter = leseFilter(sp);
   const { jahrgang, modulListe, modul, jetzt, alle, grundmenge, liste, zusage, kontakt, ueb, gruppe } = await ladeListe(filter, alles);
-  const [{ data: aufgaben }, { data: abgaben }, { data: mentoren }, { data: vorlagen }] = await Promise.all([
-    alles ? supabase.from("assignments").select("id,number").eq("cohort_id", jahrgang?.id ?? "").order("number") : Promise.resolve({ data: [] }),
-    alles ? supabase.from("submission_participants").select("participant_id, submissions(assignment_id)") : Promise.resolve({ data: [] }),
+  const [{ data: mentoren }, { data: vorlagen }] = await Promise.all([
     alles ? supabase.from("mentors").select("id,name,email,user_id").order("name") : Promise.resolve({ data: [] }),
     alles ? supabase.from("message_templates").select("id, name, subject_de, body_de, subject_tr, body_tr").order("name") : Promise.resolve({ data: [] }),
   ]);
-  const haVon = new Map<string, Set<string>>();
-  for (const a of (abgaben ?? []) as { participant_id: string; submissions: { assignment_id: string } | null }[]) {
-    if (a.submissions) haVon.set(a.participant_id, (haVon.get(a.participant_id) ?? new Set()).add(a.submissions.assignment_id));
-  }
+  // Umbau 16.11.2026: Stärken und Alter direkt in der Liste (nur Admin/Vorstand)
+  const [{ data: profile }, { data: bewerbungen }] = await Promise.all([
+    alles ? supabase.from("participant_profiles").select("participant_id, skills, tasks") : Promise.resolve({ data: [] as { participant_id: string; skills: string[]; tasks: string[] }[] }),
+    alles ? supabase.from("applications").select("participant_id, age, birth_year, created_at, city").not("participant_id", "is", null) : Promise.resolve({ data: [] as { participant_id: string | null; age: number | null; birth_year: number | null; created_at: string; city: string | null }[] }),
+  ]);
+  const profilVon = new Map((profile ?? []).map((x) => [x.participant_id, x]));
+  const bewerbungVon = new Map((bewerbungen ?? []).map((b) => [b.participant_id!, b]));
 
   let ohneLogin = 0;
   if (alles) {
@@ -257,6 +260,7 @@ export default async function Teilnehmende({ searchParams }: PageProps<"/team/te
     }
     return `${pfad}?${q}`;
   };
+  const jetztZahl = jetztMs();
   const personLink = (id: string) => `/team/teilnehmende/${id}/${modul ? `?modul=${modul.id}` : ""}`;
   const code = typeof sp.hinweis === "string" ? sp.hinweis : undefined;
 
@@ -276,13 +280,6 @@ export default async function Teilnehmende({ searchParams }: PageProps<"/team/te
           </p>
         )}
         {code && code in kontaktHinweise ? <Hinweis code={code} texte={kontaktHinweisTexte[l]} /> : <Rueckmeldung hinweis={sp.hinweis} fehler={sp.fehler} sprache={l} />}
-        {alles && ohneLogin > 0 && (
-          <form action={willkommenAnAlle} className="mb-6 flex flex-wrap items-center gap-3 rounded-2xl bg-white/70 p-4 ring-1 ring-line">
-            <p className="mr-auto text-sm">{t.willkommenText(ohneLogin)}</p>
-            <Rueckfrage knopf={t.willkommenKnopf} knopfKlasse="knopf" ja={t.willkommenJa(ohneLogin)} frage={t.willkommenFrage(ohneLogin)} sprache={l} />
-            <MailHinweis knapp className="w-full" sprache={l} />
-          </form>
-        )}
         {alles && (
           <div className="mb-6 flex gap-2">
             <Link href="?" className={`rounded-full px-4 py-1.5 text-sm font-semibold ${s("ansicht") !== "verantwortliche" ? "bg-ink text-paper" : "bg-weiss ring-1 ring-line"}`}>{t.liste}</Link>
@@ -315,11 +312,20 @@ export default async function Teilnehmende({ searchParams }: PageProps<"/team/te
           </section>
         ) : (
           <>
-            <form key={JSON.stringify(sp)} className="mb-4 grid gap-3 rounded-3xl bg-weiss p-4 ring-1 ring-line sm:grid-cols-2 lg:grid-cols-5" action="/team/teilnehmende/">
-              <select name="modul" defaultValue={modul?.id} className="feld lg:col-span-2" aria-label={w.modul}>
-                {modulListe.map((m) => <option key={m.id} value={m.id}>{m.title} · {termine(m.tage, l)}{m.cancelled_at ? t.modulAbgesagt : ""}</option>)}
-              </select>
-              <input name="q" defaultValue={s("q")} placeholder={t.suche(alles)} className="feld lg:col-span-3" />
+            <form key={JSON.stringify(sp)} className="mb-4 rounded-3xl bg-weiss p-4 ring-1 ring-line" action="/team/teilnehmende/">
+              <div className="grid gap-3 sm:grid-cols-[minmax(0,2fr)_minmax(0,1.2fr)_auto]">
+                <input name="q" defaultValue={s("q")} placeholder={t.suche(alles)} className="feld" />
+                <select name="modul" defaultValue={modul?.id} className="feld" aria-label={w.modul}>
+                  {modulListe.map((m) => <option key={m.id} value={m.id}>{m.title} · {termine(m.tage, l)}{m.cancelled_at ? t.modulAbgesagt : ""}</option>)}
+                </select>
+                <div className="flex gap-2">
+                  <button className="knopf">{w.filtern}</button>
+                  <Link href="/team/teilnehmende/" className="knopf-hell">{t.zuruecksetzen}</Link>
+                </div>
+              </div>
+              <details className="mt-3" open={["region", "verantwortlich", "gt", "filter", "kontakt", "uebernachtung"].some((k) => s(k)) || gruppe !== "jahrgang"}>
+                <summary className="cursor-pointer text-sm font-semibold">{{ de: "Weitere Filter", tr: "Diğer filtreler", fr: "Autres filtres" }[l]}</summary>
+                <div className="mt-3 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
               <select name="region" defaultValue={s("region")} className="feld" aria-label={w.region}>
                 <option value="">{t.alleRegionen}</option>
                 {regionen.map(([wert, n]) => <option key={wert} value={wert}>{wert === "-" ? t.ohneRegion : wert} ({n})</option>)}
@@ -350,11 +356,9 @@ export default async function Teilnehmende({ searchParams }: PageProps<"/team/te
                 <option value="alle">{t.mitGaesten}</option>
                 <option value="gaeste">{t.nurGaeste(alle.filter((p) => herkunft(p)).length)}</option>
               </select>
+                </div>
+              </details>
               {zusage && <input type="hidden" name="zusage" value={zusage} />}
-              <div className="flex gap-2 lg:col-span-2">
-                <button className="knopf">{w.filtern}</button>
-                <Link href="/team/teilnehmende/" className="knopf-hell">{t.zuruecksetzen}</Link>
-              </div>
             </form>
 
             {modul && (
@@ -373,14 +377,26 @@ export default async function Teilnehmende({ searchParams }: PageProps<"/team/te
               <p className="mr-auto text-sm text-ink-soft">{t.auswahl(liste.length, alles)}</p>
               {liste.length > 0 && <a href={adresse({}, "/team/teilnehmende/export/")} className="knopf-hell" download>{t.excel}</a>}
             </div>
+            {alles && ohneLogin > 0 && (
+              <details className="mb-4 rounded-3xl bg-white/60 ring-1 ring-line">
+                <summary className="cursor-pointer px-5 py-3 text-sm font-semibold">{{ de: `Willkommensmail (${ohneLogin} noch nie im Portal)`, tr: `Hoş geldin e-postası (${ohneLogin} kişi portala hiç girmedi)`, fr: `E-mail de bienvenue (${ohneLogin} jamais connectés)` }[l]}</summary>
+                <form action={willkommenAnAlle} className="flex flex-wrap items-center gap-3 px-5 pb-4">
+                  <p className="mr-auto text-sm text-ink-soft">{t.willkommenText(ohneLogin)}</p>
+                  <Rueckfrage knopf={t.willkommenKnopf} knopfKlasse="knopf-hell" ja={t.willkommenJa(ohneLogin)} frage={t.willkommenFrage(ohneLogin)} sprache={l} />
+                  <MailHinweis knapp className="w-full" sprache={l} />
+                </form>
+              </details>
+            )}
             {alles && liste.length > 0 && (
-              <details id="rundmail" className="karte mb-4">
-                <summary className="cursor-pointer font-display text-lg font-bold">{t.rundmail}</summary>
+              <details id="rundmail" className="mb-4 rounded-3xl bg-white/60 ring-1 ring-line [&[open]]:bg-weiss [&[open]]:p-0">
+                <summary className="cursor-pointer px-5 py-3 text-sm font-semibold">{t.rundmail}</summary>
+                <div className="px-5 pb-5">
                 <p className="mt-2 max-w-3xl text-sm text-ink-soft">{t.rundmailText(liste.length)}</p>
                 <div className="mt-4">
                   {/* Filterbeschreibung bleibt deutsch: Sie geht in die Freigabe-Beschreibung, die die Datenbank auf Deutsch baut */}
                   <RundmailFormular vorlagen={vorlagen ?? []} mailBereit={mailBereit()} email={staff.email} sprache={l}
                     auswahl={{ beschreibung: filterBeschreibung(filter, modul?.title ?? null) || (gruppe === "jahrgang" ? "ganzer Jahrgang" : "") }} />
+                </div>
                 </div>
               </details>
             )}
@@ -393,13 +409,11 @@ export default async function Teilnehmende({ searchParams }: PageProps<"/team/te
                   <thead>
                     <tr>
                       {alles && <th className="whitespace-nowrap"><span className="sr-only">{t.fuerRundmail}</span><AuswahlKnoepfe sprache={l} /></th>}
-                      <th>{w.name}</th><th>{w.telefon}</th><th>{w.region}</th><th>Sorumlu</th>
+                      <th>{w.name}</th><th>{w.region}</th><th>Sorumlu</th>{alles && <th>{{ de: "Stärken · Aufgaben", tr: "Güçlü yönler · görevler", fr: "Points forts · missions" }[l]}</th>}<th>{w.telefon}</th>
                       {modul && <th>{t.uebernachtung}</th>}
                       {modulListe.map((m) => (
                         <th key={m.id} title={m.title} className={`text-center whitespace-nowrap ${m.id === modul?.id ? "bg-gelb-hell/60" : m.tage[m.tage.length - 1].ends_at < jetzt ? "opacity-60" : ""}`}>{termine(m.tage, l)}</th>
                       ))}
-                      {alles && <th>{w.email}</th>}
-                      {alles && aufgaben?.map((a) => <th key={a.id} title={t.haTitel?.(a.number)} className="text-center">{t.ha(a.number)}</th>)}
                       <th>{t.letzterKontakt}</th>
                     </tr>
                   </thead>
@@ -414,12 +428,27 @@ export default async function Teilnehmende({ searchParams }: PageProps<"/team/te
                         <td className="whitespace-nowrap">
                           <Link href={personLink(p.participant_id)} className="font-semibold hover:underline">{p.name}</Link>
                           {herkunft(p) && <span className="chip ml-1.5 bg-paper-deep align-middle">{herkunft(p, l)}</span>}
-                        </td>
-                        <td className="whitespace-nowrap">
-                          {p.phone ? <a href={telLink(p.phone)} className="inline-flex items-center gap-1 text-sm hover:underline" aria-label={t.anrufen(p.name)}><Phone aria-hidden className="h-3.5 w-3.5" />{p.phone}</a> : <span className="text-sm text-ink-soft">–</span>}
+                          {alles && !p.email && <span className="chip ml-1.5 bg-gelb-hell align-middle">{t.fehltMail}</span>}
+                          {alles && (() => {
+                            const b = bewerbungVon.get(p.participant_id);
+                            const alter = alterHeute(b, jetztZahl);
+                            return (alter || b?.city) ? <span className="block text-xs text-ink-soft">{[alter ? `${alter} J.` : null, b?.city].filter(Boolean).join(" · ")}</span> : null;
+                          })()}
                         </td>
                         <td className="whitespace-nowrap">{p.region ?? <span className="text-rot">{t.fehltRegion}</span>}</td>
                         <td className="whitespace-nowrap">{p.mentor_name ?? "–"}</td>
+                        {alles && (
+                          <td className="min-w-40">
+                            {(() => {
+                              const pr = profilVon.get(p.participant_id);
+                              const alleChips = [...(pr?.tasks ?? []).map((x) => ({ x, ton: "bg-signal/60" })), ...(pr?.skills ?? []).map((x) => ({ x, ton: "bg-gruen-hell" }))];
+                              return alleChips.length ? <span className="flex flex-wrap gap-1">{alleChips.slice(0, 2).map((c) => <span key={c.x} className={`chip whitespace-nowrap ${c.ton}`}>{c.x}</span>)}{alleChips.length > 2 && <span className="chip bg-paper-deep">+{alleChips.length - 2}</span>}</span> : <span className="text-ink-soft/40">–</span>;
+                            })()}
+                          </td>
+                        )}
+                        <td className="whitespace-nowrap">
+                          {p.phone ? <a href={telLink(p.phone)} className="inline-flex items-center gap-1 text-sm hover:underline" aria-label={t.anrufen(p.name)}><Phone aria-hidden className="h-3.5 w-3.5" />{p.phone}</a> : <span className="text-sm text-ink-soft">–</span>}
+                        </td>
                         {modul && <td className="text-sm whitespace-nowrap">{!p.registration_status ? "–" : !p.stay_answered ? <span className="text-ink-soft">{t.keineAngabe}</span> : p.nights?.length ? p.nights.map(nachtName).join(", ") : t.nein}</td>}
                         {modulListe.map((m) => {
                           const pk = punkt(p.modules.find((r) => r.m === m.id), m.tage.length, m.tage[m.tage.length - 1].ends_at < jetzt, mitZusagen.has(m.id), l);
@@ -429,8 +458,6 @@ export default async function Teilnehmende({ searchParams }: PageProps<"/team/te
                             </td>
                           );
                         })}
-                        {alles && <td>{p.email ? <span title={p.email}>✓</span> : <span className="chip bg-gelb-hell">{t.fehltMail}</span>}</td>}
-                        {alles && aufgaben?.map((a) => <td key={a.id} className="text-center">{haVon.get(p.participant_id)?.has(a.id) ? "✓" : <span className="text-ink-soft/40">–</span>}</td>)}
                         <td className="min-w-64 text-sm">
                           {p.last_at && p.last_channel ? (
                             <Link href={`${personLink(p.participant_id)}#p-${p.participant_id}`} className="flex flex-wrap items-center gap-1.5 hover:underline">

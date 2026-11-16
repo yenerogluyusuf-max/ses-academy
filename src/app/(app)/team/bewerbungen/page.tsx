@@ -3,7 +3,8 @@ import Link from "next/link";
 import { TeamKopf } from "@/components/team/TeamKopf";
 import { MailHinweis } from "@/components/team/MailHinweis";
 import { Rueckfrage } from "@/components/team/Rueckfrage";
-import { annehmen, statusSetzen, ticketErneutSenden } from "@/lib/aktionen/bewerbungen";
+import { annehmen, mitTeilnehmendenAbgleichen, statusSetzen, ticketErneutSenden } from "@/lib/aktionen/bewerbungen";
+import { bewerbungsAngaben } from "@/lib/bewerbung-felder";
 import { requireStaff } from "@/lib/auth";
 import { bewerbungStatusBetreff, mailBereit } from "@/lib/mail";
 import type { Database } from "@/lib/database.types";
@@ -166,123 +167,199 @@ const T: Record<TeamSprache, typeof de> = {
   },
 };
 
-const filterListe: (Status | "offen")[] = ["offen", "angenommen", "warteliste", "abgelehnt"];
+const filterListe: (Status | "offen")[] = ["offen", "angenommen", "warteliste", "abgelehnt", "zurueckgezogen"];
 
+/** Texte nach dem Umbau 16.11.2026. */
+const U = {
+  de: {
+    gesamt: (n: number) => `${n} Bewerbungen`,
+    unstimmig: (offen: number, abgelehnt: number) => `${offen ? `${offen} offene` : ""}${offen && abgelehnt ? " und " : ""}${abgelehnt ? `${abgelehnt} abgelehnte` : ""} Bewerbungen gehören zu Personen, die bereits teilnehmen.`,
+    unstimmigText: "Der Abgleich setzt bei diesen Personen die neueste Bewerbung auf „angenommen“ und verknüpft Bewerbungen mit gleicher E-Mail-Adresse. Es gehen keine Mails raus.",
+    abgleichen: "Mit Teilnehmendenliste abgleichen", abgleichFrage: "Bewerbungen jetzt mit der Teilnehmendenliste abgleichen?", abgleichJa: "Ja, abgleichen",
+    abgleichFertig: (a: number, v: number) => `Abgleich fertig: ${a} Bewerbungen auf „angenommen“ gesetzt, ${v} mit einer Person verknüpft.`,
+    nimmtTeil: "nimmt bereits teil", tage: (da: number, alle: number) => `${da}/${alle} Tage da`, nieDa: "noch nie da", nichtInListe: "nicht in der Teilnehmendenliste",
+    ausgeschieden: "ausgeschieden", profil: "Profil", angaben: "Alle Angaben", motivation: "Motivation", sprachen: "Sprachen",
+    angenommenText: "Hier steht, ob angenommene Personen auch wirklich kommen.",
+  },
+  tr: {
+    gesamt: (n: number) => `${n} başvuru`,
+    unstimmig: (offen: number, abgelehnt: number) => `${offen ? `${offen} açık` : ""}${offen && abgelehnt ? " ve " : ""}${abgelehnt ? `${abgelehnt} reddedilmiş` : ""} başvuru, zaten katılan kişilere ait.`,
+    unstimmigText: "Eşleştirme bu kişilerin en yeni başvurusunu „kabul edildi“ yapar ve aynı e-posta adresli başvuruları kişiye bağlar. E-posta gönderilmez.",
+    abgleichen: "Katılımcı listesiyle eşleştir", abgleichFrage: "Başvurular şimdi katılımcı listesiyle eşleştirilsin mi?", abgleichJa: "Evet, eşleştir",
+    abgleichFertig: (a: number, v: number) => `Eşleştirme tamam: ${a} başvuru „kabul edildi“ yapıldı, ${v} başvuru bir kişiye bağlandı.`,
+    nimmtTeil: "zaten katılıyor", tage: (da: number, alle: number) => `${alle} günden ${da} gün katıldı`, nieDa: "hiç gelmedi", nichtInListe: "katılımcı listesinde yok",
+    ausgeschieden: "ayrıldı", profil: "Profil", angaben: "Tüm bilgiler", motivation: "Motivasyon", sprachen: "Diller",
+    angenommenText: "Kabul edilenlerin gerçekten gelip gelmediği burada görünür.",
+  },
+  fr: {
+    gesamt: (n: number) => `${n} candidatures`,
+    unstimmig: (offen: number, abgelehnt: number) => `${offen ? `${offen} candidatures ouvertes` : ""}${offen && abgelehnt ? " et " : ""}${abgelehnt ? `${abgelehnt} refusées` : ""} concernent des personnes qui participent déjà.`,
+    unstimmigText: "Le rapprochement passe la candidature la plus récente de ces personnes à « acceptée » et relie les candidatures ayant la même adresse e-mail. Aucun e-mail n’est envoyé.",
+    abgleichen: "Rapprocher avec la liste des participants", abgleichFrage: "Rapprocher maintenant les candidatures avec la liste des participants ?", abgleichJa: "Oui, rapprocher",
+    abgleichFertig: (a: number, v: number) => `Rapprochement terminé : ${a} candidatures passées à « acceptée », ${v} reliées à une personne.`,
+    nimmtTeil: "participe déjà", tage: (da: number, alle: number) => `${da}/${alle} jours présents`, nieDa: "jamais venu·e", nichtInListe: "absent·e de la liste des participants",
+    ausgeschieden: "a quitté", profil: "Profil", angaben: "Toutes les informations", motivation: "Motivation", sprachen: "Langues",
+    angenommenText: "Ici on voit si les personnes acceptées viennent vraiment.",
+  },
+} satisfies Record<TeamSprache, unknown>;
+
+/**
+ * Bewerbungen (Umbau 16.11.2026): kompakte Zeilen statt großer Karten, alle Angaben eingeklappt und lesbar beschriftet.
+ * Abgleich mit der Teilnehmendenliste, wenn offene oder abgelehnte Bewerbungen zu Personen gehören, die schon teilnehmen.
+ * Bei „Angenommen“ steht, ob die Person tatsächlich kommt.
+ */
 export default async function BewerbungenSeite({ searchParams }: PageProps<"/team/bewerbungen">) {
   const staff = await requireStaff("alles");
   const l = staff.sprache;
   const t = T[l];
+  const u = U[l];
   const { status: filterRoh, hinweis } = await searchParams;
   const filter = (filterListe as string[]).includes(String(filterRoh)) ? (filterRoh as Status | "offen") : "offen";
   const supabase = await createClient();
 
   const { data: jahrgang } = await supabase.from("cohorts").select("id, name").eq("is_current", true).maybeSingle();
-  let query = supabase.from("applications").select("*").order("created_at", { ascending: true });
+  let query = supabase.from("applications").select("*").order("created_at", { ascending: filter === "offen" });
   if (jahrgang) query = query.eq("cohort_id", jahrgang.id);
   query = filter === "offen" ? query.in("status", ["eingegangen", "in_pruefung"]) : query.eq("status", filter);
-  // Zähler an den Reitern (nur Status, keine Inhalte)
-  let zaehlAbfrage = supabase.from("applications").select("status");
+  let zaehlAbfrage = supabase.from("applications").select("status, participant_id");
   if (jahrgang) zaehlAbfrage = zaehlAbfrage.eq("cohort_id", jahrgang.id);
-  const [{ data: bewerbungen }, { data: alleStatus }] = await Promise.all([query, zaehlAbfrage]);
+  const [{ data: bewerbungen }, { data: alleStatus }, { data: personen }, { data: kennzahlen }] = await Promise.all([
+    query, zaehlAbfrage,
+    supabase.from("participants").select("id, active"),
+    supabase.rpc("get_participant_analytics"),
+  ]);
+  const aktiv = new Set((personen ?? []).filter((p) => p.active).map((p) => p.id));
+  const bekannt = new Set((personen ?? []).map((p) => p.id));
+  const kennzahl = new Map((kennzahlen ?? []).map((k) => [k.participant_id, k]));
   const anzahl = (f: Status | "offen") => (alleStatus ?? []).filter((b) => (f === "offen" ? b.status === "eingegangen" || b.status === "in_pruefung" : b.status === f)).length;
-  const h = hinweis ? t.hinweise[String(hinweis)] : null;
-
+  const angenommenePersonen = new Set((alleStatus ?? []).filter((b) => b.status === "angenommen" && b.participant_id).map((b) => b.participant_id));
+  const unstimmigOffen = (alleStatus ?? []).filter((b) => (b.status === "eingegangen" || b.status === "in_pruefung") && b.participant_id && aktiv.has(b.participant_id)).length;
+  const unstimmigAbgelehnt = new Set((alleStatus ?? []).filter((b) => b.status === "abgelehnt" && b.participant_id && aktiv.has(b.participant_id) && !angenommenePersonen.has(b.participant_id)).map((b) => b.participant_id)).size;
+  const abgleich = typeof hinweis === "string" && /^abgleich-\d+-\d+$/.test(hinweis) ? hinweis.split("-").slice(1).map(Number) : null;
+  const h = hinweis && !abgleich ? t.hinweise[String(hinweis)] : null;
   const bereit = mailBereit();
-  const knopf = "rounded-full px-4 py-2 text-sm font-semibold ring-1 ring-line bg-white hover:bg-paper-deep";
+  const knopf = "rounded-full px-3 py-1.5 text-xs font-semibold ring-1 ring-line bg-white hover:bg-paper-deep";
+  const datum = (iso: string) => new Date(iso).toLocaleDateString(teamLocale[l], { timeZone: "Europe/Berlin", day: "2-digit", month: "2-digit", year: "2-digit" });
+
+  /** Stand der Person zur Bewerbung: nimmt teil (mit Tagen), nie da, nicht in der Liste. */
+  const teilnahme = (b: { participant_id: string | null; status: Status }) => {
+    if (!b.participant_id || !bekannt.has(b.participant_id)) return b.status === "angenommen" ? <span className="chip bg-gelb-hell">{u.nichtInListe}</span> : null;
+    const k = kennzahl.get(b.participant_id);
+    const faellig = (k?.total_attended ?? 0) + (k?.total_no_shows ?? 0);
+    if (!aktiv.has(b.participant_id)) return <span className="chip bg-paper-deep">{u.ausgeschieden}</span>;
+    if (b.status !== "angenommen") return <span className="chip bg-signal">{u.nimmtTeil}</span>;
+    if (!faellig) return null;
+    return k!.total_attended ? <span className={`chip ${k!.total_attended / faellig >= 0.75 ? "bg-gruen-hell" : "bg-gelb-hell"}`}>{u.tage(k!.total_attended, faellig)}</span> : <span className="chip bg-rot-hell text-rot">{u.nieDa}</span>;
+  };
 
   return (
     <>
       <TeamKopf staff={staff} aktiv="bewerbungen" />
-      <main lang={l} className="mx-auto max-w-5xl px-4 py-8">
-        <h1 className="font-display text-3xl font-bold">{teamTexte[l].bereiche.bewerbungen}</h1>
-        <p className="mt-1 text-ink-soft">{jahrgang?.name ?? t.keinJahrgang}</p>
+      <main lang={l} className="mx-auto max-w-6xl px-4 py-8">
+        <p className="text-sm font-semibold tracking-wide text-sage uppercase">{jahrgang?.name ?? t.keinJahrgang} · {u.gesamt((alleStatus ?? []).length)}</p>
+        <h1 className="font-display mt-1 text-4xl font-extrabold">{teamTexte[l].bereiche.bewerbungen}</h1>
 
-        {h && <p role="status" className={`mt-4 rounded-2xl p-4 ${h.gut ? "bg-emerald-100 text-emerald-950" : "bg-amber-100 text-amber-950"}`}>{h.text}</p>}
+        {abgleich && <p role="status" className="mt-4 rounded-2xl bg-gruen-hell p-4 text-sm font-semibold">{u.abgleichFertig(abgleich[0], abgleich[1])}</p>}
+        {h && <p role="status" className={`mt-4 rounded-2xl p-4 text-sm font-semibold ${h.gut ? "bg-gruen-hell" : "bg-gelb-hell"}`}>{h.text}</p>}
 
-        <MailHinweis className="mt-4" sprache={l} />
+        {(unstimmigOffen > 0 || unstimmigAbgelehnt > 0) && (
+          <form action={mitTeilnehmendenAbgleichen} className="mt-4 flex flex-wrap items-center gap-3 rounded-2xl bg-gelb-hell p-4">
+            <input type="hidden" name="filter" value={filter} />
+            <div className="mr-auto max-w-2xl">
+              <p className="font-semibold">{u.unstimmig(unstimmigOffen, unstimmigAbgelehnt)}</p>
+              <p className="text-sm">{u.unstimmigText}</p>
+            </div>
+            <Rueckfrage knopf={u.abgleichen} knopfKlasse="knopf" frage={u.abgleichFrage} ja={u.abgleichJa} sprache={l} />
+          </form>
+        )}
 
         <nav className="mt-6 flex flex-wrap gap-2" aria-label={t.filter}>
           {filterListe.map((f) => (
-            <Link key={f} href={`/team/bewerbungen/?status=${f}`}
-              className={`rounded-full px-4 py-2 text-sm font-semibold ${f === filter ? "bg-ink text-paper" : "bg-white ring-1 ring-line"}`}>
-              {f === "offen" ? t.offen : t.statusName[f]} <span className={f === filter ? "opacity-75" : "text-ink-soft"}>{anzahl(f)}</span>
+            <Link key={f} href={`/team/bewerbungen/?status=${f}`} aria-current={f === filter ? "page" : undefined}
+              className={`rounded-full px-3.5 py-1.5 text-sm font-semibold ${f === filter ? "bg-ink text-paper" : "bg-weiss ring-1 ring-line hover:ring-ink"}`}>
+              {f === "offen" ? t.offen : t.statusName[f]} <span className="tabular-nums opacity-70">{anzahl(f)}</span>
             </Link>
           ))}
         </nav>
+        {filter === "angenommen" && <p className="mt-3 text-sm text-ink-soft">{u.angenommenText}</p>}
+        {filter === "offen" && <MailHinweis knapp className="mt-3" sprache={l} />}
 
-        <ul className="mt-6 grid gap-4">
-          {(bewerbungen ?? []).map((b) => (
-            <li key={b.id} className="rounded-3xl bg-white/80 p-5 ring-1 ring-line">
-              <div className="flex flex-wrap items-start justify-between gap-3">
-                <div>
-                  <p className="font-display text-xl font-bold">{b.first_name} {b.last_name}</p>
-                  <p className="text-sm text-ink-soft">
-                    {b.email}{b.phone ? ` · ${b.phone}` : ""}{[b.city, b.country].filter(Boolean).length ? ` · ${[b.city, b.country].filter(Boolean).join(", ")}` : ""}{b.age ? t.alter(b.age) : b.birth_year ? t.geburtsjahr(b.birth_year) : ""}
-                  </p>
-                  <p className="text-sm text-ink-soft">
-                    {t.sprachen} {b.languages.join(", ") || t.keineAngabe} · {t.eingegangenAm(new Date(b.created_at).toLocaleDateString(teamLocale[l], { timeZone: "Europe/Berlin" }))}
-                    {b.source ? t.ueber(b.source) : ""}
-                  </p>
-                </div>
-                <span className="rounded-full bg-paper-deep px-3 py-1 text-sm font-semibold">{t.statusName[b.status]}</span>
-              </div>
-              <details className="mt-3">
-                <summary className="cursor-pointer text-sm font-semibold">{t.motivation}</summary>
-                <p className="mt-2 whitespace-pre-line">{b.motivation}</p>
-                {Object.keys(b.details ?? {}).length > 0 && (
-                  <dl className="mt-3 grid gap-x-4 gap-y-1.5 text-sm sm:grid-cols-[minmax(0,14rem)_1fr]">
-                    {Object.entries(b.details as Record<string, string>).filter(([, v]) => v).map(([k, v]) => (
-                      <div key={k} className="contents"><dt className="text-ink-soft">{k}</dt><dd className="whitespace-pre-line">{v}</dd></div>
-                    ))}
-                  </dl>
-                )}
-              </details>
-              <div className="mt-4 flex flex-wrap gap-2">
-                {b.status !== "angenommen" ? (
-                  <>
-                    <form action={annehmen} className="contents">
-                      <input type="hidden" name="id" value={b.id} /><input type="hidden" name="filter" value={filter} />
-                      <Rueckfrage knopf={t.annehmenKnopf} knopfKlasse="rounded-full bg-ink px-4 py-2 text-sm font-semibold text-paper hover:bg-forest"
-                        frage={t.annehmenFrage(`${b.first_name} ${b.last_name}`, b.email)}
-                        ja={t.annehmenJa} sprache={l}>
-                        {!bereit && <p className="font-semibold text-rot">{t.ticketGehtNicht}</p>}
-                      </Rueckfrage>
-                    </form>
-                    {b.status !== "in_pruefung" && (
-                      <form action={statusSetzen}>
-                        <input type="hidden" name="id" value={b.id} /><input type="hidden" name="status" value="in_pruefung" /><input type="hidden" name="filter" value={filter} />
-                        <button type="submit" className={knopf}>{t.statusName.in_pruefung}</button>
-                      </form>
-                    )}
-                    {(["warteliste", "abgelehnt"] as const).filter((s) => s !== b.status).map((s) => (
-                      <form key={s} action={statusSetzen} className="contents">
-                        <input type="hidden" name="id" value={b.id} /><input type="hidden" name="status" value={s} /><input type="hidden" name="filter" value={filter} />
-                        <Rueckfrage knopf={s === "abgelehnt" ? t.ablehnen : t.warteliste} knopfKlasse={knopf} gefahr={s === "abgelehnt"} sprache={l}
-                          frage={s === "abgelehnt" ? t.ablehnenFrage(`${b.first_name} ${b.last_name}`) : t.wartelisteFrage(`${b.first_name} ${b.last_name}`)}
-                          ja={s === "abgelehnt" ? t.ablehnenJa : t.wartelisteJa}>
-                          {bereit ? (
-                            <label className="flex gap-2">
-                              <input type="checkbox" name="mail" value="ja" defaultChecked className="mt-0.5" />
-                              <span>{t.mailSenden(b.email, b.language === "tr", bewerbungStatusBetreff(s, b.language))}</span>
-                            </label>
-                          ) : (
-                            <p className="font-semibold text-rot">{t.keineMail}</p>
-                          )}
-                        </Rueckfrage>
-                      </form>
-                    ))}
-                  </>
-                ) : b.participant_id ? (
-                  <form action={ticketErneutSenden}>
-                    <input type="hidden" name="participant_id" value={b.participant_id} /><input type="hidden" name="filter" value={filter} />
-                    <button type="submit" className={knopf}>{t.ticketErneut}</button>
-                  </form>
-                ) : null}
-              </div>
-            </li>
-          ))}
-        </ul>
-        {(bewerbungen ?? []).length === 0 && <p className="mt-6 text-ink-soft">{t.leer}</p>}
+        {(bewerbungen ?? []).length === 0 ? <p className="mt-6 text-ink-soft">{t.leer}</p> : (
+          <ul className="karte mt-4 divide-y divide-line p-0">
+            {(bewerbungen ?? []).map((b) => {
+              const name = `${b.first_name} ${b.last_name}`.trim();
+              const angaben = bewerbungsAngaben(b.details, l);
+              const alter = b.age ?? (b.birth_year ? new Date(b.created_at).getFullYear() - b.birth_year : null);
+              return (
+                <li key={b.id}>
+                  <details className="group">
+                    <summary className="grid cursor-pointer list-none items-center gap-x-4 gap-y-1 px-5 py-3 hover:bg-paper/60 sm:grid-cols-[minmax(0,1.4fr)_minmax(0,1fr)_auto]">
+                      <span className="min-w-0">
+                        <span className="font-semibold">{name}</span>
+                        <span className="block truncate text-xs text-ink-soft">{[alter ? `${alter} J.` : null, [b.city, b.country].filter(Boolean).join(", ") || null, datum(b.created_at)].filter(Boolean).join(" · ")}</span>
+                      </span>
+                      <span className="truncate text-xs text-ink-soft">{b.languages.join(" · ")}</span>
+                      <span className="flex flex-wrap items-center gap-1.5 sm:justify-end">
+                        {teilnahme(b)}
+                        {b.status === "in_pruefung" && <span className="chip bg-paper-deep">{t.statusName.in_pruefung}</span>}
+                      </span>
+                    </summary>
+                    <div className="grid gap-5 border-t border-line bg-paper/40 px-5 py-4 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
+                      <div className="text-sm">
+                        <p className="text-ink-soft">{b.email}{b.phone ? ` · ${b.phone}` : ""}{b.source ? t.ueber(b.source) : ""}</p>
+                        {b.participant_id && bekannt.has(b.participant_id) && <Link href={`/team/teilnehmende/${b.participant_id}/`} className="link mt-1 inline-block">{u.profil} →</Link>}
+                        {b.motivation.trim() && (<><p className="mt-3 text-xs font-semibold tracking-wide text-ink-soft uppercase">{u.motivation}</p><p className="mt-1 whitespace-pre-line">{b.motivation}</p></>)}
+                        {b.review_note && <p className="mt-3 rounded-xl bg-weiss px-3 py-2 text-xs text-ink-soft whitespace-pre-line">{b.review_note}</p>}
+                      </div>
+                      <dl className="grid content-start gap-x-4 gap-y-1.5 text-sm sm:grid-cols-[minmax(0,11rem)_1fr]">
+                        {angaben.map((a) => <div key={a.name} className="contents"><dt className="text-ink-soft">{a.name}</dt><dd className="whitespace-pre-line">{a.wert}</dd></div>)}
+                      </dl>
+                      <div className="flex flex-wrap gap-2 lg:col-span-2">
+                        {b.status !== "angenommen" ? (
+                          <>
+                            <form action={annehmen} className="contents">
+                              <input type="hidden" name="id" value={b.id} /><input type="hidden" name="filter" value={filter} />
+                              <Rueckfrage knopf={t.annehmenKnopf} knopfKlasse="rounded-full bg-ink px-3 py-1.5 text-xs font-semibold text-paper hover:bg-forest"
+                                frage={t.annehmenFrage(name, b.email)} ja={t.annehmenJa} sprache={l}>
+                                {!bereit && <p className="font-semibold text-rot">{t.ticketGehtNicht}</p>}
+                              </Rueckfrage>
+                            </form>
+                            {b.status !== "in_pruefung" && (
+                              <form action={statusSetzen}>
+                                <input type="hidden" name="id" value={b.id} /><input type="hidden" name="status" value="in_pruefung" /><input type="hidden" name="filter" value={filter} />
+                                <button type="submit" className={knopf}>{t.statusName.in_pruefung}</button>
+                              </form>
+                            )}
+                            {(["warteliste", "abgelehnt"] as const).filter((s) => s !== b.status).map((s) => (
+                              <form key={s} action={statusSetzen} className="contents">
+                                <input type="hidden" name="id" value={b.id} /><input type="hidden" name="status" value={s} /><input type="hidden" name="filter" value={filter} />
+                                <Rueckfrage knopf={s === "abgelehnt" ? t.ablehnen : t.warteliste} knopfKlasse={knopf} gefahr={s === "abgelehnt"} sprache={l}
+                                  frage={s === "abgelehnt" ? t.ablehnenFrage(name) : t.wartelisteFrage(name)}
+                                  ja={s === "abgelehnt" ? t.ablehnenJa : t.wartelisteJa}>
+                                  {bereit ? (
+                                    <label className="flex gap-2">
+                                      <input type="checkbox" name="mail" value="ja" defaultChecked className="mt-0.5" />
+                                      <span>{t.mailSenden(b.email, b.language === "tr", bewerbungStatusBetreff(s, b.language))}</span>
+                                    </label>
+                                  ) : <p className="font-semibold text-rot">{t.keineMail}</p>}
+                                </Rueckfrage>
+                              </form>
+                            ))}
+                          </>
+                        ) : b.participant_id ? (
+                          <form action={ticketErneutSenden}>
+                            <input type="hidden" name="participant_id" value={b.participant_id} /><input type="hidden" name="filter" value={filter} />
+                            <button type="submit" className={knopf}>{t.ticketErneut}</button>
+                          </form>
+                        ) : null}
+                      </div>
+                    </div>
+                  </details>
+                </li>
+              );
+            })}
+          </ul>
+        )}
       </main>
     </>
   );

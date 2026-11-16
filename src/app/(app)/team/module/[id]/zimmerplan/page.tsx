@@ -6,7 +6,7 @@ import { ModulReiter } from "@/components/team/ModulReiter";
 import { TeamKopf } from "@/components/team/TeamKopf";
 import { SendeKnopf } from "@/components/team/SendeKnopf";
 import { planUebernehmen, probeUebernehmen, vorschlagZuruecksetzen, wunschKorrigieren, zuteilungFestlegen } from "@/lib/aktionen/zimmerplan";
-import { darf, requireStaff } from "@/lib/auth";
+import { requireStaff } from "@/lib/auth";
 import { istToken } from "@/lib/codes";
 import { teamLocale, type TeamSprache } from "@/lib/team-sprache";
 import { teamTexte } from "@/lib/team-texte";

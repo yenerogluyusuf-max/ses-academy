@@ -349,6 +349,9 @@ export default async function ModulDetail({ params, searchParams }: PageProps<"/
     supabase.from("feedback_surveys").select("id").eq("module_id", m.id).maybeSingle(),
     supabase.from("module_groups").select("id, name, room, group_members(count)").eq("module_id", m.id).order("position"),
   ]);
+  // Unterlagen zum Workshop (Material mit dem Schlagwort „Workshop“)
+  const { data: workshopUnterlagen } = await supabase.from("documents").select("id, title").eq("module_id", m.id)
+    .contains("tags", ["Workshop"]).gt("current_version", 0).neq("status", "archiv").order("title");
   const info = infoRoh ?? [];
   const { data: ergebnisse } = umfrage ? await supabase.rpc("get_feedback_results", { p_survey_id: umfrage.id }) : { data: null };
   const gesamtFrage = (ergebnisse ?? []).find((e) => e.kind === "skala");
@@ -509,6 +512,13 @@ export default async function ModulDetail({ params, searchParams }: PageProps<"/
               <Link href={`/team/module/${m.id}/gruppen/`} className="link text-sm">{u.zuDenGruppen}</Link>
             </div>
             <p className="mt-1 text-sm text-ink-soft">{u.workshopText(gruppenListe.length, raeume, themen.length)}</p>
+            {(workshopUnterlagen ?? []).length > 0 && (
+              <ul className="mt-3 flex flex-wrap gap-1.5">
+                {(workshopUnterlagen ?? []).map((d) => (
+                  <li key={d.id}><a href={`/team/dokumente/${d.id}/datei/?laden=1`} className="inline-block rounded-full bg-gruen-hell px-3 py-1 text-xs font-semibold ring-1 ring-forest/15 hover:ring-forest/40">↓ {d.title}</a></li>
+                ))}
+              </ul>
+            )}
             <ul className="mt-4 grid gap-2 sm:grid-cols-2">
               {themen.map(([name, x]) => (
                 <li key={name} className="flex items-baseline justify-between gap-3 rounded-2xl bg-paper px-4 py-3">

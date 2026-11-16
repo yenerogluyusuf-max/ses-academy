@@ -11,6 +11,7 @@ export type Zugehoerigkeit = Database["public"]["Enums"]["affiliation_status"];
 
 export type PersonZeile = Fn<"get_participant_analytics">[number] & {
   vorname: string; nachname: string; email: string | null; zugehoerigkeit: Zugehoerigkeit; region: string | null;
+  verantwortlich: string | null; land: string | null; zweig: string | null; aktiv: boolean;
 };
 
 export type Filter = { von: string; bis: string; gruppe: Zugehoerigkeit | "alle" };
@@ -39,14 +40,15 @@ export async function ladeAuswertung(f: Filter) {
     supabase.rpc("get_module_stats", z),
     supabase.rpc("get_day_stats", z),
     supabase.rpc("get_participant_analytics", z),
-    supabase.from("participants").select("id, first_name, last_name, email, affiliation_status, active, regions(name)"),
+    supabase.from("participants").select("id, first_name, last_name, email, affiliation_status, active, country, branch, regions(name), mentors(name)"),
   ]);
   const zuPerson = new Map((stamm ?? []).map((p) => [p.id, p]));
   const liste: PersonZeile[] = (personen ?? []).flatMap((a) => {
     const p = zuPerson.get(a.participant_id);
     if (!p || (f.gruppe !== "alle" && p.affiliation_status !== f.gruppe)) return [];
     return [{ ...a, vorname: p.first_name, nachname: p.last_name, email: p.email, zugehoerigkeit: p.affiliation_status,
-      region: (p.regions as { name: string } | null)?.name ?? null }];
+      region: (p.regions as { name: string } | null)?.name ?? null, verantwortlich: (p.mentors as { name: string } | null)?.name ?? null,
+      land: p.country, zweig: p.branch, aktiv: p.active }];
   });
   return { module: module ?? [], tage: tage ?? [], personen: liste };
 }

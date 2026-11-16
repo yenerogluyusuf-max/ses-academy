@@ -203,9 +203,9 @@ export default async function ModulAuswertung({ params, searchParams }: PageProp
   const texte = res.filter((e) => e.kind !== "skala" && e.kind !== "auswahl" && (e.texts ?? []).some((x) => x.trim().length > 1));
   const feedbackVersand = typeof hinweis === "string" && /^feedback-\d+-\d+$/.test(hinweis) ? hinweis.split("-").slice(1).map(Number) : null;
 
-  const Tabelle = ({ titel, zeilen }: { titel: string; zeilen: [string, { alle: number; da: number }][] }) => (
+  const tabelle = (titel: string, zeilen: [string, { alle: number; da: number }][]) => (
     <div>
-      <h3 className="mb-2 text-sm font-semibold tracking-wide text-ink-soft uppercase">{titel}</h3>
+      {titel && <h3 className="mb-2 text-sm font-semibold tracking-wide text-ink-soft uppercase">{titel}</h3>}
       <ul className="space-y-2">
         {zeilen.map(([name, x]) => (
           <li key={name} className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-x-3 gap-y-1 text-sm">
@@ -260,11 +260,11 @@ export default async function ModulAuswertung({ params, searchParams }: PageProp
 
           {vergangen.length > 0 && (
             <div className="mt-8 grid gap-8 md:grid-cols-3">
-              <Tabelle titel={t.nachLand} zeilen={nachLand} />
-              <Tabelle titel={t.nachZweig} zeilen={nachZweig} />
+              {tabelle(t.nachLand, nachLand)}
+              {tabelle(t.nachZweig, nachZweig)}
               <details className="md:col-span-1" open={nachRegion.length <= 8}>
                 <summary className="cursor-pointer text-sm font-semibold tracking-wide text-ink-soft uppercase">{t.nachRegion} ({nachRegion.length})</summary>
-                <div className="mt-2"><Tabelle titel="" zeilen={nachRegion} /></div>
+                <div className="mt-2">{tabelle("", nachRegion)}</div>
               </details>
             </div>
           )}

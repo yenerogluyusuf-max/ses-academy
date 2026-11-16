@@ -65,7 +65,7 @@ export default async function Akte({ params }: PageProps<"/team/teilnehmende/[id
   const name = `${p.first_name} ${p.last_name}`.trim();
   const alter = alterHeute(bewerbung, jetzt);
   const k = (kennzahlen ?? []).find((x) => x.participant_id === id);
-  const module = ((regs ?? []) as unknown as Reg[])
+  const modulListe = ((regs ?? []) as unknown as Reg[])
     .map((r) => ({ ...r, tage: [...r.modules.module_days].sort((a, b) => a.starts_at.localeCompare(b.starts_at)) }))
     .filter((r) => r.tage.length > 0)
     .sort((a, b) => a.tage[0].starts_at.localeCompare(b.tage[0].starts_at));
@@ -76,9 +76,9 @@ export default async function Akte({ params }: PageProps<"/team/teilnehmende/[id
   const angaben = bewerbungsAngaben(bewerbung?.details, "de");
   const gruppenNamen = bewerbungsGruppen.de;
   const cvBild = profil?.cv_path && /\.(jpg|png)$/i.test(profil.cv_path);
-  const ersterTag = module.find((r) => r.attendances.length > 0)?.tage[0]?.starts_at;
+  const ersterTag = modulListe.find((r) => r.attendances.length > 0)?.tage[0]?.starts_at;
   const heute = datum.format(new Date());
-  const status = (r: (typeof module)[number]) => {
+  const status = (r: (typeof modulListe)[number]) => {
     const vorbei = r.tage.filter((x) => Date.parse(x.ends_at) < jetzt).length;
     if (r.modules.cancelled_at) return "Modul abgesagt";
     if (r.status === "excused") return "entschuldigt";
@@ -173,7 +173,7 @@ export default async function Akte({ params }: PageProps<"/team/teilnehmende/[id
         <div className="zahlen">
           <div><b>{k ? `${k.total_attended}/${k.total_attended + k.total_no_shows}` : "–"}</b><span>Tage anwesend</span></div>
           <div><b>{k?.attendance_rate != null ? `${Math.round(k.attendance_rate)} %` : "–"}</b><span>Anwesenheitsquote</span></div>
-          <div><b>{module.filter((r) => r.attendances.length > 0).length}</b><span>Module besucht</span></div>
+          <div><b>{modulListe.filter((r) => r.attendances.length > 0).length}</b><span>Module besucht</span></div>
           <div><b>{abgaben.length}</b><span>Hausaufgaben abgegeben</span></div>
         </div>
 
@@ -187,11 +187,11 @@ export default async function Akte({ params }: PageProps<"/team/teilnehmende/[id
         ) : <p className="klein">Noch nichts eingetragen.</p>}
 
         <p className="abschnitt">Teilnahme</p>
-        {module.length === 0 ? <p className="klein">Für kein Modul angemeldet.</p> : (
+        {modulListe.length === 0 ? <p className="klein">Für kein Modul angemeldet.</p> : (
           <table>
             <thead><tr><th>Modul</th><th>Status</th><th>Tage (✓ da, Uhrzeit = Ankunft per QR)</th><th>Gruppe · Zimmer</th></tr></thead>
             <tbody>
-              {module.map((r) => {
+              {modulListe.map((r) => {
                 const g = gruppeVon.get(r.modules.id);
                 const z = zimmerVon.get(r.modules.id);
                 return (

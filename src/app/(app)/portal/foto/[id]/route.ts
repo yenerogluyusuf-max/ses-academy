@@ -1,5 +1,5 @@
 import { notFound } from "next/navigation";
-import { darf, getStaff } from "@/lib/auth";
+import { darf, fehltZweiterFaktor, getStaff } from "@/lib/auth";
 import { istToken } from "@/lib/codes";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
@@ -15,8 +15,10 @@ export async function GET(_: Request, { params }: RouteContext<"/portal/foto/[id
   const { data: auth } = await supabase.auth.getUser();
   if (!auth.user) notFound();
   // Team (ab Orga) sieht Fotos aller Personen, z. B. im Profil und in der Akte (Umbau 16.11.2026)
+  // nicht für auf ein Modul begrenzte Helferzugänge und nicht ohne den ggf. vorgeschriebenen zweiten Faktor
   const staff = await getStaff();
-  if (!staff || !darf.orga(staff.role)) {
+  const teamDarf = Boolean(staff && darf.orga(staff.role) && !staff.modulId && !(await fehltZweiterFaktor()));
+  if (!teamDarf) {
     const { data: sichtbar } = await supabase.rpc("get_member_directory").eq("participant_id", id).maybeSingle();
     const eigenes = (await supabase.from("participants").select("id").eq("user_id", auth.user.id).eq("id", id).maybeSingle()).data;
     if (!sichtbar?.has_photo && !eigenes) notFound();
