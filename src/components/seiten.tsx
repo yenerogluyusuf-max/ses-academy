@@ -387,28 +387,53 @@ export function Seminarseite({ l, slug }: { l: Sprache; slug: ModulSlug }) {
           <section className="bg-paper-deep/50">
             <div className="mx-auto max-w-7xl px-4 py-16 sm:px-6 lg:px-10">
               <Kicker>{t.berichte.kicker}</Kicker>
-              {t.berichte.module[slug] ? (
-                <div className="mt-8 grid gap-10 lg:grid-cols-[1.4fr_1fr]">
-                  <div className="space-y-5 text-lg leading-relaxed">
-                    {t.berichte.module[slug]!.absaetze.map((a) => (
-                      <p key={a}>{a}</p>
-                    ))}
-                  </div>
-                  {t.berichte.module[slug]!.zitate && (
-                    <div className="space-y-4">
-                      {t.berichte.module[slug]!.zitate!.map((z) => (
-                        <figure key={z.text} className="rounded-3xl bg-forest p-7 text-paper">
-                          <blockquote className="font-serif text-2xl leading-snug italic">{z.text}</blockquote>
-                          <figcaption className="mt-3 text-sm">
-                            <span className="font-semibold text-signal">{z.wer}</span>
-                            <span className="block text-paper/60">{z.quelle}</span>
-                          </figcaption>
-                        </figure>
-                      ))}
+              {t.berichte.module[slug] ? (() => {
+                const b = t.berichte.module[slug]!;
+                // Große Einleitung nur bei kurzem erstem Absatz (neue Berichte); ältere, lange Berichte bleiben Fließtext
+                const gross = b.absaetze[0].length <= 300;
+                const [einleitung, ...rest] = gross ? b.absaetze : ["", ...b.absaetze];
+                return (
+                  <>
+                    {gross && <p className="font-serif mt-6 max-w-4xl text-[1.6rem] leading-snug text-ink sm:text-[1.85rem]">{einleitung}</p>}
+                    {b.zahlen && (
+                      <dl className="mt-10 grid grid-cols-2 gap-6 lg:grid-cols-4">
+                        {b.zahlen.map((z) => (
+                          <div key={z.text} className="border-l-2 border-forest pl-5">
+                            <dd className="font-display text-4xl leading-none font-extrabold">{z.wert}</dd>
+                            <dt className="mt-1.5 text-sm text-ink-soft">{z.text}</dt>
+                          </div>
+                        ))}
+                      </dl>
+                    )}
+                    <div className={`${gross ? "mt-12" : "mt-8"} grid gap-10 lg:grid-cols-[1.5fr_1fr] lg:gap-14`}>
+                      <div className="space-y-8">
+                        {b.abschnitte
+                          ? b.abschnitte.map((x) => (
+                              <div key={x.titel}>
+                                <h3 className="text-xs font-semibold tracking-[0.18em] text-sage uppercase">{x.titel}</h3>
+                                <p className="mt-2 text-lg leading-relaxed">{x.text}</p>
+                              </div>
+                            ))
+                          : <div className="space-y-5 text-lg leading-relaxed">{rest.map((x) => <p key={x}>{x}</p>)}</div>}
+                      </div>
+                      {b.zitate && (
+                        <div className="space-y-4 lg:sticky lg:top-24 lg:self-start">
+                          {b.zitate.map((z) => (
+                            <figure key={z.text} className="rounded-3xl bg-forest p-7 text-paper">
+                              <span aria-hidden className="font-serif block text-6xl leading-none text-signal">“</span>
+                              <blockquote className="font-serif -mt-3 text-2xl leading-snug italic">{z.text.replace(/^[„“"«‘»\s]+|[“”"»’«\s]+$/g, "")}</blockquote>
+                              <figcaption className="mt-5 border-t border-white/15 pt-4 text-sm">
+                                <span className="font-semibold text-signal">{z.wer}</span>
+                                <span className="block text-paper/60">{z.quelle}</span>
+                              </figcaption>
+                            </figure>
+                          ))}
+                        </div>
+                      )}
                     </div>
-                  )}
-                </div>
-              ) : (
+                  </>
+                );
+              })() : (
                 <p className="font-display mt-6 text-2xl font-bold">{t.berichte.folgt}</p>
               )}
             </div>

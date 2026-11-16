@@ -159,6 +159,12 @@ export type Texte = {
     folgt: string;
     laut: string;
     /** Zitate: NUR wortwörtlich belegte Äußerungen, unübersetzt, in der veröffentlichten Originalfassung. Keine Übersetzungen, keine Paraphrasen. */
-    module: Partial<Record<ModulSlug, { absaetze: string[]; zitate?: { text: string; wer: string; quelle: string }[] }>>;
+    /** absaetze[0] ist die Einleitung (groß); abschnitte gliedern den Rest (z. B. je Tag), sonst folgen die übrigen absaetze. */
+    module: Partial<Record<ModulSlug, {
+      absaetze: string[];
+      abschnitte?: { titel: string; text: string }[];
+      zahlen?: { wert: string; text: string }[];
+      zitate?: { text: string; wer: string; quelle: string }[];
+    }>>;
   };
 };
