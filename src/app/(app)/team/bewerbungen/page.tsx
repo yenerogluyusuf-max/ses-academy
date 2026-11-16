@@ -3,7 +3,7 @@ import Link from "next/link";
 import { TeamKopf } from "@/components/team/TeamKopf";
 import { MailHinweis } from "@/components/team/MailHinweis";
 import { Rueckfrage } from "@/components/team/Rueckfrage";
-import { annehmen, mitTeilnehmendenAbgleichen, statusSetzen, ticketErneutSenden } from "@/lib/aktionen/bewerbungen";
+import { annehmen, mitPersonVerknuepfen, mitTeilnehmendenAbgleichen, statusSetzen, ticketErneutSenden } from "@/lib/aktionen/bewerbungen";
 import { bewerbungsAngaben } from "@/lib/bewerbung-felder";
 import { requireStaff } from "@/lib/auth";
 import { bewerbungStatusBetreff, mailBereit } from "@/lib/mail";
@@ -174,9 +174,10 @@ const U = {
   de: {
     gesamt: (n: number) => `${n} Bewerbungen`,
     unstimmig: (offen: number, abgelehnt: number) => `${offen ? `${offen} offene` : ""}${offen && abgelehnt ? " und " : ""}${abgelehnt ? `${abgelehnt} abgelehnte` : ""} Bewerbungen gehören zu Personen, die bereits teilnehmen.`,
-    unstimmigText: "Der Abgleich setzt bei diesen Personen die neueste Bewerbung auf „angenommen“ und verknüpft Bewerbungen mit gleicher E-Mail-Adresse. Es gehen keine Mails raus.",
+    unstimmigText: "Der Abgleich setzt bei diesen Personen die neueste Bewerbung auf „angenommen“. Es gehen keine Mails raus.",
+    gleicheMail: (name: string) => `gleiche E-Mail wie ${name}`, verknuepfen: "verknüpfen", verknuepft: "Bewerbung mit der Person verknüpft.",
     abgleichen: "Mit Teilnehmendenliste abgleichen", abgleichFrage: "Bewerbungen jetzt mit der Teilnehmendenliste abgleichen?", abgleichJa: "Ja, abgleichen",
-    abgleichFertig: (a: number, v: number) => `Abgleich fertig: ${a} Bewerbungen auf „angenommen“ gesetzt, ${v} mit einer Person verknüpft.`,
+    abgleichFertig: (a: number) => `Abgleich fertig: ${a} Bewerbungen auf „angenommen“ gesetzt.`,
     nimmtTeil: "nimmt bereits teil", tage: (da: number, alle: number) => `${da}/${alle} Tage da`, nieDa: "noch nie da", nichtInListe: "nicht in der Teilnehmendenliste",
     ausgeschieden: "ausgeschieden", profil: "Profil", angaben: "Alle Angaben", motivation: "Motivation", sprachen: "Sprachen",
     angenommenText: "Hier steht, ob angenommene Personen auch wirklich kommen.",
@@ -184,9 +185,10 @@ const U = {
   tr: {
     gesamt: (n: number) => `${n} başvuru`,
     unstimmig: (offen: number, abgelehnt: number) => `${offen ? `${offen} açık` : ""}${offen && abgelehnt ? " ve " : ""}${abgelehnt ? `${abgelehnt} reddedilmiş` : ""} başvuru, zaten katılan kişilere ait.`,
-    unstimmigText: "Eşleştirme bu kişilerin en yeni başvurusunu „kabul edildi“ yapar ve aynı e-posta adresli başvuruları kişiye bağlar. E-posta gönderilmez.",
+    unstimmigText: "Eşleştirme bu kişilerin en yeni başvurusunu „kabul edildi“ yapar. E-posta gönderilmez.",
+    gleicheMail: (name: string) => `${name} ile aynı e-posta`, verknuepfen: "bağla", verknuepft: "Başvuru kişiye bağlandı.",
     abgleichen: "Katılımcı listesiyle eşleştir", abgleichFrage: "Başvurular şimdi katılımcı listesiyle eşleştirilsin mi?", abgleichJa: "Evet, eşleştir",
-    abgleichFertig: (a: number, v: number) => `Eşleştirme tamam: ${a} başvuru „kabul edildi“ yapıldı, ${v} başvuru bir kişiye bağlandı.`,
+    abgleichFertig: (a: number) => `Eşleştirme tamam: ${a} başvuru „kabul edildi“ yapıldı.`,
     nimmtTeil: "zaten katılıyor", tage: (da: number, alle: number) => `${alle} günden ${da} gün katıldı`, nieDa: "hiç gelmedi", nichtInListe: "katılımcı listesinde yok",
     ausgeschieden: "ayrıldı", profil: "Profil", angaben: "Tüm bilgiler", motivation: "Motivasyon", sprachen: "Diller",
     angenommenText: "Kabul edilenlerin gerçekten gelip gelmediği burada görünür.",
@@ -194,9 +196,10 @@ const U = {
   fr: {
     gesamt: (n: number) => `${n} candidatures`,
     unstimmig: (offen: number, abgelehnt: number) => `${offen ? `${offen} candidatures ouvertes` : ""}${offen && abgelehnt ? " et " : ""}${abgelehnt ? `${abgelehnt} refusées` : ""} concernent des personnes qui participent déjà.`,
-    unstimmigText: "Le rapprochement passe la candidature la plus récente de ces personnes à « acceptée » et relie les candidatures ayant la même adresse e-mail. Aucun e-mail n’est envoyé.",
+    unstimmigText: "Le rapprochement passe la candidature la plus récente de ces personnes à « acceptée ». Aucun e-mail n’est envoyé.",
+    gleicheMail: (name: string) => `même e-mail que ${name}`, verknuepfen: "relier", verknuepft: "Candidature reliée à la personne.",
     abgleichen: "Rapprocher avec la liste des participants", abgleichFrage: "Rapprocher maintenant les candidatures avec la liste des participants ?", abgleichJa: "Oui, rapprocher",
-    abgleichFertig: (a: number, v: number) => `Rapprochement terminé : ${a} candidatures passées à « acceptée », ${v} reliées à une personne.`,
+    abgleichFertig: (a: number) => `Rapprochement terminé : ${a} candidatures passées à « acceptée ».`,
     nimmtTeil: "participe déjà", tage: (da: number, alle: number) => `${da}/${alle} jours présents`, nieDa: "jamais venu·e", nichtInListe: "absent·e de la liste des participants",
     ausgeschieden: "a quitté", profil: "Profil", angaben: "Toutes les informations", motivation: "Motivation", sprachen: "Langues",
     angenommenText: "Ici on voit si les personnes acceptées viennent vraiment.",
@@ -225,7 +228,7 @@ export default async function BewerbungenSeite({ searchParams }: PageProps<"/tea
   if (jahrgang) zaehlAbfrage = zaehlAbfrage.eq("cohort_id", jahrgang.id);
   const [{ data: bewerbungen }, { data: alleStatus }, { data: personen }, { data: kennzahlen }] = await Promise.all([
     query, zaehlAbfrage,
-    supabase.from("participants").select("id, active"),
+    supabase.from("participants").select("id, active, email, first_name, last_name"),
     supabase.rpc("get_participant_analytics"),
   ]);
   const aktiv = new Set((personen ?? []).filter((p) => p.active).map((p) => p.id));
@@ -236,7 +239,9 @@ export default async function BewerbungenSeite({ searchParams }: PageProps<"/tea
   const unstimmigOffen = (alleStatus ?? []).filter((b) => (b.status === "eingegangen" || b.status === "in_pruefung") && b.participant_id && aktiv.has(b.participant_id)).length;
   const unstimmigAbgelehnt = new Set((alleStatus ?? []).filter((b) => b.status === "abgelehnt" && b.participant_id && aktiv.has(b.participant_id) && !angenommenePersonen.has(b.participant_id)).map((b) => b.participant_id)).size;
   const abgleich = typeof hinweis === "string" && /^abgleich-\d+-\d+$/.test(hinweis) ? hinweis.split("-").slice(1).map(Number) : null;
-  const h = hinweis && !abgleich ? t.hinweise[String(hinweis)] : null;
+  const h = hinweis === "verknuepft" ? { text: u.verknuepft, gut: true } : hinweis && !abgleich ? t.hinweise[String(hinweis)] : null;
+  // Gleiche E-Mail wie eine Person, aber nicht verknüpft: einzeln bestätigen lassen (im Formular kann jede Adresse stehen)
+  const perMail = new Map((personen ?? []).filter((p) => p.email).map((p) => [p.email!, p]));
   const bereit = mailBereit();
   const knopf = "rounded-full px-3 py-1.5 text-xs font-semibold ring-1 ring-line bg-white hover:bg-paper-deep";
   const datum = (iso: string) => new Date(iso).toLocaleDateString(teamLocale[l], { timeZone: "Europe/Berlin", day: "2-digit", month: "2-digit", year: "2-digit" });
@@ -259,7 +264,7 @@ export default async function BewerbungenSeite({ searchParams }: PageProps<"/tea
         <p className="text-sm font-semibold tracking-wide text-sage uppercase">{jahrgang?.name ?? t.keinJahrgang} · {u.gesamt((alleStatus ?? []).length)}</p>
         <h1 className="font-display mt-1 text-4xl font-extrabold">{teamTexte[l].bereiche.bewerbungen}</h1>
 
-        {abgleich && <p role="status" className="mt-4 rounded-2xl bg-gruen-hell p-4 text-sm font-semibold">{u.abgleichFertig(abgleich[0], abgleich[1])}</p>}
+        {abgleich && <p role="status" className="mt-4 rounded-2xl bg-gruen-hell p-4 text-sm font-semibold">{u.abgleichFertig(abgleich[0])}</p>}
         {h && <p role="status" className={`mt-4 rounded-2xl p-4 text-sm font-semibold ${h.gut ? "bg-gruen-hell" : "bg-gelb-hell"}`}>{h.text}</p>}
 
         {(unstimmigOffen > 0 || unstimmigAbgelehnt > 0) && (
@@ -301,6 +306,7 @@ export default async function BewerbungenSeite({ searchParams }: PageProps<"/tea
                       <span className="truncate text-xs text-ink-soft">{b.languages.join(" · ")}</span>
                       <span className="flex flex-wrap items-center gap-1.5 sm:justify-end">
                         {teilnahme(b)}
+                        {!b.participant_id && perMail.get(b.email) && <span className="chip bg-gelb-hell">{u.gleicheMail(`${perMail.get(b.email)!.first_name} ${perMail.get(b.email)!.last_name}`.trim())}</span>}
                         {b.status === "in_pruefung" && <span className="chip bg-paper-deep">{t.statusName.in_pruefung}</span>}
                       </span>
                     </summary>
@@ -308,6 +314,13 @@ export default async function BewerbungenSeite({ searchParams }: PageProps<"/tea
                       <div className="text-sm">
                         <p className="text-ink-soft">{b.email}{b.phone ? ` · ${b.phone}` : ""}{b.source ? t.ueber(b.source) : ""}</p>
                         {b.participant_id && bekannt.has(b.participant_id) && <Link href={`/team/teilnehmende/${b.participant_id}/`} className="link mt-1 inline-block">{u.profil} →</Link>}
+                        {!b.participant_id && perMail.get(b.email) && (
+                          <form action={mitPersonVerknuepfen} className="mt-2 flex flex-wrap items-center gap-2">
+                            <input type="hidden" name="id" value={b.id} /><input type="hidden" name="participant_id" value={perMail.get(b.email)!.id} /><input type="hidden" name="filter" value={filter} />
+                            <Link href={`/team/teilnehmende/${perMail.get(b.email)!.id}/`} className="link text-xs">{u.gleicheMail(`${perMail.get(b.email)!.first_name} ${perMail.get(b.email)!.last_name}`.trim())}</Link>
+                            <button type="submit" className={knopf}>{u.verknuepfen}</button>
+                          </form>
+                        )}
                         {b.motivation.trim() && (<><p className="mt-3 text-xs font-semibold tracking-wide text-ink-soft uppercase">{u.motivation}</p><p className="mt-1 whitespace-pre-line">{b.motivation}</p></>)}
                         {b.review_note && <p className="mt-3 rounded-xl bg-weiss px-3 py-2 text-xs text-ink-soft whitespace-pre-line">{b.review_note}</p>}
                       </div>

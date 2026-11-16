@@ -507,14 +507,14 @@ export default async function HotelSeite({ params, searchParams }: PageProps<"/t
                   <button type="submit" className="knopf-hell">{t.anlegen}</button>
                 </form>
                 {zimmer.some((z) => z.room_assignments.length === 0) && (
-                  <p className="flex flex-wrap gap-1.5 text-sm">
+                  <div className="flex flex-wrap gap-1.5 text-sm">
                     {zimmer.filter((z) => z.room_assignments.length === 0).map((z) => (
                       <form key={z.id} action={zimmerEntfernen} className="inline">
                         <input type="hidden" name="module_id" value={id} /><input type="hidden" name="id" value={z.id} /><input type="hidden" name="hotel_id" value={hotel.id} />
                         <button type="submit" className="chip bg-paper-deep hover:bg-rot-hell" aria-label={t.zimmerEntfernen(z.label)}>{z.label} ✕</button>
                       </form>
                     ))}
-                  </p>
+                  </div>
                 )}
                 {belegt > 0 && (
                   <form id="zimmerliste" action={zimmerlisteSenden} className="flex scroll-mt-4 flex-wrap items-end gap-2 rounded-2xl bg-paper p-3">
