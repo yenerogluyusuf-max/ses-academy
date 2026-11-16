@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { jetztMs } from "@/lib/zeit";
 import { Einlass, type ListenEintrag } from "@/components/team/Einlass";
 import { TagWahl } from "@/components/team/TagWahl";
+import { ModulReiter } from "@/components/team/ModulReiter";
 import { TeamKopf } from "@/components/team/TeamKopf";
 import { darf, getStaff, requireStaff } from "@/lib/auth";
 import type { Zaehler } from "@/lib/einlass";
@@ -61,6 +62,9 @@ export default async function EinlassSeite({ searchParams }: PageProps<"/team/ei
   const tage = darf.orga(staff.role) ? alleTage : alleTage.filter((t) => imZeitfenster(t, jetzt));
   const vorschlag = tage.find((t) => imZeitfenster(t, jetzt)) ?? tage.find((t) => Date.parse(t.ends_at) > jetzt) ?? tage.at(-1);
   const tag = tage.find((t) => t.id === gewaehlt) ?? vorschlag;
+  // Team (ab Orga): Einlass ist ein Reiter des Moduls; gezeigt werden nur die Tage dieses Moduls
+  const imModul = darf.orga(staff.role) && !staff.modulId && tag ? tag.module_id : null;
+  const tageAuswahl = imModul ? tage.filter((t) => t.module_id === imModul) : tage;
 
   let zaehler: Zaehler | null = null;
   let alle: ListenEintrag[] = [];
@@ -77,16 +81,18 @@ export default async function EinlassSeite({ searchParams }: PageProps<"/team/ei
 
   return (
     <>
-      <TeamKopf staff={staff} aktiv="einlass" />
+      <TeamKopf staff={staff} aktiv={imModul ? "module" : "einlass"} />
       <main lang={l} className="mx-auto max-w-3xl px-4 py-6 lg:max-w-7xl">
-        <h1 className="font-display text-3xl font-bold">{teamTexte[l].bereiche.einlass}</h1>
+        {imModul && tag
+          ? <ModulReiter id={imModul} titel={tag.module.title} aktiv="einlass" />
+          : <h1 className="font-display text-3xl font-bold">{teamTexte[l].bereiche.einlass}</h1>}
         {!tag ? (
           <p className="mt-6 rounded-3xl bg-white/80 p-6 ring-1 ring-line">
             {darf.orga(staff.role) ? t.keineTage : t.keinEinlass}
           </p>
         ) : (
           <>
-            <TagWahl tage={tage} aktiv={tag.id} pfad="/team/einlass/" jetzt={jetztMs()} sprache={l} />
+            {tageAuswahl.length > 1 && <TagWahl tage={tageAuswahl} aktiv={tag.id} pfad="/team/einlass/" jetzt={jetztMs()} sprache={l} />}
             <div className="mt-6">
               <Einlass
                 key={tag.id}

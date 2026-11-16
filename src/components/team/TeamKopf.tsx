@@ -78,7 +78,9 @@ function Navigation({ staff, aktiv }: { staff: Staff; aktiv: Bereich }) {
     <nav aria-label={t.teamBereich} className="space-y-6">
       {gruppen.map((g) => {
         // Auf ein Modul begrenzte Zugänge: nur Übersicht, Einlass und Regieplan; alle anderen ohne Regieplan in der Leiste
-        const sichtbar = g.eintraege.filter((e) => e.recht(staff.role) && (staff.modulId ? (modulBereiche as readonly string[]).includes(e.id) : e.id !== "regieplan"));
+        // Einlass und Regieplan stecken für das Team im Modul (Wunsch 16.11.2026); in der Leiste nur für Helferzugänge
+        const helfer = Boolean(staff.modulId) || !darf.orga(staff.role);
+        const sichtbar = g.eintraege.filter((e) => e.recht(staff.role) && (staff.modulId ? (modulBereiche as readonly string[]).includes(e.id) : helfer || (e.id !== "regieplan" && e.id !== "einlass")));
         if (sichtbar.length === 0) return null;
         return (
           <div key={g.titel || "start"}>
@@ -148,7 +150,7 @@ const handyTabsHelfer: { id: Bereich; href: string; icon: LucideIcon }[] = [
 ];
 const handyTabsTeam: { id: Bereich; href: string; icon: LucideIcon }[] = [
   { id: "start", href: "/team/", icon: House },
-  { id: "einlass", href: "/team/einlass/", icon: ScanLine },
+  { id: "module", href: "/team/module/", icon: Layers },
   { id: "teilnehmende", href: "/team/teilnehmende/", icon: Users },
 ];
 
