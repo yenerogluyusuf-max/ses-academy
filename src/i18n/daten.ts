@@ -79,6 +79,15 @@ export const gaeste: Gast[] = [
   { name: "Elif Zehra Kandemir", modul: "verfassungen", format: "gespraech", rolle: alle("Perspektif") },
   { name: "Burhan Kesici", modul: "skills-workshop", format: "eroeffnung", rolle: { de: "Vorsitzender des Islamrats", tr: "İslam Konseyi Başkanı", en: "Chairman of the Islamrat", fr: "Président de l’Islamrat", nl: "Voorzitter van de Islamrat" } },
   { name: "Zehra Karataş", modul: "skills-workshop", format: "eroeffnung", rolle: { de: "Vorsitzende der IGMG-Frauenjugend", tr: "IGMG Kadın Gençlik Teşkilatı Başkanı", en: "Chair of IGMG Women’s Youth", fr: "Présidente de la jeunesse féminine de la CIMG", nl: "Voorzitter IGMG Vrouwenjongeren" } },
+  // Demokratie in Europa (14./15.11.2026): laut Programm und Referentenliste der Team-App; Islamrat auf X, 15./16.11.2026
+  { name: "Burhan Kesici", modul: "demokratie", format: "grusswort", rolle: { de: "Vorsitzender des Islamrats", tr: "İslam Konseyi Başkanı", en: "Chairman of the Islamrat", fr: "Président de l’Islamrat", nl: "Voorzitter van de Islamrat" } },
+  { name: "Furkan Kahraman", modul: "demokratie", format: "grusswort", rolle: { de: "IGMG-Jugend", tr: "IGMG Gençlik Teşkilatı", en: "IGMG Youth", fr: "Jeunesse de la CIMG", nl: "IGMG-jongeren" } },
+  { name: "Ruprecht Polenz", modul: "demokratie", format: "keynote", rolle: { de: "Publizist, ehemaliger Generalsekretär der CDU", tr: "Yazar, CDU eski genel sekreteri", en: "Journalist, former CDU Secretary General", fr: "Publiciste, ancien secrétaire général de la CDU", nl: "Publicist, voormalig secretaris-generaal van de CDU" } },
+  { name: "Shada Islam", modul: "demokratie", format: "keynote", rolle: { de: "EU-Analystin und Kommentatorin, Brüssel", tr: "AB analisti ve yorumcu, Brüksel", en: "EU analyst and commentator, Brussels", fr: "Analyste et commentatrice de l’UE, Bruxelles", nl: "EU-analist en commentator, Brussel" } },
+  { name: "Prof. Dr. Klaus Schubert", modul: "demokratie", format: "panel", rolle: { de: "Politikwissenschaftler, Universität Münster", tr: "Siyaset bilimci, Münster Üniversitesi", en: "Political scientist, University of Münster", fr: "Politiste, université de Münster", nl: "Politicoloog, Universiteit van Münster" } },
+  { name: "Ebubekir Tavacı", modul: "demokratie", format: "laendergruppe", rolle: { de: "Politikwissenschaftler, Université Paris 1 Panthéon-Sorbonne", tr: "Siyaset bilimci, Université Paris 1 Panthéon-Sorbonne", en: "Political scientist, Université Paris 1 Panthéon-Sorbonne", fr: "Politiste, Université Paris 1 Panthéon-Sorbonne", nl: "Politicoloog, Université Paris 1 Panthéon-Sorbonne" } },
+  { name: "Dr. Nadim Mazarweh", modul: "demokratie", format: "laendergruppe", rolle: { de: "Politik- und Islamwissenschaftler, IGGÖ", tr: "Siyaset bilimci ve İslam bilimci, IGGÖ", en: "Political and Islamic studies scholar, IGGÖ", fr: "Politiste et islamologue, IGGÖ", nl: "Politicoloog en islamoloog, IGGÖ" } },
+  { name: "Dr. Mehmet Daimagüler", modul: "demokratie", format: "gespraech", rolle: { de: "Rechtsanwalt und Publizist", tr: "Avukat ve yazar", en: "Lawyer and author", fr: "Avocat et auteur", nl: "Advocaat en auteur" } },
 ];
 
 // Fotos je Modul; Auftakt [PR], Urheber: Islamrat
@@ -119,8 +128,22 @@ const fotosSeptember: Foto[] = [
   { src: "/fotos/sept-workshop-e.jpg", alt: {"de": "Konzentriertes Zuhören", "tr": "Dikkatle dinleyen katılımcılar", "en": "Listening closely", "fr": "Écoute attentive", "nl": "Aandachtig luisteren"} },
 ];
 
+// Demokratie in Europa, 14./15.11.2026 – Fotos: Islamrat (veröffentlicht auf X, @Islamratbrd, 15.11.2026; Originale in
+// SES_ACADEMY/bildrecherche/module/demokratie/)
+const fotosNovember: Foto[] = [
+  { src: "/fotos/nov-podium.jpg", breit: true, alt: { de: "Podium „The Future of Democracies in Europe“ mit Ruprecht Polenz, Shada Islam und Prof. Dr. Klaus Schubert", tr: "Ruprecht Polenz, Shada Islam ve Prof. Dr. Klaus Schubert ile „The Future of Democracies in Europe“ paneli", en: "Panel “The Future of Democracies in Europe” with Ruprecht Polenz, Shada Islam and Prof. Dr. Klaus Schubert", fr: "Table ronde « The Future of Democracies in Europe » avec Ruprecht Polenz, Shada Islam et le Prof. Klaus Schubert", nl: "Panel ‘The Future of Democracies in Europe’ met Ruprecht Polenz, Shada Islam en prof. dr. Klaus Schubert" } },
+  { src: "/fotos/nov-saal.jpg", alt: { de: "Blick in den vollen Saal", tr: "Dolu salondan bir görüntü", en: "View of the full hall", fr: "Vue de la salle comble", nl: "Blik in de volle zaal" } },
+  { src: "/fotos/nov-erste-reihe.jpg", alt: { de: "Gäste und Teilnehmende an den Tischreihen", tr: "Masalarda misafirler ve katılımcılar", en: "Guests and participants at the tables", fr: "Invités et participant·e·s aux tables", nl: "Gasten en deelnemers aan de tafels" } },
+  { src: "/fotos/nov-laendergruppe.jpg", breit: true, alt: { de: "Diskussion in einer Ländergruppe", tr: "Bir ülke grubunda tartışma", en: "Discussion in a country group", fr: "Discussion dans un groupe pays", nl: "Discussie in een landengroep" } },
+  { src: "/fotos/nov-gruppe.jpg", alt: { de: "Austausch in der Gruppe", tr: "Grupta fikir alışverişi", en: "Exchange in the group", fr: "Échange en groupe", nl: "Uitwisseling in de groep" } },
+  { src: "/fotos/nov-workshop-flipchart.jpg", alt: { de: "Ein Team stellt im Kampagnen-Workshop seine Ergebnisse am Flipchart vor", tr: "Kampanya atölyesinde bir ekip sonuçlarını flipchart’ta sunuyor", en: "A team presents its results on the flipchart in the campaign workshop", fr: "Une équipe présente ses résultats au tableau lors de l’atelier campagne", nl: "Een team presenteert zijn resultaten op de flip-over in de campagneworkshop" } },
+  { src: "/fotos/nov-workshop-argumente.jpg", alt: { de: "Präsentation im Kampagnen-Workshop: drei Argumente", tr: "Kampanya atölyesinde sunum: üç argüman", en: "Presentation in the campaign workshop: three arguments", fr: "Présentation lors de l’atelier campagne : trois arguments", nl: "Presentatie in de campagneworkshop: drie argumenten" } },
+  { src: "/fotos/nov-workshop-praesentation.jpg", breit: true, alt: { de: "Kampagnen-Präsentation „Susmak onay değildir“ – Schweigen ist keine Zustimmung", tr: "„Susmak onay değildir“ kampanya sunumu", en: "Campaign presentation “Susmak onay değildir” – silence is not consent", fr: "Présentation de campagne « Susmak onay değildir » – se taire n’est pas consentir", nl: "Campagnepresentatie ‘Susmak onay değildir’ – zwijgen is geen instemming" } },
+];
+
 export const fotos: Partial<Record<ModulSlug, Foto[]>> = {
   auftakt: fotosAuftakt,
   verfassungen: fotosJuni,
   "skills-workshop": fotosSeptember,
+  demokratie: fotosNovember,
 };
