@@ -228,7 +228,7 @@ export default async function ModulAuswertung({ params, searchParams }: PageProp
         <section className="karte">
           <div className="flex flex-wrap items-baseline justify-between gap-2">
             <h2 className="font-display text-2xl font-bold">{t.anwesenheit}</h2>
-            <Link href={`/team/module/${id}/teilnehmende/?filter=nichtda`} className="link text-sm">{t.liste}</Link>
+            <Link href={`/team/module/${id}/teilnehmende/?filter=fehlt`} className="link text-sm">{t.liste}</Link>
           </div>
           <p className="mt-1 text-sm text-ink-soft">{t.anwesenheitText}</p>
 
@@ -250,7 +250,7 @@ export default async function ModulAuswertung({ params, searchParams }: PageProp
                   <p className="text-sm text-ink-soft">{t.mindEinTag}</p>
                   <p className="font-display mt-1 text-3xl font-extrabold tabular-nums">{daMind.length}<span className="text-base text-ink-soft"> · {prozent(daMind.length, bestaetigt.length)} %</span></p>
                 </div>
-                <Link href={`/team/module/${id}/teilnehmende/?filter=nichtda`} className="rounded-2xl bg-gelb-hell p-4 hover:ring-1 hover:ring-ink">
+                <Link href={`/team/module/${id}/teilnehmende/?filter=fehlt`} className="rounded-2xl bg-gelb-hell p-4 hover:ring-1 hover:ring-ink">
                   <p className="text-sm">{t.zugesagtNichtDa}</p>
                   <p className="font-display mt-1 text-3xl font-extrabold tabular-nums">{zugesagtNichtDa}</p>
                 </Link>

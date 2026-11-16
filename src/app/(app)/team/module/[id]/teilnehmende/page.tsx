@@ -16,7 +16,7 @@ export const metadata: Metadata = { title: "Teilnehmende des Moduls | SES Academ
 
 const de = {
   suche: "Name, Region oder Telefon",
-  filter: { alle: "Alle", zugesagt: "Zugesagt", abgesagt: "Abgesagt", offen: "Ohne Rückmeldung", da: "Waren da", nichtda: "Nicht gekommen" },
+  filter: { alle: "Alle", zugesagt: "Zugesagt", abgesagt: "Abgesagt", offen: "Ohne Rückmeldung", da: "Waren da", fehlt: "Zugesagt, aber nicht gekommen" },
   daAm: (tag: string) => `Da am ${tag}`,
   aufheben: "Filter aufheben",
   personen: (n: number) => `${n} ${n === 1 ? "Person" : "Personen"}`,
@@ -24,6 +24,9 @@ const de = {
   rsvp: { zugesagt: "zugesagt", abgesagt: "abgesagt", offen: "keine Rückmeldung" },
   status: { waitlist: "Warteliste", pending: "wird geprüft", excused: "entschuldigt", cancelled: "abgemeldet", rejected: "abgelehnt" } as Record<string, string>,
   nichtDa: "nicht da",
+  fehlt: "fehlt",
+  zugesagtFehlt: "zugesagt, nicht gekommen",
+  ohneZusageDa: "ohne Zusage gekommen",
   kommt: "–",
   da: "da",
   handLang: "Von Hand eingetragen, daher keine Ankunftszeit",
@@ -36,7 +39,7 @@ const T: Record<TeamSprache, typeof de> = {
   de,
   tr: {
     suche: "Ad, bölge veya telefon",
-    filter: { alle: "Tümü", zugesagt: "Katılacak", abgesagt: "Katılmayacak", offen: "Cevap yok", da: "Katıldı", nichtda: "Gelmedi" },
+    filter: { alle: "Tümü", zugesagt: "Katılacak", abgesagt: "Katılmayacak", offen: "Cevap yok", da: "Katıldı", fehlt: "Katılacaktı ama gelmedi" },
     daAm: (tag) => `${tag} katılanlar`,
     aufheben: "Filtreyi kaldır",
     personen: (n) => `${n} kişi`,
@@ -44,6 +47,9 @@ const T: Record<TeamSprache, typeof de> = {
     rsvp: { zugesagt: "katılacak", abgesagt: "katılmayacak", offen: "cevap yok" },
     status: { waitlist: "bekleme listesi", pending: "inceleniyor", excused: "mazeretli", cancelled: "kayıt iptal", rejected: "reddedildi" },
     nichtDa: "gelmedi",
+    fehlt: "gelmedi",
+    zugesagtFehlt: "katılacaktı, gelmedi",
+    ohneZusageDa: "cevapsız geldi",
     kommt: "–",
     da: "katıldı",
     handLang: "Elle girildi, bu yüzden geliş saati yok",
@@ -53,7 +59,7 @@ const T: Record<TeamSprache, typeof de> = {
   },
   fr: {
     suche: "Nom, région ou téléphone",
-    filter: { alle: "Tous", zugesagt: "Confirment", abgesagt: "Se désistent", offen: "Sans réponse", da: "Présents", nichtda: "Absents" },
+    filter: { alle: "Tous", zugesagt: "Confirment", abgesagt: "Se désistent", offen: "Sans réponse", da: "Présents", fehlt: "Confirmé mais absent" },
     daAm: (tag) => `Présents ${tag}`,
     aufheben: "Retirer le filtre",
     personen: (n) => `${n} ${n === 1 ? "personne" : "personnes"}`,
@@ -61,6 +67,9 @@ const T: Record<TeamSprache, typeof de> = {
     rsvp: { zugesagt: "vient", abgesagt: "ne vient pas", offen: "pas de réponse" },
     status: { waitlist: "liste d’attente", pending: "en cours d’examen", excused: "excusé·e", cancelled: "désinscrit·e", rejected: "refusé·e" },
     nichtDa: "absent·e",
+    fehlt: "absent·e",
+    zugesagtFehlt: "confirmé, absent",
+    ohneZusageDa: "venu sans réponse",
     kommt: "–",
     da: "présent·e",
     handLang: "Saisi à la main, donc sans heure d’arrivée",
@@ -71,7 +80,7 @@ const T: Record<TeamSprache, typeof de> = {
 };
 
 type Filter = keyof typeof de.filter;
-const filterListe: Filter[] = ["alle", "zugesagt", "abgesagt", "offen", "da", "nichtda"];
+const filterListe: Filter[] = ["alle", "zugesagt", "abgesagt", "offen", "da", "fehlt"];
 
 type Reg = {
   id: string; status: string; rsvp: string | null;
@@ -90,7 +99,7 @@ export default async function ModulTeilnehmende({ params, searchParams }: PagePr
   const { id } = await params;
   const sp = await searchParams;
   if (!istToken(id)) notFound();
-  const filter: Filter = filterListe.includes(sp.filter as Filter) ? (sp.filter as Filter) : "alle";
+  const filter: Filter = sp.filter === "nichtda" ? "fehlt" : filterListe.includes(sp.filter as Filter) ? (sp.filter as Filter) : "alle";
   const tagFilter = typeof sp.tag === "string" && istToken(sp.tag) ? sp.tag : null;
   const suche = typeof sp.q === "string" ? sp.q.trim().toLocaleLowerCase("de") : "";
 
@@ -138,7 +147,7 @@ export default async function ModulTeilnehmende({ params, searchParams }: PagePr
     abgesagt: alle.filter((r) => r.rsvp === "abgesagt").length,
     offen: bestaetigt.filter((r) => !r.rsvp).length,
     da: alle.filter((r) => r.da).length,
-    nichtda: bestaetigt.filter((r) => !r.da && r.rsvp !== "abgesagt").length,
+    fehlt: bestaetigt.filter((r) => r.rsvp === "zugesagt" && !r.da).length,
   };
   const passt = (r: (typeof alle)[number]) =>
     (filter === "alle" ||
@@ -146,7 +155,7 @@ export default async function ModulTeilnehmende({ params, searchParams }: PagePr
       (filter === "abgesagt" && r.rsvp === "abgesagt") ||
       (filter === "offen" && r.status === "confirmed" && !r.rsvp) ||
       (filter === "da" && r.da) ||
-      (filter === "nichtda" && r.status === "confirmed" && !r.da && r.rsvp !== "abgesagt")) &&
+      (filter === "fehlt" && r.status === "confirmed" && r.rsvp === "zugesagt" && !r.da)) &&
     (!tagFilter || r.attendances.some((a) => a.module_day_id === tagFilter)) &&
     (!suche || [r.name, r.p.regions?.name, r.p.phone].some((x) => x?.toLocaleLowerCase("de").includes(suche)));
   const liste = alle.filter(passt);
@@ -159,10 +168,12 @@ export default async function ModulTeilnehmende({ params, searchParams }: PagePr
     if (suche) q.set("q", suche);
     return `/team/module/${id}/teilnehmende/${q.size ? `?${q}` : ""}`;
   };
+  // Nach dem Modul zählt der Unterschied: zugesagt und nicht gekommen (rot) ist etwas anderes als nie geantwortet (grau)
   const zusageChip = (r: (typeof alle)[number]) =>
     r.status !== "confirmed" ? <span className="chip bg-paper-deep">{t.status[r.status] ?? r.status}</span>
-      : r.rsvp === "zugesagt" ? <span className="chip bg-gruen-hell">{t.rsvp.zugesagt}</span>
-      : r.rsvp === "abgesagt" ? <span className="chip bg-rot-hell text-rot">{t.rsvp.abgesagt}</span>
+      : r.rsvp === "zugesagt" ? (vorbei && !r.da ? <span className="chip bg-rot-hell text-rot">{t.zugesagtFehlt}</span> : <span className="chip bg-gruen-hell">{t.rsvp.zugesagt}</span>)
+      : r.rsvp === "abgesagt" ? <span className="chip bg-paper-deep">{t.rsvp.abgesagt}</span>
+      : vorbei && r.da ? <span className="chip bg-gruen-hell">{t.ohneZusageDa}</span>
       : <span className="chip bg-paper-deep text-ink-soft">{t.rsvp.offen}</span>;
 
   return (
@@ -172,9 +183,9 @@ export default async function ModulTeilnehmende({ params, searchParams }: PagePr
         <ModulReiter id={id} titel={modul.title} aktiv="teilnehmende/" />
 
         <div className="flex flex-wrap items-center gap-2">
-          {filterListe.filter((f) => vorbei || (f !== "da" && f !== "nichtda")).map((f) => (
+          {filterListe.filter((f) => vorbei || (f !== "da" && f !== "fehlt")).map((f) => (
             <Link key={f} href={adresse(f)} aria-current={f === filter && !tagFilter ? "page" : undefined}
-              className={`rounded-full px-3.5 py-1.5 text-sm font-semibold ${f === filter && !tagFilter ? "bg-ink text-paper" : "bg-weiss ring-1 ring-line hover:ring-ink"}`}>
+              className={`rounded-full px-3.5 py-1.5 text-sm font-semibold ${f === filter && !tagFilter ? "bg-ink text-paper" : f === "fehlt" && zaehle.fehlt > 0 ? "bg-rot-hell text-rot ring-1 ring-rot/20 hover:ring-rot" : "bg-weiss ring-1 ring-line hover:ring-ink"}`}>
               {t.filter[f]} <span className="tabular-nums opacity-70">{zaehle[f]}</span>
             </Link>
           ))}
@@ -229,7 +240,8 @@ export default async function ModulTeilnehmende({ params, searchParams }: PagePr
                               ? <span className="chip bg-gruen-hell" title={t.handLang}>✓ {t.da}</span>
                               : <span className="chip bg-gruen-hell">{uhr.format(new Date(a.checked_in_at))}</span>)
                             : kommt ? <span className="text-ink-soft">{t.kommt}</span>
-                            : <span className="text-xs text-ink-soft">{t.nichtDa}</span>}
+                            : r.rsvp === "zugesagt" ? <span className="text-xs font-semibold text-rot">{t.fehlt}</span>
+                            : <span className="text-ink-soft/50">–</span>}
                         </td>
                       );
                     })}
