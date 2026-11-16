@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Hinweis } from "@/components/team/Hinweis";
 import { ModulReiter } from "@/components/team/ModulReiter";
@@ -77,6 +78,16 @@ const T: Record<TeamSprache, typeof de> = {
   },
 };
 
+/** Texte der Leseansicht (Umbau 16.11.2026). */
+const V: Record<TeamSprache, { bearbeiten: string; fertig: string; keine: string; stand: (g: number, p: number, o: number) => string }> = {
+  de: { bearbeiten: "Gruppen bearbeiten", fertig: "Fertig", keine: "Noch keine Gruppen. Über „Gruppen bearbeiten“ anlegen.",
+    stand: (g, p, o) => `${g} Gruppen · ${p} Personen${o ? ` · ${o} ohne Gruppe` : ""}` },
+  tr: { bearbeiten: "Grupları düzenle", fertig: "Bitti", keine: "Henüz grup yok. „Grupları düzenle“ ile oluştur.",
+    stand: (g, p, o) => `${g} grup · ${p} kişi${o ? ` · ${o} kişi grupsuz` : ""}` },
+  fr: { bearbeiten: "Modifier les groupes", fertig: "Terminé", keine: "Pas encore de groupes. Les créer via «\u00a0Modifier les groupes\u00a0».",
+    stand: (g, p, o) => `${g} groupes · ${p} personnes${o ? ` · ${o} sans groupe` : ""}` },
+};
+
 /** Gruppen und Räume eines Moduls (z. B. Ländergruppen), Einteilung mit Vorschlag nach Land oder GT/KGT, Anwesenheit je Gruppe. */
 export default async function Gruppen({ params, searchParams }: PageProps<"/team/module/[id]/gruppen">) {
   const staff = await requireStaff("orga");
@@ -89,7 +100,10 @@ export default async function Gruppen({ params, searchParams }: PageProps<"/team
   const tagBezeichnung = (tag: { starts_at: string; label?: string | null }, modul: string) =>
     `${modul} · ${tagFormat.format(new Date(tag.starts_at))}${tag.label ? ` · ${tag.label}` : ""}`;
   const { id } = await params;
-  const { hinweis, tag: gewaehlterTag } = await searchParams;
+  const { hinweis, tag: gewaehlterTag, bearbeiten: bearbeitenWahl } = await searchParams;
+  // Lesen ist der Normalfall (übersichtlich, nur Namen); Auswahlfelder zum Umsetzen erst nach „Bearbeiten“ (Umbau 16.11.2026)
+  const bearbeiten = bearbeitenWahl === "1";
+  const v = V[l];
   if (!istToken(id)) notFound();
   const supabase = await createClient();
   const [{ data: modul }, { data: gruppen }, { data: kandidaten }] = await Promise.all([
@@ -114,14 +128,66 @@ export default async function Gruppen({ params, searchParams }: PageProps<"/team
         <Hinweis code={code} texte={t.hinweise} />
         {vorgeschlagen !== null && <p role="status" className="mt-4 rounded-2xl bg-emerald-100 p-4 text-emerald-950">{t.vorgeschlagen(vorgeschlagen)}</p>}
 
-        <div className="mt-2 flex flex-wrap items-end gap-2">
-          {tage.length > 1 && (
-            <form action={`/team/module/${id}/gruppen/`} className="mr-auto flex items-end gap-2">
-              <div><label className="etikett" htmlFor="tag">{t.anwesenheitAm}</label>
-                <select id="tag" name="tag" defaultValue={tag?.id} className="feld">{tage.map((x) => <option key={x.id} value={x.id}>{tagBezeichnung(x, modul.title)}</option>)}</select></div>
-              <button type="submit" className="knopf-hell">{t.zeigen}</button>
-            </form>
-          )}
+        <div className="flex flex-wrap items-center gap-2">
+          {tage.length > 1 && <span className="text-sm font-semibold">{t.anwesenheitAm}</span>}
+          {tage.length > 1 && tage.map((x) => (
+            <Link key={x.id} href={`/team/module/${id}/gruppen/?tag=${x.id}${bearbeiten ? "&bearbeiten=1" : ""}`} aria-current={x.id === tag?.id ? "page" : undefined}
+              className={`rounded-full px-3.5 py-1.5 text-sm font-semibold ${x.id === tag?.id ? "bg-ink text-paper" : "bg-weiss ring-1 ring-line hover:ring-ink"}`}>
+              {tagFormat.format(new Date(x.starts_at))}
+            </Link>
+          ))}
+          <span className="ml-auto text-sm text-ink-soft">{v.stand((gruppen ?? []).length, (zeilen ?? []).length, ohneGruppe.length)}</span>
+          <Link href={`/team/module/${id}/gruppen/?tag=${tag?.id ?? ""}${bearbeiten ? "" : "&bearbeiten=1"}`} className={bearbeiten ? "knopf" : "knopf-hell"}>{bearbeiten ? v.fertig : v.bearbeiten}</Link>
+        </div>
+
+        {!bearbeiten && (
+          <div className="mt-6 space-y-8">
+            {[...new Set((gruppen ?? []).map((g) => g.room ?? ""))].map((raum) => {
+              const imRaum = (gruppen ?? []).filter((g) => (g.room ?? "") === raum);
+              return (
+                <section key={raum || "ohne"}>
+                  <h2 className="mb-3 text-sm font-semibold tracking-wide text-ink-soft uppercase">{raum || t.raumOffen}</h2>
+                  <ul className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
+                    {imRaum.map((g) => {
+                      const mitglieder = (zeilen ?? []).filter((z) => z.group_id === g.id);
+                      const da = mitglieder.filter((m) => m.checked_in).length;
+                      const [kopf, ...rest] = g.name.split("·");
+                      return (
+                        <li key={g.id} className="rounded-2xl bg-weiss p-4 ring-1 ring-line">
+                          <p className="flex items-baseline justify-between gap-2">
+                            <span className="font-display text-lg font-bold">{kopf.trim()}</span>
+                            <span className="text-xs text-ink-soft tabular-nums">{t.da(da, mitglieder.length)}</span>
+                          </p>
+                          {rest.length > 0 && <p className="text-sm leading-snug text-ink-soft">{rest.join("·").trim()}</p>}
+                          {g.leader && <p className="mt-1 text-xs text-ink-soft">{g.leader}</p>}
+                          <ul className="mt-2 space-y-0.5 text-sm">
+                            {mitglieder.map((m) => (
+                              <li key={m.participant_id} className="flex items-center gap-2">
+                                <span className={`h-1.5 w-1.5 shrink-0 rounded-full ${m.checked_in ? "bg-forest" : "bg-line"}`} aria-hidden />
+                                <Link href={`/team/teilnehmende/${m.participant_id}/?modul=${id}`} className="truncate hover:underline">{m.name}</Link>
+                                {m.country && <span className="ml-auto shrink-0 text-[11px] text-ink-soft">{laender[m.country]}</span>}
+                              </li>
+                            ))}
+                          </ul>
+                        </li>
+                      );
+                    })}
+                  </ul>
+                </section>
+              );
+            })}
+            {ohneGruppe.length > 0 && (
+              <details className="rounded-2xl bg-white/60 p-4 text-sm ring-1 ring-line">
+                <summary className="cursor-pointer font-semibold">{t.ohneGruppe(ohneGruppe.length)}</summary>
+                <p className="mt-2 text-ink-soft">{ohneGruppe.map((a) => a.name).join(", ")}</p>
+              </details>
+            )}
+            {(gruppen ?? []).length === 0 && <p className="karte text-ink-soft">{v.keine}</p>}
+          </div>
+        )}
+
+        {bearbeiten && <>
+        <div className="mt-6 flex flex-wrap items-end gap-2">
           {ohneGruppe.length > 0 && (
             <form action={gruppenVorschlag} className="flex items-end gap-2">
               <input type="hidden" name="module_id" value={id} />
@@ -212,6 +278,7 @@ export default async function Gruppen({ params, searchParams }: PageProps<"/team
             <button type="submit" className="knopf-hell">{t.anlegen}</button>
           </form>
         </section>
+        </>}
       </main>
     </>
   );

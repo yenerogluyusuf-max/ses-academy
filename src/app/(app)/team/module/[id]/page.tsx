@@ -7,11 +7,9 @@ import { ModulFormular } from "@/components/team/ModulFormular";
 import { ModulReiter } from "@/components/team/ModulReiter";
 import { TeamKopf } from "@/components/team/TeamKopf";
 import { MailHinweis } from "@/components/team/MailHinweis";
-import { feedbackEinladen, frageEntfernen, frageHinzufuegen, umfrageAnlegen, umfrageJetztOeffnen } from "@/lib/aktionen/feedback";
 import { jetztMs } from "@/lib/zeit";
 import { absageZuruecknehmen, modulAbsagen, modulSpeichern, tagEntfernen, tagHinzufuegen } from "@/lib/aktionen/module";
 import { requireStaff } from "@/lib/auth";
-import { anmeldestatusTexte } from "@/lib/einlass";
 import { createClient } from "@/lib/supabase/server";
 import { istToken } from "@/lib/codes";
 import { teamLocale, type TeamSprache } from "@/lib/team-sprache";
@@ -269,12 +267,69 @@ const T: Record<TeamSprache, typeof de> = {
   },
 };
 
+
+/** Neue Texte des Überblicks (Umbau 16.11.2026). */
+const U = {
+  de: {
+    stattgefunden: "Stattgefunden", laeuft: "Läuft gerade", inTagen: (n: number) => (n <= 0 ? "heute" : n === 1 ? "morgen" : `in ${n} Tagen`),
+    ortFolgt: "Ort folgt", angemeldet: "angemeldet", zugesagt: "zugesagt", abgesagt: "abgesagt", offen: "ohne Rückmeldung",
+    da: (tag: string) => `da am ${tag}`, feedback: "Feedback (Programm insgesamt)", antworten: (n: number) => `${n} Antworten`,
+    zurAuswertung: "Zur Auswertung", zurListe: "Zur Liste",
+    termine: "Termine", eingecheckt: (n: number) => `${n} eingecheckt`, einlass: "Einlass", ablauf: "Ablauf am Tag", terminNeu: "Termin hinzufügen",
+    versand: "Versand und Druck", infoMail: "Info-Mail", infoStand: (a: number, b: number) => `${a} von ${b} verschickt`,
+    tagesordnung: "Tagesordnung", namensschilder: "Namensschilder", notfall: "Notfall-Liste",
+    workshop: "Workshop-Gruppen", workshopText: (g: number, r: number, k: number) => `${g} Gruppen in ${r} Räumen zu ${k} Themen`,
+    gruppen: (n: number) => `${n} ${n === 1 ? "Gruppe" : "Gruppen"}`, personen: (n: number) => `${n} Personen`, zuDenGruppen: "Alle Gruppen ansehen",
+    bearbeiten: "Moduldaten bearbeiten", bearbeitenText: "Titel, Ort, Untertitel, Plätze und Sichtbarkeit auf der Website.",
+  },
+  tr: {
+    stattgefunden: "Gerçekleşti", laeuft: "Şu an devam ediyor", inTagen: (n: number) => (n <= 0 ? "bugün" : n === 1 ? "yarın" : `${n} gün sonra`),
+    ortFolgt: "yer bildirilecek", angemeldet: "kayıtlı", zugesagt: "katılacak", abgesagt: "katılmayacak", offen: "cevap yok",
+    da: (tag: string) => `${tag} katılan`, feedback: "Geri bildirim (programın geneli)", antworten: (n: number) => `${n} cevap`,
+    zurAuswertung: "Değerlendirmeye git", zurListe: "Listeye git",
+    termine: "Tarihler", eingecheckt: (n: number) => `${n} giriş`, einlass: "Giriş", ablauf: "Günün akışı", terminNeu: "Tarih ekle",
+    versand: "Gönderim ve baskı", infoMail: "Bilgi e-postası", infoStand: (a: number, b: number) => `${b} kişiden ${a} kişiye gönderildi`,
+    tagesordnung: "Gündem", namensschilder: "Yaka kartları", notfall: "Acil durum listesi",
+    workshop: "Atölye grupları", workshopText: (g: number, r: number, k: number) => `${r} salonda ${k} konuda ${g} grup`,
+    gruppen: (n: number) => `${n} grup`, personen: (n: number) => `${n} kişi`, zuDenGruppen: "Tüm grupları gör",
+    bearbeiten: "Modül bilgilerini düzenle", bearbeitenText: "Başlık, yer, alt başlık, kontenjan ve web sitesindeki görünürlük.",
+  },
+  fr: {
+    stattgefunden: "Passé", laeuft: "En cours", inTagen: (n: number) => (n <= 0 ? "aujourd’hui" : n === 1 ? "demain" : `dans ${n} jours`),
+    ortFolgt: "lieu à venir", angemeldet: "inscrits", zugesagt: "confirment", abgesagt: "se désistent", offen: "sans réponse",
+    da: (tag: string) => `présents ${tag}`, feedback: "Retours (programme global)", antworten: (n: number) => `${n} réponses`,
+    zurAuswertung: "Voir l’analyse", zurListe: "Voir la liste",
+    termine: "Dates", eingecheckt: (n: number) => `${n} enregistrés`, einlass: "Accueil", ablauf: "Déroulé du jour", terminNeu: "Ajouter une date",
+    versand: "Envois et impressions", infoMail: "E-mail d’information", infoStand: (a: number, b: number) => `${a} sur ${b} envoyés`,
+    tagesordnung: "Ordre du jour", namensschilder: "Badges", notfall: "Liste d’urgence",
+    workshop: "Groupes d’atelier", workshopText: (g: number, r: number, k: number) => `${g} groupes dans ${r} salles sur ${k} thèmes`,
+    gruppen: (n: number) => `${n} ${n === 1 ? "groupe" : "groupes"}`, personen: (n: number) => `${n} personnes`, zuDenGruppen: "Voir tous les groupes",
+    bearbeiten: "Modifier les données du module", bearbeitenText: "Titre, lieu, sous-titre, places et visibilité sur le site.",
+  },
+} satisfies Record<TeamSprache, Record<string, unknown>>;
+
+/** Thema aus dem Gruppennamen „Ekip 3 · Konu 2: Thema“ (sonst der ganze Name). */
+function thema(name: string) {
+  const treffer = name.match(/·\s*(.+)$/);
+  return (treffer ? treffer[1] : name).trim();
+}
+
+/**
+ * Überblick eines Moduls (Umbau 16.11.2026, Wunsch: übersichtlich, ohne Technikbegriffe):
+ * oben die Zahlen, die zählen (angemeldet, Zusagen, Anwesenheit je Tag, Feedback), dann Termine, Versand und Druck,
+ * die Workshop-Gruppen und ganz unten eingeklappt „Moduldaten bearbeiten“ mit der Absage. Das Feedback im Detail steht
+ * jetzt im Reiter „Auswertung“.
+ */
 export default async function ModulDetail({ params, searchParams }: PageProps<"/team/module/[id]">) {
   const staff = await requireStaff("alles");
   const l = staff.sprache;
   const t = T[l];
+  const u = U[l];
   const w = teamTexte[l];
-  const tagFormat = new Intl.DateTimeFormat(teamLocale[l], { weekday: "long", day: "numeric", month: "long", year: "numeric", timeZone: "Europe/Berlin" });
+  const tagFormat = new Intl.DateTimeFormat(teamLocale[l], { weekday: "long", day: "numeric", month: "long", timeZone: "Europe/Berlin" });
+  const kurzTag = new Intl.DateTimeFormat(teamLocale[l], { weekday: "short", day: "numeric", month: "numeric", timeZone: "Europe/Berlin" });
+  const tagMonat = new Intl.DateTimeFormat(teamLocale[l], { day: "numeric", month: "long", timeZone: "Europe/Berlin" });
+  const jahrFormat = new Intl.DateTimeFormat(teamLocale[l], { day: "numeric", month: "long", year: "numeric", timeZone: "Europe/Berlin" });
   const zeitFormat = new Intl.DateTimeFormat(teamLocale[l], { hour: "2-digit", minute: "2-digit", timeZone: "Europe/Berlin" });
   const { id } = await params;
   const { hinweis } = await searchParams;
@@ -282,230 +337,215 @@ export default async function ModulDetail({ params, searchParams }: PageProps<"/
   const supabase = await createClient();
   const { data: m } = await supabase
     .from("modules")
-    .select("*, module_days(id, day, starts_at, ends_at, label, attendances(count)), registrations(status)")
+    .select("*, module_days(id, day, starts_at, ends_at, label, attendances(count)), registrations(status, rsvp)")
     .eq("id", id)
     .maybeSingle();
   if (!m) notFound();
 
-  const { data: infoRoh } = await supabase.rpc("get_info_status", { p_module_id: m.id });
+  const [{ data: infoRoh }, { data: tagesordnungen }, { data: umfrage }, { data: gruppen }] = await Promise.all([
+    supabase.rpc("get_info_status", { p_module_id: m.id }),
+    // Fertige Tagesordnungen (PDF) aus „Material“ mit dem Schlagwort „Tagesordnung“, zum direkten Herunterladen
+    supabase.from("documents").select("id, title").eq("module_id", m.id).contains("tags", ["Tagesordnung"]).gt("current_version", 0).neq("status", "archiv"),
+    supabase.from("feedback_surveys").select("id").eq("module_id", m.id).maybeSingle(),
+    supabase.from("module_groups").select("id, name, room, group_members(count)").eq("module_id", m.id).order("position"),
+  ]);
   const info = infoRoh ?? [];
-  const infoAnzahl = (s: string) => info.filter((t) => t.info_status === s).length;
-
-  // Fertige Tagesordnungen (PDF) aus „Material“ mit dem Schlagwort „Tagesordnung“, zum direkten Herunterladen
-  const { data: tagesordnungen } = await supabase.from("documents").select("id, title").eq("module_id", m.id)
-    .contains("tags", ["Tagesordnung"]).gt("current_version", 0).neq("status", "archiv");
-
-  const { data: umfrage } = await supabase.from("feedback_surveys").select("id, opens_at, closes_at, sent_at, feedback_questions(id, position, kind, prompt, scale_max, required, country)").eq("module_id", m.id).maybeSingle();
   const { data: ergebnisse } = umfrage ? await supabase.rpc("get_feedback_results", { p_survey_id: umfrage.id }) : { data: null };
-  const { count: anwesende } = await supabase.from("attendances").select("registration_id, registrations!inner(module_id)", { count: "exact", head: true }).eq("registrations.module_id", m.id);
-  const fragen = umfrage ? [...umfrage.feedback_questions].sort((a, b) => a.position - b.position) : [];
-  const feedbackVersand = typeof hinweis === "string" && /^feedback-\d+-\d+$/.test(hinweis) ? hinweis.split("-").slice(1).map(Number) : null;
-  const antworten = Math.max(0, ...(ergebnisse ?? []).map((e) => e.answers));
+  const gesamtFrage = (ergebnisse ?? []).find((e) => e.kind === "skala");
 
   const code = typeof hinweis === "string" && hinweis.startsWith("gespeichert-") ? "gespeichert" : typeof hinweis === "string" && hinweis.startsWith("abgesagt-") ? "abgesagt" : hinweis;
   const absageInformiert = typeof hinweis === "string" && hinweis.startsWith("abgesagt-") ? Number(hinweis.split("-")[1]) : null;
   const neuAngemeldet = typeof hinweis === "string" && hinweis.startsWith("gespeichert-") ? Number(hinweis.split("-")[1]) : 0;
   const tage = [...m.module_days].sort((a, b) => a.starts_at.localeCompare(b.starts_at));
-  const zaehlung = Object.entries(anmeldestatusTexte[l])
-    .map(([s, name]) => ({ name, anzahl: m.registrations.filter((r) => r.status === s).length }))
-    .filter((z) => z.anzahl > 0);
-  const feld = "rounded-2xl bg-white px-4 py-3 ring-1 ring-line";
+  const jetzt = jetztMs();
+  const beginn = tage[0] ? Date.parse(tage[0].starts_at) : null;
+  const ende = tage.at(-1) ? Date.parse(tage.at(-1)!.ends_at) : null;
+  const bestaetigt = m.registrations.filter((r) => r.status === "confirmed");
+  const zusagen = { ja: bestaetigt.filter((r) => r.rsvp === "zugesagt").length, nein: bestaetigt.filter((r) => r.rsvp === "abgesagt").length };
+  const ohneAntwort = bestaetigt.length - zusagen.ja - zusagen.nein;
+
+  const zeitraum = !beginn || !ende ? t.keineTermine
+    : tagMonat.format(beginn) === tagMonat.format(ende) ? jahrFormat.format(beginn) : `${tagMonat.format(beginn)} – ${jahrFormat.format(ende)}`;
+  const zustand = m.cancelled_at ? { text: t.abgesagt, klasse: "bg-rot-hell text-rot" }
+    : ende && ende < jetzt ? { text: u.stattgefunden, klasse: "bg-paper-deep" }
+    : beginn && beginn <= jetzt ? { text: u.laeuft, klasse: "bg-signal" }
+    : beginn ? { text: u.inTagen(Math.floor((beginn - jetzt) / 86_400_000)), klasse: "bg-gruen-hell" } : null;
+
+  // Workshop-Gruppen: Räume und Themen aus den Gruppennamen
+  const gruppenListe = (gruppen ?? []).map((g) => ({ ...g, anzahl: (g.group_members as unknown as { count: number }[])[0]?.count ?? 0 }));
+  const themen = [...gruppenListe.reduce((karte, g) => {
+    const k = thema(g.name);
+    const x = karte.get(k) ?? { gruppen: 0, personen: 0 };
+    karte.set(k, { gruppen: x.gruppen + 1, personen: x.personen + g.anzahl });
+    return karte;
+  }, new Map<string, { gruppen: number; personen: number }>())];
+  const raeume = new Set(gruppenListe.map((g) => g.room).filter(Boolean)).size;
+
+  const kachel = "rounded-2xl bg-weiss p-4 ring-1 ring-line";
+  const knopfKlein = "rounded-full bg-weiss px-3.5 py-1.5 text-sm font-semibold ring-1 ring-line hover:ring-ink";
 
   return (
     <>
       <TeamKopf staff={staff} aktiv="module" />
       <main lang={l} className="mx-auto max-w-5xl px-4 py-8">
-        <ModulReiter id={m.id} titel={m.title} aktiv="" />
-        {m.cancelled_at && <p className="mt-2 font-semibold text-red-900">{m.cancellation_reason ? t.abgesagtGrund(m.cancellation_reason) : t.abgesagt}</p>}
+        <ModulReiter id={m.id} titel={m.title} aktiv="" untertitel={
+          <p className="flex flex-wrap items-center gap-x-3 gap-y-1">
+            <span>{zeitraum}</span><span aria-hidden>·</span><span>{m.location || u.ortFolgt}</span>
+            {zustand && <span className={`chip py-0.5 ${zustand.klasse}`}>{zustand.text}</span>}
+          </p>
+        } />
+        {m.cancelled_at && m.cancellation_reason && <p className="mb-4 font-semibold text-rot">{t.abgesagtGrund(m.cancellation_reason)}</p>}
         <Hinweis code={code} texte={t.hinweise} />
-        {absageInformiert !== null && absageInformiert > 0 && <p role="status" className="mt-2 rounded-2xl bg-emerald-100 p-4 text-emerald-950">{t.informiert(absageInformiert)}</p>}
-        {neuAngemeldet > 0 && <p role="status" className="mt-2 rounded-2xl bg-emerald-100 p-4 text-emerald-950">{t.neuAngemeldet(neuAngemeldet)}</p>}
+        {absageInformiert !== null && absageInformiert > 0 && <p role="status" className="mt-2 rounded-2xl bg-gruen-hell p-4">{t.informiert(absageInformiert)}</p>}
+        {neuAngemeldet > 0 && <p role="status" className="mt-2 rounded-2xl bg-gruen-hell p-4">{t.neuAngemeldet(neuAngemeldet)}</p>}
 
-        <p className="mt-4 text-ink-soft">
-          {t.anmeldungen(zaehlung.length ? zaehlung.map((z) => t.zaehlung(z.anzahl, z.name)).join(" · ") : t.nochKeine)}
-        </p>
-
-        <section className="mt-8 rounded-3xl bg-white/60 p-6 ring-1 ring-line">
-          <h2 className="font-display text-xl font-bold">{t.termine}</h2>
-          <p className="mt-1 text-sm text-ink-soft">{t.termineText}</p>
-          <ul className="mt-4 divide-y divide-line">
-            {tage.map((tag) => {
-              const checkins = tag.attendances[0]?.count ?? 0;
-              return (
-                <li key={tag.id} className="flex flex-wrap items-center gap-3 py-3">
-                  <div className="mr-auto">
-                    <p className="font-semibold">{tagFormat.format(new Date(tag.starts_at))}{tag.label ? ` · ${tag.label}` : ""}</p>
-                    <p className="text-sm text-ink-soft">{t.zeitraum(zeitFormat.format(new Date(tag.starts_at)), zeitFormat.format(new Date(tag.ends_at)), checkins)}</p>
-                  </div>
-                  <Link href={`/team/einlass/?tag=${tag.id}`} className="rounded-full bg-white px-4 py-2 text-sm font-semibold ring-1 ring-line">{w.bereiche.einlass}</Link>
-                  <Link href={`/team/regieplan/?tag=${tag.id}`} className="rounded-full bg-white px-4 py-2 text-sm font-semibold ring-1 ring-line">{w.bereiche.regieplan}</Link>
-                  {checkins === 0 && (
-                    <form action={tagEntfernen}>
-                      <input type="hidden" name="module_id" value={m.id} /><input type="hidden" name="day_id" value={tag.id} />
-                      <button type="submit" className="text-sm font-semibold text-ink-soft underline">{t.entfernen}</button>
-                    </form>
-                  )}
-                </li>
-              );
-            })}
-          </ul>
-          {tage.length === 0 && <p className="mt-3 text-ink-soft">{t.keineTermine}</p>}
-          <form action={tagHinzufuegen} className="mt-5 flex flex-wrap items-end gap-2">
-            <input type="hidden" name="module_id" value={m.id} />
-            <div><label htmlFor="day" className="mb-1 block text-sm font-semibold">{w.wort.datum}</label><input id="day" name="day" type="date" required className={feld} /></div>
-            <div><label htmlFor="von" className="mb-1 block text-sm font-semibold">{t.beginn}</label><input id="von" name="von" type="time" required defaultValue="10:00" className={feld} /></div>
-            <div><label htmlFor="bis" className="mb-1 block text-sm font-semibold">{t.ende}</label><input id="bis" name="bis" type="time" required defaultValue="18:00" className={feld} /></div>
-            <div className="min-w-40 flex-1"><label htmlFor="label" className="mb-1 block text-sm font-semibold">{t.bezeichnung}</label><input id="label" name="label" placeholder={t.bezeichnungBeispiel} className={`${feld} w-full`} /></div>
-            <button type="submit" className="rounded-full bg-ink px-5 py-3 font-semibold text-paper">{t.terminEintragen}</button>
-          </form>
-        </section>
-
-
-        <section id="tickets" className="mt-8 rounded-3xl bg-white/60 p-6 ring-1 ring-line">
-          <h2 className="font-display text-xl font-bold">{t.infoTitel}</h2>
-          <p className="mt-1 text-sm text-ink-soft">
-            {t.infoText}
-          </p>
-          <p className="mt-3">
-            {t.infoStand(infoAnzahl("gesendet"), info.length)}
-            {infoAnzahl("fehlgeschlagen") > 0 && t.fehlgeschlagen(infoAnzahl("fehlgeschlagen"))}
-            {infoAnzahl("keine_mail") > 0 && t.ohneMail(infoAnzahl("keine_mail"))}
-          </p>
-          <div className="mt-4 flex flex-wrap gap-2">
-            {m.cancelled_at
-              ? <span className="rounded-full bg-paper-deep px-5 py-3 font-semibold text-ink-soft" aria-disabled="true">{t.infoAbgesagt}</span>
-              : <Link href={`/team/module/${m.id}/infomail/`} className="rounded-full bg-ink px-5 py-3 font-semibold text-paper">{t.infoVorschau}</Link>}
-            <Link href={`/team/module/${m.id}/tagesordnung/`} target="_blank" className="rounded-full bg-white px-5 py-3 font-semibold ring-1 ring-line">{t.tagesordnung}</Link>
-            <Link href={`/team/module/${m.id}/notfall/`} className="rounded-full bg-white px-5 py-3 font-semibold ring-1 ring-line">{t.notfall}</Link>
-            <Link href={`/team/module/${m.id}/namensschilder/`} className="rounded-full bg-white px-5 py-3 font-semibold ring-1 ring-line">{t.namensschilder}</Link>
-            <Link href={`/team/module/${m.id}/hotel/`} className="rounded-full bg-white px-5 py-3 font-semibold ring-1 ring-line">{t.hotel}{m.stay_form_open ? t.abfrageOffen : ""}</Link>
-          </div>
-          <MailHinweis knapp className="mt-3" sprache={l} />
-          <TagesordnungKnoepfe dokumente={tagesordnungen ?? []} />
-        </section>
-
-
-        <section id="feedback" className="mt-8 rounded-3xl bg-white/60 p-6 ring-1 ring-line">
-          <h2 className="font-display text-xl font-bold">{t.feedback}</h2>
-          {feedbackVersand && (
-            <p role="status" className={`mt-3 rounded-2xl p-4 ${feedbackVersand[1] ? "bg-amber-100 text-amber-950" : "bg-emerald-100 text-emerald-950"}`}>
-              {t.einladungen(feedbackVersand[0])}{feedbackVersand[1] ? t.einladungenFehler(feedbackVersand[1]) : "."}
-            </p>
-          )}
-          {!umfrage ? (
-            <form action={umfrageAnlegen} className="mt-3">
-              <p className="text-sm text-ink-soft">{t.umfrageText}</p>
-              <input type="hidden" name="module_id" value={m.id} />
-              <button type="submit" className="mt-3 rounded-full bg-ink px-5 py-3 font-semibold text-paper">{t.umfrageAnlegen}</button>
-            </form>
-          ) : (
-            <>
-              <p className="mt-1 text-sm text-ink-soft">
-                {t.offen(tagFormat.format(new Date(umfrage.opens_at)), zeitFormat.format(new Date(umfrage.opens_at)), tagFormat.format(new Date(umfrage.closes_at)))}
-                {umfrage.sent_at ? t.zuletzt(tagFormat.format(new Date(umfrage.sent_at))) : ""} · {t.antworten(antworten)}
-              </p>
-              {Date.parse(umfrage.opens_at) > jetztMs() ? (
-                <form action={umfrageJetztOeffnen} className="mt-3">
-                  <input type="hidden" name="module_id" value={m.id} /><input type="hidden" name="survey_id" value={umfrage.id} />
-                  <button type="submit" className="rounded-full bg-signal px-5 py-3 font-semibold text-ink ring-1 ring-forest/30">{t.freischalten}</button>
-                  <span className="ml-3 text-sm text-ink-soft">{t.sonstAutomatisch}</span>
-                </form>
-              ) : Date.parse(umfrage.closes_at) > jetztMs() ? (
-                <p className="mt-3 inline-block rounded-full bg-gruen-hell px-4 py-2 text-sm font-semibold">{t.offenJetzt}</p>
-              ) : null}
-              <form action={feedbackEinladen} className="mt-3">
-                <input type="hidden" name="module_id" value={m.id} /><input type="hidden" name="survey_id" value={umfrage.id} />
-                <button type="submit" disabled={!anwesende} className="rounded-full bg-ink px-5 py-3 font-semibold text-paper disabled:opacity-50">
-                  {t.einladen}
-                </button>
-                {!anwesende && <span className="ml-3 text-sm text-ink-soft">{t.niemandDa}</span>}
-                <MailHinweis knapp className="mt-3" sprache={l} />
-              </form>
-
-              {antworten > 0 && (
-                <div className="mt-6 space-y-4">
-                  {(ergebnisse ?? []).map((e) => (
-                    <div key={e.question_id}>
-                      <p className="font-semibold">{e.nr}. {e.prompt}</p>
-                      {e.kind === "skala" ? (
-                        <div className="mt-1">
-                          <p className="text-sm text-ink-soft">{e.average !== null ? `${t.durchschnitt(String(e.average).replace(".", ","))} / ${e.scale_max ?? 5}` : t.keineAntworten} · {t.antworten(e.answers)}</p>
-                          <div className="mt-2 flex h-6 overflow-hidden rounded-full ring-1 ring-line" role="img" aria-label={t.verteilung((e.distribution ?? []).join(", "))}>
-                            {(e.distribution ?? []).map((n, i, alle) => n > 0 && (
-                              <div key={i} style={{ width: `${(n / e.answers) * 100}%`, background: `hsl(${Math.round((i / Math.max(alle.length - 1, 1)) * 130)} 55% 82%)` }}>
-                                <span className="block text-center text-xs leading-6 font-semibold">{i + 1}</span>
-                              </div>
-                            ))}
-                          </div>
-                        </div>
-                      ) : e.kind === "auswahl" ? (
-                        <div className="mt-1 text-sm">
-                          <p className="text-ink-soft">{t.antworten(e.answers)}</p>
-                          <ul className="mt-1 space-y-0.5">
-                            {(e.options ?? []).map((o, i) => <li key={o}>{o}: <span className="font-semibold">{e.distribution?.[i] ?? 0}</span></li>)}
-                            {(e.texts ?? []).length > 0 && <li>{(e.texts ?? []).length}× anders: {(e.texts ?? []).join(" · ")}</li>}
-                          </ul>
-                        </div>
-                      ) : (
-                        <ul className="mt-1 list-disc space-y-1 pl-5 text-sm">{(e.texts ?? []).map((x, i) => <li key={i}>{x}</li>)}</ul>
-                      )}
-                    </div>
-                  ))}
-                </div>
+        {/* Zahlen auf einen Blick, jede Kachel führt zur passenden Liste */}
+        <section aria-label={u.angemeldet} className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+          <Link href={`/team/module/${m.id}/teilnehmende/`} className={`${kachel} hover:ring-ink`}>
+            <span className="font-display block text-3xl font-extrabold tabular-nums">{bestaetigt.length}</span>
+            <span className="text-sm text-ink-soft">{u.angemeldet}</span>
+            <span className="mt-2 block text-xs text-ink-soft">{zusagen.ja} {u.zugesagt} · {zusagen.nein} {u.abgesagt} · {ohneAntwort} {u.offen}</span>
+          </Link>
+          {tage.slice(0, 2).map((tag) => (
+            <Link key={tag.id} href={`/team/module/${m.id}/teilnehmende/?tag=${tag.id}`} className={`${kachel} hover:ring-ink`}>
+              <span className="font-display block text-3xl font-extrabold tabular-nums">{tag.attendances[0]?.count ?? 0}</span>
+              <span className="text-sm text-ink-soft">{u.da(kurzTag.format(new Date(tag.starts_at)))}</span>
+              {bestaetigt.length > 0 && Date.parse(tag.starts_at) < jetzt && (
+                <span className="mt-2 block h-1.5 overflow-hidden rounded-full bg-paper-deep">
+                  <span className="block h-full rounded-full bg-forest" style={{ width: `${Math.min(100, Math.round(((tag.attendances[0]?.count ?? 0) / bestaetigt.length) * 100))}%` }} />
+                </span>
               )}
+            </Link>
+          ))}
+          {gesamtFrage && gesamtFrage.average !== null ? (
+            <Link href={`/team/module/${m.id}/auswertung/`} className={`${kachel} hover:ring-ink`}>
+              <span className="font-display block text-3xl font-extrabold tabular-nums">{String(gesamtFrage.average).replace(".", l === "de" || l === "fr" ? "," : ",")}<span className="text-base text-ink-soft"> / {gesamtFrage.scale_max ?? 5}</span></span>
+              <span className="text-sm text-ink-soft">{u.feedback}</span>
+              <span className="mt-2 block text-xs text-ink-soft">{u.antworten(gesamtFrage.answers)}</span>
+            </Link>
+          ) : null}
+        </section>
 
-              <details className="mt-6">
-                <summary className="cursor-pointer font-semibold">{t.fragenBearbeiten(fragen.length)}</summary>
-                <ol className="mt-3 space-y-2">
-                  {fragen.map((f) => (
-                    <li key={f.id} className="flex flex-wrap items-center gap-2 text-sm">
-                      <span className="mr-auto">{f.position}. {f.prompt} <span className="text-ink-soft">({f.kind === "skala" ? t.skala.replace("5", String(f.scale_max ?? 5)) : f.kind === "auswahl" ? "Auswahl" : t.freitext}{f.required ? ", Pflicht" : ""}{f.country ? `, nur ${f.country}` : ""})</span></span>
-                      {antworten === 0 && (
-                        <form action={frageEntfernen}>
-                          <input type="hidden" name="module_id" value={m.id} /><input type="hidden" name="survey_id" value={umfrage.id} /><input type="hidden" name="id" value={f.id} />
-                          <button type="submit" className="font-semibold text-ink-soft underline">{t.entfernen}</button>
+        <div className="mt-6 grid gap-6 lg:grid-cols-2">
+          {/* Termine */}
+          <section className="karte">
+            <h2 className="font-display text-xl font-bold">{u.termine}</h2>
+            <ul className="mt-3 divide-y divide-line">
+              {tage.map((tag) => {
+                const checkins = tag.attendances[0]?.count ?? 0;
+                return (
+                  <li key={tag.id} className="py-3">
+                    <p className="font-semibold">{tagFormat.format(new Date(tag.starts_at))}{tag.label ? ` · ${tag.label}` : ""}</p>
+                    <p className="text-sm text-ink-soft">{zeitFormat.format(new Date(tag.starts_at))}–{zeitFormat.format(new Date(tag.ends_at))} · {u.eingecheckt(checkins)}</p>
+                    <div className="mt-2 flex flex-wrap items-center gap-2">
+                      <Link href={`/team/einlass/?tag=${tag.id}`} className={knopfKlein}>{u.einlass}</Link>
+                      <Link href={`/team/regieplan/?tag=${tag.id}`} className={knopfKlein}>{u.ablauf}</Link>
+                      {checkins === 0 && (
+                        <form action={tagEntfernen}>
+                          <input type="hidden" name="module_id" value={m.id} /><input type="hidden" name="day_id" value={tag.id} />
+                          <button type="submit" className="text-sm text-ink-soft underline">{t.entfernen}</button>
                         </form>
                       )}
-                    </li>
-                  ))}
-                </ol>
-                <form action={frageHinzufuegen} className="mt-4 flex flex-wrap items-end gap-2">
-                  <input type="hidden" name="module_id" value={m.id} /><input type="hidden" name="survey_id" value={umfrage.id} />
-                  <div className="min-w-60 flex-1"><label htmlFor="prompt" className="mb-1 block text-sm font-semibold">{t.neueFrage}</label><input id="prompt" name="prompt" required minLength={3} maxLength={300} className={`${feld} w-full`} /></div>
-                  <div><label htmlFor="kind" className="mb-1 block text-sm font-semibold">{t.art}</label>
-                    <select id="kind" name="kind" className={feld}><option value="skala">{t.skala}</option><option value="text">{t.freitext}</option></select></div>
-                  <button type="submit" className="rounded-full bg-white px-5 py-3 font-semibold ring-1 ring-line">{w.wort.hinzufuegen}</button>
+                    </div>
+                  </li>
+                );
+              })}
+            </ul>
+            {tage.length === 0 && <p className="mt-3 text-ink-soft">{t.keineTermine}</p>}
+            <details className="mt-3">
+              <summary className="cursor-pointer text-sm font-semibold">+ {u.terminNeu}</summary>
+              <form action={tagHinzufuegen} className="mt-3 grid gap-2 sm:grid-cols-2">
+                <input type="hidden" name="module_id" value={m.id} />
+                <div className="sm:col-span-2"><label htmlFor="day" className="etikett">{w.wort.datum}</label><input id="day" name="day" type="date" required className="feld" /></div>
+                <div><label htmlFor="von" className="etikett">{t.beginn}</label><input id="von" name="von" type="time" required defaultValue="10:00" className="feld" /></div>
+                <div><label htmlFor="bis" className="etikett">{t.ende}</label><input id="bis" name="bis" type="time" required defaultValue="18:00" className="feld" /></div>
+                <div className="sm:col-span-2"><label htmlFor="label" className="etikett">{t.bezeichnung}</label><input id="label" name="label" placeholder={t.bezeichnungBeispiel} className="feld" /></div>
+                <button type="submit" className="knopf sm:col-span-2 sm:justify-self-start">{t.terminEintragen}</button>
+              </form>
+              <p className="mt-2 text-xs text-ink-soft">{t.termineText}</p>
+            </details>
+          </section>
+
+          {/* Versand und Druck */}
+          <section id="tickets" className="karte">
+            <h2 className="font-display text-xl font-bold">{u.versand}</h2>
+            <ul className="mt-3 divide-y divide-line">
+              <li className="flex flex-wrap items-center justify-between gap-2 py-3">
+                <span>
+                  <span className="block font-semibold">{u.infoMail}</span>
+                  <span className="text-sm text-ink-soft">
+                    {u.infoStand(info.filter((x) => x.info_status === "gesendet").length, info.length)}
+                    {info.some((x) => x.info_status === "fehlgeschlagen") && t.fehlgeschlagen(info.filter((x) => x.info_status === "fehlgeschlagen").length)}
+                    {info.some((x) => x.info_status === "keine_mail") && t.ohneMail(info.filter((x) => x.info_status === "keine_mail").length)}
+                  </span>
+                </span>
+                {m.cancelled_at
+                  ? <span className="text-sm text-ink-soft">{t.infoAbgesagt}</span>
+                  : <Link href={`/team/module/${m.id}/infomail/`} className={knopfKlein}>{w.wort.oeffnen}</Link>}
+              </li>
+              <li className="flex flex-wrap items-center justify-between gap-2 py-3">
+                <span className="font-semibold">{u.tagesordnung}</span>
+                <Link href={`/team/module/${m.id}/tagesordnung/`} target="_blank" className={knopfKlein}>{w.wort.drucken}</Link>
+              </li>
+              <li className="flex flex-wrap items-center justify-between gap-2 py-3">
+                <span className="font-semibold">{u.namensschilder}</span>
+                <Link href={`/team/module/${m.id}/namensschilder/`} className={knopfKlein}>{w.wort.drucken}</Link>
+              </li>
+              <li className="flex flex-wrap items-center justify-between gap-2 py-3">
+                <span className="font-semibold">{u.notfall}</span>
+                <Link href={`/team/module/${m.id}/notfall/`} className={knopfKlein}>{w.wort.drucken}</Link>
+              </li>
+            </ul>
+            <MailHinweis knapp className="mt-2" sprache={l} />
+            <TagesordnungKnoepfe dokumente={tagesordnungen ?? []} sprache={l} />
+          </section>
+        </div>
+
+        {/* Workshop-Gruppen */}
+        {gruppenListe.length > 0 && (
+          <section className="karte mt-6">
+            <div className="flex flex-wrap items-baseline justify-between gap-2">
+              <h2 className="font-display text-xl font-bold">{u.workshop}</h2>
+              <Link href={`/team/module/${m.id}/gruppen/`} className="link text-sm">{u.zuDenGruppen}</Link>
+            </div>
+            <p className="mt-1 text-sm text-ink-soft">{u.workshopText(gruppenListe.length, raeume, themen.length)}</p>
+            <ul className="mt-4 grid gap-2 sm:grid-cols-2">
+              {themen.map(([name, x]) => (
+                <li key={name} className="flex items-baseline justify-between gap-3 rounded-2xl bg-paper px-4 py-3">
+                  <span className="font-semibold">{name}</span>
+                  <span className="shrink-0 text-sm text-ink-soft">{u.gruppen(x.gruppen)} · {u.personen(x.personen)}</span>
+                </li>
+              ))}
+            </ul>
+          </section>
+        )}
+
+        {/* Selten gebraucht: eingeklappt ganz unten */}
+        <details className="mt-10 rounded-3xl bg-white/60 ring-1 ring-line">
+          <summary className="cursor-pointer px-6 py-4 font-semibold">{u.bearbeiten}</summary>
+          <div className="px-6 pb-6">
+            <p className="mb-4 text-sm text-ink-soft">{u.bearbeitenText}</p>
+            <ModulFormular modul={m} aktion={modulSpeichern} knopf={w.wort.speichern} sprache={l} />
+
+            <div className="mt-8 border-t border-line pt-6">
+              <h3 className="font-semibold">{m.cancelled_at ? t.absage : t.absagen}</h3>
+              {m.cancelled_at ? (
+                <form action={absageZuruecknehmen} className="mt-3">
+                  <input type="hidden" name="id" value={m.id} />
+                  <button type="submit" className="knopf-hell">{t.zuruecknehmen}</button>
                 </form>
-              </details>
-            </>
-          )}
-        </section>
-
-        <section className="mt-8 rounded-3xl bg-white/60 p-6 ring-1 ring-line">
-          <h2 className="mb-4 font-display text-xl font-bold">{t.einstellungen}</h2>
-          <ModulFormular modul={m} aktion={modulSpeichern} knopf={w.wort.speichern} sprache={l} />
-        </section>
-
-        <section className="mt-8 rounded-3xl bg-white/60 p-6 ring-1 ring-line">
-          <h2 className="font-display text-xl font-bold">{m.cancelled_at ? t.absage : t.absagen}</h2>
-          {m.cancelled_at ? (
-            <form action={absageZuruecknehmen} className="mt-3">
-              <input type="hidden" name="id" value={m.id} />
-              <button type="submit" className="rounded-full bg-white px-5 py-3 font-semibold ring-1 ring-line">{t.zuruecknehmen}</button>
-            </form>
-          ) : (
-            <form action={modulAbsagen} className="mt-3 flex flex-wrap items-end gap-2">
-              <input type="hidden" name="id" value={m.id} />
-              <div className="min-w-60 flex-1"><label htmlFor="grund" className="mb-1 block text-sm font-semibold">{t.grund}</label><input id="grund" name="grund" className={`${feld} w-full`} /></div>
-              <div className="w-full space-y-1.5 text-sm">
-                <label className="flex gap-2"><input type="checkbox" name="benachrichtigen" value="ja" defaultChecked className="mt-0.5" /> {t.benachrichtigen}</label>
-                <MailHinweis knapp sprache={l} />
-                <label className="flex gap-2 rounded-2xl bg-rot-hell p-3 text-rot"><input type="checkbox" name="bestaetigt" value="ja" required className="mt-0.5" /> {t.bestaetigen}</label>
-              </div>
-              <button type="submit" className="rounded-full bg-red-800 px-5 py-3 font-semibold text-white">{t.absagenKnopf}</button>
-            </form>
-          )}
-        </section>
+              ) : (
+                <form action={modulAbsagen} className="mt-3 grid gap-2">
+                  <input type="hidden" name="id" value={m.id} />
+                  <div><label htmlFor="grund" className="etikett">{t.grund}</label><input id="grund" name="grund" className="feld" /></div>
+                  <label className="flex gap-2 text-sm"><input type="checkbox" name="benachrichtigen" value="ja" defaultChecked className="mt-0.5" /> {t.benachrichtigen}</label>
+                  <label className="flex gap-2 rounded-2xl bg-rot-hell p-3 text-sm text-rot"><input type="checkbox" name="bestaetigt" value="ja" required className="mt-0.5" /> {t.bestaetigen}</label>
+                  <button type="submit" className="justify-self-start rounded-full bg-rot px-5 py-2.5 text-sm font-semibold text-white">{t.absagenKnopf}</button>
+                </form>
+              )}
+            </div>
+          </div>
+        </details>
       </main>
     </>
   );

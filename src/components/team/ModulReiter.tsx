@@ -1,60 +1,70 @@
 import Link from "next/link";
 import { darf, getStaff } from "@/lib/auth";
 import type { TeamSprache } from "@/lib/team-sprache";
-import { teamTexte } from "@/lib/team-texte";
 
-type Reiter = "uebersicht" | "teilnehmende" | "programm" | "referenten" | "checkliste" | "gruppen" | "logistik" | "zimmerplan" | "kosten" | "material";
-
-// href: Reiter, der auf eine allgemeine Seite führt (Teilnehmende: die Liste, gefiltert auf dieses Modul)
-const reiter: readonly { pfad: string; id: Reiter; href?: (id: string) => string }[] = [
-  { pfad: "", id: "uebersicht" },
-  { pfad: "teilnehmende", id: "teilnehmende", href: (id) => `/team/teilnehmende/?modul=${id}` },
-  { pfad: "programm/", id: "programm" },
-  { pfad: "referenten/", id: "referenten" },
-  { pfad: "checkliste/", id: "checkliste" },
-  { pfad: "gruppen/", id: "gruppen" },
-  { pfad: "hotel/", id: "logistik" },
-  { pfad: "zimmerplan/", id: "zimmerplan" },
-  { pfad: "kosten/", id: "kosten" },
-  { pfad: "material/", id: "material" },
-];
-
-function texte(l: TeamSprache) {
-  const b = teamTexte[l].bereiche;
-  const eigene = {
-    de: { programm: "Programm", referenten: "Referenten", checkliste: "Checkliste", zimmerplan: "Zimmerplan", kosten: "Kosten", material: "Material", alle: "Alle Module", navi: "Bereiche des Moduls" },
-    tr: { programm: "Program", referenten: "Konuşmacılar", checkliste: "Kontrol listesi", zimmerplan: "Oda planı", kosten: "Masraflar", material: "Materyal", alle: "Tüm modüller", navi: "Modülün bölümleri" },
-    fr: { programm: "Programme", referenten: "Intervenants", checkliste: "Check-list", zimmerplan: "Plan des chambres", kosten: "Coûts", material: "Supports", alle: "Tous les modules", navi: "Sections du module" },
-  }[l];
-  const namen: Record<Reiter, string> = {
-    uebersicht: b.start, teilnehmende: b.teilnehmende, programm: eigene.programm, referenten: eigene.referenten, checkliste: eigene.checkliste,
-    gruppen: b.gruppen, logistik: b.logistik, zimmerplan: eigene.zimmerplan, kosten: eigene.kosten, material: eigene.material,
-  };
-  return { namen, alle: eigene.alle, navi: eigene.navi, logistik: b.logistik };
-}
+type Reiter = "ueberblick" | "teilnehmende" | "programm" | "referenten" | "gruppen" | "unterkunft" | "kosten" | "material" | "auswertung";
 
 /**
- * Reiter eines Moduls (Plan: Programm, Referenten, Material, Logistik, Medien; dazu Checkliste und Gruppen).
- * Übersicht und Modulliste sind Admin/Vorstand vorbehalten; das Orga-Team sieht nur seine Reiter.
+ * Reiter eines Moduls (Umbau 16.11.2026): alles, was zu einem Modul gehört, bleibt im Modul.
+ * „Teilnehmende“ zeigt nur die Personen dieses Moduls (früher Sprung in die allgemeine Liste), „Unterkunft“ fasst
+ * Hotel und Zimmerplan zusammen, „Auswertung“ bündelt Anwesenheit und Feedback des Moduls. Die Checkliste ist entfallen.
+ * pfade: weitere Unterseiten, die zum selben Reiter gehören (Zimmerplan gehört zu Unterkunft).
+ */
+const reiter: readonly { pfad: string; id: Reiter; auch?: string[] }[] = [
+  { pfad: "", id: "ueberblick" },
+  { pfad: "teilnehmende/", id: "teilnehmende" },
+  { pfad: "programm/", id: "programm" },
+  { pfad: "referenten/", id: "referenten" },
+  { pfad: "gruppen/", id: "gruppen" },
+  { pfad: "hotel/", id: "unterkunft", auch: ["zimmerplan/"] },
+  { pfad: "kosten/", id: "kosten" },
+  { pfad: "material/", id: "material" },
+  { pfad: "auswertung/", id: "auswertung" },
+];
+
+const T: Record<TeamSprache, Record<Reiter, string> & { alle: string; navi: string }> = {
+  de: {
+    ueberblick: "Überblick", teilnehmende: "Teilnehmende", programm: "Programm", referenten: "Referenten", gruppen: "Gruppen",
+    unterkunft: "Unterkunft", kosten: "Kosten", material: "Material", auswertung: "Auswertung",
+    alle: "Alle Module", navi: "Bereiche des Moduls",
+  },
+  tr: {
+    ueberblick: "Özet", teilnehmende: "Katılımcılar", programm: "Program", referenten: "Konuşmacılar", gruppen: "Gruplar",
+    unterkunft: "Konaklama", kosten: "Masraflar", material: "Materyal", auswertung: "Değerlendirme",
+    alle: "Tüm modüller", navi: "Modülün bölümleri",
+  },
+  fr: {
+    ueberblick: "Vue d’ensemble", teilnehmende: "Participants", programm: "Programme", referenten: "Intervenants", gruppen: "Groupes",
+    unterkunft: "Hébergement", kosten: "Coûts", material: "Supports", auswertung: "Analyse",
+    alle: "Tous les modules", navi: "Sections du module",
+  },
+};
+
+/**
+ * Kopf eines Moduls mit Reitern. Admin/Vorstand sehen alle Reiter; das Orga-Team (z. B. auf ein Modul begrenzt)
+ * sieht die Reiter ohne Überblick und Auswertung.
  * Sprache: die des angemeldeten Teamkontos.
  */
-export async function ModulReiter({ id, titel, aktiv }: { id: string; titel: string; aktiv: string }) {
+export async function ModulReiter({ id, titel, aktiv, untertitel }: { id: string; titel: string; aktiv: string; untertitel?: React.ReactNode }) {
   const staff = await getStaff();
   const alles = staff ? darf.alles(staff.role) : false;
-  const t = texte(staff?.sprache ?? "de");
+  const t = T[staff?.sprache ?? "de"];
+  const sichtbar = reiter.filter((r) => alles || (r.id !== "ueberblick" && r.id !== "auswertung"));
   return (
     <div className="mb-6">
-      {alles
-        ? <Link href="/team/module/" className="text-sm font-semibold text-ink-soft hover:text-ink">← {t.alle}</Link>
-        : <Link href="/team/logistik/" className="text-sm font-semibold text-ink-soft hover:text-ink">← {t.logistik}</Link>}
+      <Link href="/team/module/" className="text-sm font-semibold text-ink-soft hover:text-ink">← {t.alle}</Link>
       <h1 className="font-display mt-2 text-3xl font-bold">{titel}</h1>
+      {untertitel && <div className="mt-1 text-ink-soft">{untertitel}</div>}
       <nav aria-label={t.navi} className="mt-4 flex gap-1 overflow-x-auto border-b border-line pb-px">
-        {reiter.filter((r) => alles || r.pfad !== "").map((r) => (
-          <Link key={r.pfad} href={r.href ? r.href(id) : `/team/module/${id}/${r.pfad}`} aria-current={aktiv === r.pfad ? "page" : undefined}
-            className={`shrink-0 rounded-t-2xl px-4 py-2 text-sm font-semibold ${aktiv === r.pfad ? "bg-ink text-paper" : "hover:bg-paper-deep"}`}>
-            {t.namen[r.id]}
-          </Link>
-        ))}
+        {sichtbar.map((r) => {
+          const an = aktiv === r.pfad || (r.auch ?? []).includes(aktiv);
+          return (
+            <Link key={r.pfad} href={`/team/module/${id}/${r.pfad}`} aria-current={an ? "page" : undefined}
+              className={`shrink-0 rounded-t-2xl px-4 py-2 text-sm font-semibold ${an ? "bg-ink text-paper" : "hover:bg-paper-deep"}`}>
+              {t[r.id]}
+            </Link>
+          );
+        })}
       </nav>
     </div>
   );

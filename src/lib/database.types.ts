@@ -815,6 +815,26 @@ isOneToOne: true
       referencedColumns: ["id"]
     }
                   ]
+                },"participant_profiles": {
+                  Row: {
+                    "assessment": string,"cv_name": string | null,"cv_path": string | null,"participant_id": string,"skills": (string)[],"tasks": (string)[],"updated_at": string,"updated_by": string | null
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "assessment"?: string,"cv_name"?: string | null,"cv_path"?: string | null,"participant_id": string,"skills"?: (string)[],"tasks"?: (string)[],"updated_at"?: string,"updated_by"?: string | null
+                  }
+                  Update: {
+                    "assessment"?: string,"cv_name"?: string | null,"cv_path"?: string | null,"participant_id"?: string,"skills"?: (string)[],"tasks"?: (string)[],"updated_at"?: string,"updated_by"?: string | null
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "participant_profiles_participant_id_fkey"
+      columns: ["participant_id"]
+isOneToOne: true
+      referencedRelation: "participants"
+      referencedColumns: ["id"]
+    }
+                  ]
                 },"participants": {
                   Row: {
                     "active": boolean,"affiliation_status": Database["public"]['Enums']["affiliation_status"],"branch": string | null,"checkin_token": string,"cohort_id": string | null,"country": string | null,"created_at": string,"directory_opt_out": boolean,"email": string | null,"first_name": string,"gender": string | null,"id": string,"last_name": string,"link_token": string,"mentor_id": string | null,"phone": string | null,"photo_consent_at": string | null,"photo_path": string | null,"preferred_language": string,"privacy_consent_at": string | null,"region_id": number | null,"share_contact": boolean,"short_code": string | null,"updated_at": string,"user_id": string | null,"display_name": string | null

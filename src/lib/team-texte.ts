@@ -14,7 +14,7 @@ const de = {
   sprache: "Sprache",
   passwort: "Passwort",
   abmelden: "Abmelden",
-  gruppen: { eventtag: "Eventtag", programm: "Programm", teilnehmende: "Teilnehmende", organisation: "Organisation" },
+  gruppen: { eventtag: "Eventtag", programm: "Programm", teilnehmende: "Teilnehmende", organisation: "Organisation", kommunikation: "Kommunikation", verwaltung: "Verwaltung" },
   bereiche: {
     start: "Übersicht", einlass: "Einlass", regieplan: "Regieplan", rollenplan: "Rollenplan", gruppen: "Gruppen", module: "Module",
     bewerbungen: "Bewerbungen", teilnehmende: "Teilnehmende", anrufe: "Anrufe", hausaufgaben: "Hausaufgaben", mitglieder: "Mitglieder",
@@ -49,7 +49,7 @@ const tr: TeamTexte = {
   sprache: "Dil",
   passwort: "Şifre",
   abmelden: "Çıkış yap",
-  gruppen: { eventtag: "Program günü", programm: "Program", teilnehmende: "Katılımcılar", organisation: "Organizasyon" },
+  gruppen: { eventtag: "Program günü", programm: "Program", teilnehmende: "Katılımcılar", organisation: "Organizasyon", kommunikation: "İletişim", verwaltung: "Yönetim" },
   bereiche: {
     start: "Genel bakış", einlass: "Giriş", regieplan: "Akış planı", rollenplan: "Görev planı", gruppen: "Gruplar", module: "Modüller",
     bewerbungen: "Başvurular", teilnehmende: "Katılımcılar", anrufe: "Aramalar", hausaufgaben: "Ödevler", mitglieder: "Üyeler",
@@ -82,7 +82,7 @@ const fr: TeamTexte = {
   sprache: "Langue",
   passwort: "Mot de passe",
   abmelden: "Se déconnecter",
-  gruppen: { eventtag: "Jour J", programm: "Programme", teilnehmende: "Participants", organisation: "Organisation" },
+  gruppen: { eventtag: "Jour J", programm: "Programme", teilnehmende: "Participants", organisation: "Organisation", kommunikation: "Communication", verwaltung: "Administration" },
   bereiche: {
     start: "Aperçu", einlass: "Accueil", regieplan: "Déroulé", rollenplan: "Répartition des rôles", gruppen: "Groupes", module: "Modules",
     bewerbungen: "Candidatures", teilnehmende: "Participants", anrufe: "Appels", hausaufgaben: "Devoirs", mitglieder: "Membres",

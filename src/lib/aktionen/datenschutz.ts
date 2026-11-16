@@ -67,9 +67,10 @@ export async function loeschungAusfuehren(formData: FormData) {
   if (formData.get("bestaetigt") !== "ja") zurueckTeam("bestaetigen");
   const supabase = await createClient();
   const { data, error } = await supabase.rpc("execute_deletion", { p_approval_id: freigabe, p_note: String(formData.get("notiz") ?? "").slice(0, 1000) });
-  const antwort = data as { result?: string; photo_path?: string | null } | null;
+  const antwort = data as { result?: string; photo_path?: string | null; cv_path?: string | null } | null;
   if (error || antwort?.result !== "ok") zurueckTeam(antwort?.result === "ausgefuehrt" || antwort?.result === "erledigt" ? "schon-erledigt" : antwort?.result === "expired" ? "abgelaufen" : "fehler");
   if (antwort.photo_path) await createAdminClient().storage.from("fotos").remove([antwort.photo_path]);
+  if (antwort.cv_path) await createAdminClient().storage.from("lebenslaeufe").remove([antwort.cv_path]);
   revalidatePath("/team/freigaben/");
   zurueckTeam("geloescht");
 }

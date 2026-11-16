@@ -13,7 +13,7 @@ import { pruefeZugang } from "@/lib/umfrage";
 
 function zurModulseite(modulId: string, hinweis: string): never {
   revalidatePath(`/team/module/${modulId}/`);
-  redirect(`/team/module/${modulId}/?hinweis=${hinweis}#feedback`);
+  redirect(`/team/module/${modulId}/auswertung/?hinweis=${hinweis}#feedback`);
 }
 
 /** Umfrage mit Standardfragen anlegen: offen ab dem letzten Modultag 13:00 Uhr für 14 Tage. */

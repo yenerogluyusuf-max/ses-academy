@@ -1,7 +1,7 @@
 import Link from "next/link";
 import {
-  BedDouble, BookOpen, CalendarClock, ChartColumn, Contact, FolderOpen, House, Inbox, KeyRound, Layers, LogOut, Mail,
-  MessagesSquare, ScanLine, ShieldX, Send, ShieldCheck, Upload, UserCog, Users, type LucideIcon,
+  BookOpen, CalendarClock, ChartColumn, Contact, House, Inbox, KeyRound, Layers, LogOut, Mail,
+  ScanLine, ShieldX, Send, ShieldCheck, Upload, UserCog, Users, type LucideIcon,
 } from "lucide-react";
 import { HandyMenue } from "@/components/team/HandyMenue";
 import { abmelden } from "@/lib/aktionen/team";
@@ -18,8 +18,17 @@ type Eintrag = { id: Bereich; name: string; href: string; icon: LucideIcon; rech
 
 const alle = () => true;
 /** Gruppenüberschrift (deutscher Schlüssel) → Begriff in teamTexte.gruppen. */
-const gruppenSchluessel: Record<string, keyof TeamTexte["gruppen"]> = { Eventtag: "eventtag", Programm: "programm", Teilnehmende: "teilnehmende", Organisation: "organisation" };
+const gruppenSchluessel: Record<string, keyof TeamTexte["gruppen"]> = {
+  Eventtag: "eventtag", Programm: "programm", Teilnehmende: "teilnehmende", Kommunikation: "kommunikation", Verwaltung: "verwaltung",
+};
 
+/**
+ * Aufbau nach dem Umbau vom 16.11.2026 (Wunsch Yusuf: Übersichtlichkeit vor allem):
+ * Module sind der Mittelpunkt (dort Programm, Teilnehmende des Moduls, Gruppen, Unterkunft, Kosten, Material, Auswertung);
+ * Logistik, Dokumente und Sitzungen stehen nicht mehr in der Leiste (Logistik steckt im Modul unter „Unterkunft“,
+ * Unterlagen unter „Material“). Den Regieplan sehen nur noch auf ein Modul begrenzte Helferzugänge in der Leiste;
+ * alle anderen erreichen ihn über das Modul (Programm → Ablauf am Tag).
+ */
 const gruppen: { titel: string; eintraege: Eintrag[] }[] = [
   { titel: "", eintraege: [{ id: "start", name: "Übersicht", href: "/team/", icon: House, recht: alle }] },
   {
@@ -32,31 +41,33 @@ const gruppen: { titel: string; eintraege: Eintrag[] }[] = [
   {
     titel: "Programm",
     eintraege: [
-      { id: "module", name: "Module", href: "/team/module/", icon: Layers, recht: darf.alles },
-      { id: "bewerbungen", name: "Bewerbungen", href: "/team/bewerbungen/", icon: Inbox, recht: darf.alles },
+      { id: "module", name: "Module", href: "/team/module/", icon: Layers, recht: darf.orga },
+      { id: "auswertung", name: "Auswertung", href: "/team/auswertung/", icon: ChartColumn, recht: darf.alles },
     ],
   },
   {
     titel: "Teilnehmende",
     eintraege: [
       { id: "teilnehmende", name: "Teilnehmende", href: "/team/teilnehmende/", icon: Users, recht: darf.orga },
+      { id: "bewerbungen", name: "Bewerbungen", href: "/team/bewerbungen/", icon: Inbox, recht: darf.alles },
       { id: "hausaufgaben", name: "Hausaufgaben", href: "/team/hausaufgaben/", icon: BookOpen, recht: darf.orga },
       { id: "mitglieder", name: "Mitglieder", href: "/mein-bereich/verzeichnis/", icon: Contact, recht: darf.orga },
-      { id: "auswertung", name: "Auswertung", href: "/team/auswertung/", icon: ChartColumn, recht: darf.alles },
-      { id: "import", name: "Import", href: "/team/import/", icon: Upload, recht: darf.alles },
     ],
   },
   {
-    titel: "Organisation",
+    titel: "Kommunikation",
     eintraege: [
-      { id: "logistik", name: "Logistik", href: "/team/logistik/", icon: BedDouble, recht: darf.orga },
-      { id: "dokumente", name: "Dokumente", href: "/team/dokumente/", icon: FolderOpen, recht: darf.orga },
-      { id: "sitzungen", name: "Sitzungen", href: "/team/sitzungen/", icon: MessagesSquare, recht: darf.orga },
       { id: "postfach", name: "Postfach", href: "/team/postfach/", icon: Mail, recht: darf.orga },
       { id: "nachrichten", name: "Nachrichten", href: "/team/nachrichten/", icon: Send, recht: darf.alles },
+    ],
+  },
+  {
+    titel: "Verwaltung",
+    eintraege: [
       { id: "freigaben", name: "Freigaben", href: "/team/freigaben/", icon: ShieldCheck, recht: darf.alles },
-      { id: "loeschantraege", name: "Löschanträge", href: "/team/loeschantraege/", icon: ShieldX, recht: darf.admin },
       { id: "team", name: "Team", href: "/team/team/", icon: UserCog, recht: darf.admin },
+      { id: "loeschantraege", name: "Löschanträge", href: "/team/loeschantraege/", icon: ShieldX, recht: darf.admin },
+      { id: "import", name: "Import", href: "/team/import/", icon: Upload, recht: darf.alles },
     ],
   },
 ];
@@ -66,8 +77,8 @@ function Navigation({ staff, aktiv }: { staff: Staff; aktiv: Bereich }) {
   return (
     <nav aria-label={t.teamBereich} className="space-y-6">
       {gruppen.map((g) => {
-        // Auf ein Modul begrenzte Zugänge: nur Übersicht, Einlass und Regieplan
-        const sichtbar = g.eintraege.filter((e) => e.recht(staff.role) && (!staff.modulId || (modulBereiche as readonly string[]).includes(e.id)));
+        // Auf ein Modul begrenzte Zugänge: nur Übersicht, Einlass und Regieplan; alle anderen ohne Regieplan in der Leiste
+        const sichtbar = g.eintraege.filter((e) => e.recht(staff.role) && (staff.modulId ? (modulBereiche as readonly string[]).includes(e.id) : e.id !== "regieplan"));
         if (sichtbar.length === 0) return null;
         return (
           <div key={g.titel || "start"}>
@@ -129,10 +140,16 @@ function Konto({ staff }: { staff: Staff }) {
   );
 }
 
-const handyTabs: { id: Bereich; href: string; icon: LucideIcon }[] = [
+// Handy: Helferzugänge (auf ein Modul begrenzt) brauchen am Eventtag Einlass und Regieplan, alle anderen eher Teilnehmende
+const handyTabsHelfer: { id: Bereich; href: string; icon: LucideIcon }[] = [
   { id: "start", href: "/team/", icon: House },
   { id: "einlass", href: "/team/einlass/", icon: ScanLine },
   { id: "regieplan", href: "/team/regieplan/", icon: CalendarClock },
+];
+const handyTabsTeam: { id: Bereich; href: string; icon: LucideIcon }[] = [
+  { id: "start", href: "/team/", icon: House },
+  { id: "einlass", href: "/team/einlass/", icon: ScanLine },
+  { id: "teilnehmende", href: "/team/teilnehmende/", icon: Users },
 ];
 
 /**
@@ -161,7 +178,7 @@ export function TeamKopf({ staff, aktiv = "start" }: { staff: Staff; aktiv?: Ber
         <div className="mt-6"><Konto staff={staff} /></div>
       </HandyMenue>
       <nav aria-label={t.schnellzugriff} className="fixed inset-x-0 bottom-0 z-40 grid grid-cols-3 border-t border-line bg-paper/95 pb-[env(safe-area-inset-bottom)] backdrop-blur lg:hidden">
-        {handyTabs.map((tab) => (
+        {(staff.modulId || !darf.orga(staff.role) ? handyTabsHelfer : handyTabsTeam).map((tab) => (
           <Link key={tab.id} href={tab.href} aria-current={tab.id === aktiv ? "page" : undefined}
             className={`flex flex-col items-center gap-0.5 py-2 text-[11px] font-semibold ${tab.id === aktiv ? "text-ink" : "text-ink-soft/70"}`}>
             <span className={`rounded-full px-4 py-1 ${tab.id === aktiv ? "bg-signal" : ""}`}><tab.icon aria-hidden className="h-5 w-5" /></span>

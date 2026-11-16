@@ -148,20 +148,25 @@ export default async function Referenten({ params, searchParams }: PageProps<"/t
           {offen.length > 0 && t.offen(offen.length)}
         </p>
 
-        <div className="mt-6 space-y-4">
+        <div className="karte mt-4 divide-y divide-line p-0">
           {liste.map((e) => (
-            <details key={e.id} className="karte">
-              <summary className="flex cursor-pointer list-none flex-wrap items-center gap-3">
-                <span className="mr-auto">
-                  <span className="font-display text-lg font-bold">{e.speaker.name}</span>
-                  <span className="block text-sm text-ink-soft">{t.rollen[e.role]}{e.topic ? ` · ${e.topic}` : ""}{e.speaker.affiliation ? ` · ${e.speaker.affiliation}` : ""}</span>
+            <details key={e.id} className="group px-5 py-3">
+              <summary className="grid cursor-pointer list-none items-center gap-x-4 gap-y-1 sm:grid-cols-[minmax(0,1fr)_auto_auto]">
+                <span className="min-w-0">
+                  <span className="font-semibold">{e.speaker.name}</span>
+                  <span className="text-sm text-ink-soft"> · {e.topic && e.topic.toLowerCase().startsWith(t.rollen[e.role].toLowerCase()) ? e.topic : `${t.rollen[e.role]}${e.topic ? `: ${e.topic}` : ""}`}</span>
+                  {e.speaker.affiliation && <span className="block truncate text-xs text-ink-soft">{e.speaker.affiliation}</span>}
                 </span>
-                <span className={`chip ${statusFarbe[e.status]}`}>{t.status[e.status]}</span>
-                {(e.status === "zugesagt" || e.status === "bestaetigt") && (
-                  <span className="text-xs text-ink-soft">{[e.arrival_at ? t.anreiseDa : t.anreiseFehlt, e.slides_received ? t.folienDa : t.folienFehlen, e.bio_received ? t.profilDa : t.profilFehlt].join(" · ")}</span>
-                )}
+                {(e.status === "zugesagt" || e.status === "bestaetigt") ? (
+                  <span className="flex gap-1 text-[11px] font-semibold" aria-label={[e.arrival_at ? t.anreiseDa : t.anreiseFehlt, e.slides_received ? t.folienDa : t.folienFehlen, e.bio_received ? t.profilDa : t.profilFehlt].join(" · ")}>
+                    {([[e.arrival_at, t.anreise], [e.slides_received, t.folien], [e.bio_received, t.kurzprofil]] as const).map(([ok, name]) => (
+                      <span key={name} className={`rounded-full px-2 py-0.5 ${ok ? "bg-gruen-hell" : "bg-paper-deep text-ink-soft"}`}>{ok ? "✓" : "–"} {name}</span>
+                    ))}
+                  </span>
+                ) : <span />}
+                <span className={`chip justify-self-start sm:justify-self-end ${statusFarbe[e.status]}`}>{t.status[e.status]}</span>
               </summary>
-              <form action={gaesteblattSpeichern} className="mt-4 grid gap-3 border-t border-line pt-4 sm:grid-cols-4">
+              <form action={gaesteblattSpeichern} className="mt-4 mb-2 grid gap-3 border-t border-line pt-4 sm:grid-cols-4">
                 <input type="hidden" name="module_id" value={id} /><input type="hidden" name="id" value={e.id} />
                 <div><label className="etikett" htmlFor={`st-${e.id}`}>{w.status}</label>
                   <select id={`st-${e.id}`} name="status" defaultValue={e.status} className="feld">{Object.entries(t.status).map(([k, v]) => <option key={k} value={k}>{v}</option>)}</select></div>
@@ -201,9 +206,11 @@ export default async function Referenten({ params, searchParams }: PageProps<"/t
           ))}
         </div>
 
-        <div className="mt-8 grid gap-6 lg:grid-cols-2">
-          <section className="karte">
-            <h2 className="font-display text-xl font-bold">{t.ausPool}</h2>
+        <details className="mt-6 rounded-3xl bg-white/60 ring-1 ring-line">
+          <summary className="cursor-pointer px-6 py-4 font-semibold">+ {t.neuePerson} / {t.ausPool}</summary>
+        <div className="grid gap-6 px-6 pb-6 lg:grid-cols-2">
+          <section>
+            <h2 className="font-display text-lg font-bold">{t.ausPool}</h2>
             {(pool ?? []).length === 0 ? <p className="mt-2 text-ink-soft">{t.poolLeer}</p> : (
               <form action={referentEinladen} className="mt-4 grid gap-3 sm:grid-cols-2">
                 <input type="hidden" name="module_id" value={id} />
@@ -215,8 +222,8 @@ export default async function Referenten({ params, searchParams }: PageProps<"/t
               </form>
             )}
           </section>
-          <section className="karte">
-            <h2 className="font-display text-xl font-bold">{t.neuePerson}</h2>
+          <section>
+            <h2 className="font-display text-lg font-bold">{t.neuePerson}</h2>
             <form action={referentAnlegen} className="mt-4 grid gap-3 sm:grid-cols-2">
               <input type="hidden" name="module_id" value={id} />
               <div><label className="etikett" htmlFor="n-name">{w.name}</label><input id="n-name" name="name" required className="feld" /></div>
@@ -232,6 +239,7 @@ export default async function Referenten({ params, searchParams }: PageProps<"/t
             </form>
           </section>
         </div>
+        </details>
       </main>
     </>
   );

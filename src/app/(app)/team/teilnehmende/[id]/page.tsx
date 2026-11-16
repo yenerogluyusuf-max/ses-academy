@@ -1,16 +1,17 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { Mail, Phone, QrCode, Send } from "lucide-react";
+import { FileText, Mail, Phone, QrCode, Send } from "lucide-react";
 import { Hinweis as Meldung } from "@/components/team/Hinweis";
 import { KontaktFormular, KontaktKnoepfe, KontaktVerlauf, NotizFormular, ZusageKnoepfe, kontaktHinweisTexte, kontaktHinweise, type Kontakt } from "@/components/team/Kontakt";
 import { Rueckfrage } from "@/components/team/Rueckfrage";
 import { TeamKopf } from "@/components/team/TeamKopf";
 import { Rueckmeldung, laenderNamen } from "@/components/team/Ui";
-import { MailHinweis } from "@/components/team/MailHinweis";
 import { darf, getStaff, requireStaff, type Staff } from "@/lib/auth";
 import { anwesenheitSetzen, beitragEntfernen, beitragHinzufuegen, personSpeichern, ticketSenden } from "@/lib/aktionen/teilnehmende";
 import { auswerten, zusammenfassen } from "@/lib/bewertung";
+import { aussagekraeftig, alterHeute, bewerbungsAngaben } from "@/lib/bewerbung-felder";
+import { profilSpeichern } from "@/lib/aktionen/profil";
 import { istToken, kurzcodeAnzeige } from "@/lib/codes";
 import { mailBereit } from "@/lib/mail";
 import { createClient } from "@/lib/supabase/server";
@@ -316,34 +317,153 @@ function Hinweis({ ton, children }: { ton: "gut" | "warnung" | "neutral"; childr
   return <span className={`chip ${farbe} py-1`}>{children}</span>;
 }
 
+/** Texte des neuen Profils (Umbau 16.11.2026). */
+const N = {
+  de: {
+    jahre: (n: number) => `${n} Jahre`,
+    akte: "Akte als PDF",
+    module: "Module",
+    vonModulen: (a: number, b: number) => `${a} von ${b}`,
+    beworben: "Beworben",
+    staerken: "Stärken und Aufgaben",
+    staerkenText: "Was die Person gut kann, wofür sie verantwortlich ist und wie das Team sie einschätzt. Nur für Admin und Vorstand sichtbar.",
+    kannGut: "Kann gut", verantwortlich: "Verantwortlich für", einschaetzung: "Einschätzung des Teams",
+    nochNichts: "Noch nichts eingetragen.",
+    bearbeiten: "Bearbeiten",
+    kommaHinweis: "Mit Komma trennen, z. B. Moderation, Social Media, Französisch",
+    aufgabenHinweis: "z. B. Einlass, Ekip 7, Ländergruppe Frankreich",
+    zuletztGeaendert: (wann: string) => `Zuletzt geändert ${wann}`,
+    teilnahme: "Teilnahme",
+    teilnahmeText: "Ankunftszeit am Einlass je Tag. Tag antippen, um die Anwesenheit nachzutragen oder zurückzunehmen.",
+    hand: "von Hand",
+    gruppe: "Gruppe", zimmer: "Zimmer",
+    steckbrief: "Steckbrief aus der Bewerbung",
+    keineBewerbung: "Keine Bewerbung gefunden (z. B. Gast oder ohne Formular aufgenommen).",
+    wohnort: "Wohnort", sprachen: "Sprachen", motivation: "Motivation", bewerbungVom: (d: string) => `Bewerbung vom ${d}`,
+    bewerbungStatus: { eingegangen: "offen", in_pruefung: "in Prüfung", angenommen: "angenommen", warteliste: "Warteliste", abgelehnt: "abgelehnt", zurueckgezogen: "zurückgezogen" } as Record<string, string>,
+    dateien: "Foto und Lebenslauf",
+    foto: "Foto", lebenslauf: "Lebenslauf", keinLebenslauf: "Noch kein Lebenslauf hinterlegt.",
+    oeffnen: "Öffnen", hochladen: "Hochladen", ersetzen: "Ersetzen", entfernen: "Entfernen",
+    fotoHinweis: "JPG, PNG oder WebP, höchstens 5 MB.", cvHinweis: "PDF, Word oder Bild, höchstens 10 MB.",
+    stammdatenBearbeiten: "Stammdaten bearbeiten",
+    hinweise: {
+      "profil-gespeichert": "Stärken und Aufgaben gespeichert.", "profil-fehler": "Das hat nicht geklappt.",
+      "foto-gespeichert": "Foto gespeichert.", "foto-entfernt": "Foto entfernt.", "cv-gespeichert": "Lebenslauf gespeichert.", "cv-entfernt": "Lebenslauf entfernt.",
+      "datei-zu-gross": "Die Datei ist zu groß.", "datei-art": "Diese Dateiart geht hier nicht.", "datei-fehlt": "Bitte zuerst eine Datei auswählen.", "datei-fehler": "Die Datei konnte nicht gespeichert werden.",
+    } as Record<string, string>,
+  },
+  tr: {
+    jahre: (n: number) => `${n} yaşında`,
+    akte: "Dosya (PDF)",
+    module: "Modüller",
+    vonModulen: (a: number, b: number) => `${b} modülden ${a}`,
+    beworben: "Başvuru",
+    staerken: "Güçlü yönler ve görevler",
+    staerkenText: "Kişinin iyi olduğu konular, sorumlu olduğu görevler ve ekibin değerlendirmesi. Yalnızca yönetici ve yönetim kurulu görür.",
+    kannGut: "İyi olduğu konular", verantwortlich: "Sorumlu olduğu", einschaetzung: "Ekibin değerlendirmesi",
+    nochNichts: "Henüz bir şey girilmedi.",
+    bearbeiten: "Düzenle",
+    kommaHinweis: "Virgülle ayır, ör. moderasyon, sosyal medya, Fransızca",
+    aufgabenHinweis: "ör. giriş, Ekip 7, Fransa ülke grubu",
+    zuletztGeaendert: (wann: string) => `Son değişiklik: ${wann}`,
+    teilnahme: "Katılım",
+    teilnahmeText: "Her gün girişteki geliş saati. Katılımı eklemek ya da geri almak için güne dokun.",
+    hand: "elle",
+    gruppe: "Grup", zimmer: "Oda",
+    steckbrief: "Başvurudan bilgiler",
+    keineBewerbung: "Başvuru bulunamadı (ör. misafir ya da form olmadan alındı).",
+    wohnort: "İkamet", sprachen: "Diller", motivation: "Motivasyon", bewerbungVom: (d: string) => `Başvuru tarihi: ${d}`,
+    bewerbungStatus: { eingegangen: "açık", in_pruefung: "inceleniyor", angenommen: "kabul edildi", warteliste: "bekleme listesi", abgelehnt: "reddedildi", zurueckgezogen: "geri çekildi" },
+    dateien: "Fotoğraf ve özgeçmiş",
+    foto: "Fotoğraf", lebenslauf: "Özgeçmiş", keinLebenslauf: "Henüz özgeçmiş yok.",
+    oeffnen: "Aç", hochladen: "Yükle", ersetzen: "Değiştir", entfernen: "Kaldır",
+    fotoHinweis: "JPG, PNG veya WebP, en fazla 5 MB.", cvHinweis: "PDF, Word veya görsel, en fazla 10 MB.",
+    stammdatenBearbeiten: "Temel bilgileri düzenle",
+    hinweise: {
+      "profil-gespeichert": "Güçlü yönler ve görevler kaydedildi.", "profil-fehler": teamTexte.tr.meldung.fehler,
+      "foto-gespeichert": "Fotoğraf kaydedildi.", "foto-entfernt": "Fotoğraf kaldırıldı.", "cv-gespeichert": "Özgeçmiş kaydedildi.", "cv-entfernt": "Özgeçmiş kaldırıldı.",
+      "datei-zu-gross": "Dosya çok büyük.", "datei-art": "Bu dosya türü burada olmuyor.", "datei-fehlt": "Lütfen önce bir dosya seç.", "datei-fehler": "Dosya kaydedilemedi.",
+    },
+  },
+  fr: {
+    jahre: (n: number) => `${n} ans`,
+    akte: "Dossier (PDF)",
+    module: "Modules",
+    vonModulen: (a: number, b: number) => `${a} sur ${b}`,
+    beworben: "Candidature",
+    staerken: "Points forts et missions",
+    staerkenText: "Ce que la personne sait bien faire, ce dont elle est responsable et l’avis de l’équipe. Visible uniquement par l’admin et le bureau.",
+    kannGut: "Points forts", verantwortlich: "Responsable de", einschaetzung: "Avis de l’équipe",
+    nochNichts: "Rien d’indiqué pour l’instant.",
+    bearbeiten: "Modifier",
+    kommaHinweis: "Séparer par des virgules, p. ex. modération, réseaux sociaux, français",
+    aufgabenHinweis: "p. ex. accueil, Ekip 7, groupe France",
+    zuletztGeaendert: (wann: string) => `Dernière modification ${wann}`,
+    teilnahme: "Participation",
+    teilnahmeText: "Heure d’arrivée à l’accueil par jour. Toucher un jour pour ajouter ou retirer la présence.",
+    hand: "à la main",
+    gruppe: "Groupe", zimmer: "Chambre",
+    steckbrief: "Profil issu de la candidature",
+    keineBewerbung: "Aucune candidature trouvée (p. ex. invité ou ajouté sans formulaire).",
+    wohnort: "Domicile", sprachen: "Langues", motivation: "Motivation", bewerbungVom: (d: string) => `Candidature du ${d}`,
+    bewerbungStatus: { eingegangen: "ouverte", in_pruefung: "en examen", angenommen: "acceptée", warteliste: "liste d’attente", abgelehnt: "refusée", zurueckgezogen: "retirée" },
+    dateien: "Photo et CV",
+    foto: "Photo", lebenslauf: "CV", keinLebenslauf: "Pas encore de CV.",
+    oeffnen: "Ouvrir", hochladen: "Importer", ersetzen: "Remplacer", entfernen: "Supprimer",
+    fotoHinweis: "JPG, PNG ou WebP, 5 Mo maximum.", cvHinweis: "PDF, Word ou image, 10 Mo maximum.",
+    stammdatenBearbeiten: "Modifier les données de base",
+    hinweise: {
+      "profil-gespeichert": "Points forts et missions enregistrés.", "profil-fehler": teamTexte.fr.meldung.fehler,
+      "foto-gespeichert": "Photo enregistrée.", "foto-entfernt": "Photo supprimée.", "cv-gespeichert": "CV enregistré.", "cv-entfernt": "CV supprimé.",
+      "datei-zu-gross": "Le fichier est trop volumineux.", "datei-art": "Ce type de fichier n’est pas accepté ici.", "datei-fehlt": "Choisis d’abord un fichier.", "datei-fehler": "Le fichier n’a pas pu être enregistré.",
+    },
+  },
+} satisfies Record<TeamSprache, unknown>;
+
+/** Chips einer Liste (Stärken, Aufgaben). */
+function Chips({ werte, ton }: { werte: string[]; ton: string }) {
+  return <ul className="flex flex-wrap gap-1.5">{werte.map((x) => <li key={x} className={`rounded-full px-3 py-1 text-sm font-semibold ${ton}`}>{x}</li>)}</ul>;
+}
+
 export default async function Person({ params, searchParams }: PageProps<"/team/teilnehmende/[id]">) {
   const staff = await requireStaff("orga");
   const l = staff.sprache;
   const t = T[l];
+  const n = N[l];
   const w = teamTexte[l].wort;
   const { tag: tagFormat, datum, kurzDatum } = formate[l];
   const laender = laenderNamen[l];
+  const uhr = new Intl.DateTimeFormat(teamLocale[l], { hour: "2-digit", minute: "2-digit", timeZone: "Europe/Berlin" });
   const { id } = await params;
   const sp = await searchParams;
   if (!istToken(id)) notFound();
   const modulAusLink = typeof sp.modul === "string" && istToken(sp.modul) ? sp.modul : null;
   if (!darf.alles(staff.role)) return <OrgaKarte staff={staff} id={id} modulId={modulAusLink} hinweis={sp.hinweis} />;
   const supabase = await createClient();
-  const [{ data: p }, { data: regionen }, { data: mentoren }, { data: regs }, { data: abg }, { data: beitraege }, { data: kennzahlen }, { data: kontakte }, { data: zimmer }] = await Promise.all([
+  const [{ data: p }, { data: regionen }, { data: mentoren }, { data: regs }, { data: abg }, { data: beitraege }, { data: kennzahlen }, { data: kontakte }, { data: zimmer }, { data: profil }, { data: gruppen }] = await Promise.all([
     supabase.from("participants").select("*").eq("id", id).maybeSingle(),
     supabase.from("regions").select("id,name").order("name"),
     supabase.from("mentors").select("id,name").order("name"),
-    supabase.from("registrations").select("id,status,rsvp,modules(id,title,cancelled_at,module_days(id,starts_at,ends_at)),attendances(id,module_day_id,method)").eq("participant_id", id),
+    supabase.from("registrations").select("id,status,rsvp,modules(id,title,cancelled_at,module_days(id,starts_at,ends_at)),attendances(id,module_day_id,method,checked_in_at)").eq("participant_id", id),
     supabase.from("submission_participants").select("submissions(id,label,assignments(number,title),reviews(*))").eq("participant_id", id),
     supabase.from("contributions").select("*").eq("participant_id", id).order("published_on", { ascending: false }),
     supabase.rpc("get_participant_analytics"),
     supabase.rpc("get_contacts", { p_participant_id: id }),
     supabase.rpc("get_person_rooms", { p_participant_id: id }),
+    supabase.from("participant_profiles").select("*").eq("participant_id", id).maybeSingle(),
+    supabase.from("group_members").select("module_id, module_groups(name, room)").eq("participant_id", id),
   ]);
   if (!p) notFound();
+  // Bewerbung(en): verknüpft oder mit derselben E-Mail; die neueste zählt
+  const { data: bewerbungen } = await supabase.from("applications")
+    .select("id, status, created_at, age, birth_year, city, country, languages, motivation, details")
+    .or(p.email ? `participant_id.eq.${id},email.eq."${p.email}"` : `participant_id.eq.${id}`)
+    .order("created_at", { ascending: false });
+  const bewerbung = (bewerbungen ?? []).find((b) => b.status === "angenommen") ?? (bewerbungen ?? [])[0] ?? null;
   const jetzt = jetztMs();
+  const alter = alterHeute(bewerbung, jetzt);
   const k = (kennzahlen ?? []).find((a) => a.participant_id === id);
-  const anmeldungen = ((regs ?? []) as unknown as Reg[])
+  const anmeldungen = ((regs ?? []) as unknown as (Omit<Reg, "attendances"> & { attendances: { id: string; module_day_id: string; method: string; checked_in_at: string }[] })[])
     .map((r) => ({ ...r, tage: [...r.modules.module_days].sort((a, b) => a.starts_at.localeCompare(b.starts_at)) }))
     .sort((a, b) => (a.tage[0]?.starts_at ?? "9").localeCompare(b.tage[0]?.starts_at ?? "9"));
   const abgaben = ((abg ?? []) as unknown as Abg[]).map((a) => a.submissions!).filter(Boolean)
@@ -354,28 +474,36 @@ export default async function Person({ params, searchParams }: PageProps<"/team/
   const mailAn = mailBereit();
   const besucht = k?.total_attended ?? 0;
   const faellig = besucht + (k?.total_no_shows ?? 0);
+  const moduleVorbei = anmeldungen.filter((r) => r.status === "confirmed" && !r.modules.cancelled_at && r.tage.some((x) => Date.parse(x.ends_at) < jetzt));
+  const moduleDa = moduleVorbei.filter((r) => r.attendances.length > 0).length;
   const noten = abgaben.map((a) => zusammenfassen(a.reviews).durchschnitt).filter((d): d is number => d != null);
   const notenSchnitt = noten.length ? Math.round((noten.reduce((x, y) => x + y, 0) / noten.length) * 10) / 10 : null;
   const code = typeof sp.hinweis === "string" ? sp.hinweis : undefined;
+  const gruppeVon = new Map((gruppen ?? []).map((g) => [g.module_id, g.module_groups as unknown as { name: string; room: string | null } | null]));
+  const zimmerVon = new Map((zimmer ?? []).map((z) => [z.module_id, z]));
+  const angaben = bewerbungsAngaben(bewerbung?.details, l);
+  const skills = profil?.skills ?? [];
+  const tasks = profil?.tasks ?? [];
 
   return (
     <>
       <TeamKopf staff={staff} aktiv="teilnehmende" breit />
       <main lang={l} className="mx-auto max-w-7xl px-4 py-8">
-        <Link href={`/team/teilnehmende/${modulAusLink ? `?modul=${modulAusLink}` : ""}`} className="text-sm font-semibold text-ink-soft hover:text-ink">{t.alleTeilnehmenden}</Link>
+        <Link href={modulAusLink ? `/team/module/${modulAusLink}/teilnehmende/` : "/team/teilnehmende/"} className="text-sm font-semibold text-ink-soft hover:text-ink">{t.alleTeilnehmenden}</Link>
 
-        {/* Kopf: wer ist das, wie erreiche ich die Person, was ist offen */}
+        {/* Kopf: wer ist das, wie erreiche ich die Person */}
         <header className="karte mt-3 mb-6">
           <div className="flex flex-wrap items-start gap-5">
             {p.photo_path
-              ? <img src={`/portal/foto/${p.id}/`} alt="" className="h-20 w-20 shrink-0 rounded-full object-cover ring-1 ring-line" />
-              : <span aria-hidden className="flex h-20 w-20 shrink-0 items-center justify-center rounded-full bg-forest font-display text-2xl font-bold text-paper">
+              ? <img src={`/portal/foto/${p.id}/`} alt="" className="h-24 w-24 shrink-0 rounded-2xl object-cover ring-1 ring-line" />
+              : <span aria-hidden className="flex h-24 w-24 shrink-0 items-center justify-center rounded-2xl bg-forest font-display text-3xl font-bold text-paper">
                   {(p.first_name[0] ?? "") + (p.last_name[0] ?? "")}
                 </span>}
             <div className="min-w-0 flex-1">
               <h1 className="font-display text-3xl leading-tight font-extrabold sm:text-4xl">{name}</h1>
               <p className="mt-1 text-ink-soft">
-                {[region, p.country && p.country !== "other" ? laender[p.country] : null, p.branch, p.gender === "w" ? t.weiblich : p.gender === "m" ? t.maennlich : null].filter(Boolean).join(" · ") || t.keineRegion}
+                {[...new Map([alter ? n.jahre(alter) : null, bewerbung?.city, region, p.country && p.country !== "other" ? laender[p.country] : null, p.branch, p.gender === "w" ? t.weiblich : p.gender === "m" ? t.maennlich : null]
+                  .filter((x): x is string => Boolean(x)).map((x) => [x.trim().toLocaleLowerCase("de"), x.trim()])).values()].join(" · ") || t.keineRegion}
                 {mentor && <> · {t.verantwortlich} <span className="font-semibold text-ink">{mentor}</span></>}
               </p>
               <div className="mt-3 flex flex-wrap gap-x-5 gap-y-1.5 text-sm">
@@ -392,17 +520,17 @@ export default async function Person({ params, searchParams }: PageProps<"/team/
               </div>
             </div>
             <div className="flex w-full flex-wrap gap-2 sm:w-auto sm:flex-col">
+              <a href={`/team/teilnehmende/${p.id}/akte/`} target="_blank" className="knopf"><FileText aria-hidden className="h-4 w-4" />{n.akte}</a>
               <a href={`/ticket/${p.link_token}/`} target="_blank" rel="noopener noreferrer" className="knopf-hell"><QrCode aria-hidden className="h-4 w-4" />{t.qrAnsehen}</a>
               <form action={ticketSenden}>
                 <input type="hidden" name="id" value={p.id} />
-                <button className="knopf w-full" disabled={!p.email || !mailAn}><Send aria-hidden className="h-4 w-4" />{t.qrMail}</button>
+                <button className="knopf-hell w-full" disabled={!p.email || !mailAn}><Send aria-hidden className="h-4 w-4" />{t.qrMail}</button>
               </form>
-              <MailHinweis knapp className="max-w-56" sprache={l} />
             </div>
           </div>
 
-          {/* Kurzbilanz statt vieler Kästen */}
-          <dl className="mt-6 grid gap-4 border-t border-line pt-5 sm:grid-cols-3">
+          {/* Kurzbilanz */}
+          <dl className="mt-6 grid gap-4 border-t border-line pt-5 sm:grid-cols-2 lg:grid-cols-4">
             <div>
               <dt className="text-xs font-semibold tracking-wide text-ink-soft uppercase">{t.anwesenheit}</dt>
               <dd className="mt-1">
@@ -414,6 +542,10 @@ export default async function Person({ params, searchParams }: PageProps<"/team/
                   </span>
                 )}
               </dd>
+            </div>
+            <div>
+              <dt className="text-xs font-semibold tracking-wide text-ink-soft uppercase">{n.module}</dt>
+              <dd className="mt-1"><span className="font-display text-2xl font-extrabold">{moduleVorbei.length ? n.vonModulen(moduleDa, moduleVorbei.length) : "–"}</span></dd>
             </div>
             <div>
               <dt className="text-xs font-semibold tracking-wide text-ink-soft uppercase">{t.zuletztDa}</dt>
@@ -438,23 +570,59 @@ export default async function Person({ params, searchParams }: PageProps<"/team/
 
         {code && code in kontaktHinweise
           ? <Meldung code={code} texte={kontaktHinweisTexte[l]} />
-          : <Rueckmeldung hinweis={sp.hinweis} fehler={sp.fehler} sprache={l} />}
+          : <Rueckmeldung hinweis={sp.hinweis} fehler={sp.fehler} sprache={l} texte={n.hinweise} />}
 
         <div className="grid items-start gap-6 lg:grid-cols-[minmax(0,1.35fr)_minmax(0,1fr)]">
           <div className="space-y-6">
+            {/* Stärken und Aufgaben */}
+            <section id="staerken" className="karte scroll-mt-4">
+              <h2 className="font-display text-2xl font-bold">{n.staerken}</h2>
+              <p className="mt-1 text-sm text-ink-soft">{n.staerkenText}</p>
+              <dl className="mt-4 space-y-4">
+                <div>
+                  <dt className="mb-1.5 text-xs font-semibold tracking-wide text-ink-soft uppercase">{n.kannGut}</dt>
+                  <dd>{skills.length ? <Chips werte={skills} ton="bg-gruen-hell" /> : <span className="text-sm text-ink-soft">{n.nochNichts}</span>}</dd>
+                </div>
+                <div>
+                  <dt className="mb-1.5 text-xs font-semibold tracking-wide text-ink-soft uppercase">{n.verantwortlich}</dt>
+                  <dd>{tasks.length ? <Chips werte={tasks} ton="bg-signal/60" /> : <span className="text-sm text-ink-soft">{n.nochNichts}</span>}</dd>
+                </div>
+                {profil?.assessment && (
+                  <div>
+                    <dt className="mb-1.5 text-xs font-semibold tracking-wide text-ink-soft uppercase">{n.einschaetzung}</dt>
+                    <dd className="text-sm whitespace-pre-line">{profil.assessment}</dd>
+                  </div>
+                )}
+              </dl>
+              <details className="mt-4">
+                <summary className="cursor-pointer text-sm font-semibold">{n.bearbeiten}</summary>
+                <form action={profilSpeichern} className="mt-3 grid gap-3">
+                  <input type="hidden" name="participant_id" value={p.id} />
+                  <div><label className="etikett" htmlFor="skills">{n.kannGut}</label><input id="skills" name="skills" defaultValue={skills.join(", ")} className="feld" placeholder={n.kommaHinweis} /></div>
+                  <div><label className="etikett" htmlFor="tasks">{n.verantwortlich}</label><input id="tasks" name="tasks" defaultValue={tasks.join(", ")} className="feld" placeholder={n.aufgabenHinweis} /></div>
+                  <div><label className="etikett" htmlFor="assessment">{n.einschaetzung}</label><textarea id="assessment" name="assessment" rows={3} maxLength={4000} defaultValue={profil?.assessment ?? ""} className="feld" /></div>
+                  <button className="knopf justify-self-start">{w.speichern}</button>
+                </form>
+                {profil?.updated_at && <p className="mt-2 text-xs text-ink-soft">{n.zuletztGeaendert(datum(profil.updated_at))}</p>}
+              </details>
+            </section>
+
+            {/* Teilnahme je Modul */}
             <section className="karte">
               <div className="mb-1 flex flex-wrap items-baseline justify-between gap-2">
-                <h2 className="font-display text-2xl font-bold">{t.moduleUndAnwesenheit}</h2>
+                <h2 className="font-display text-2xl font-bold">{n.teilnahme}</h2>
                 <Link href="/team/auswertung/" className="link text-sm">{t.zurAuswertung}</Link>
               </div>
-              <p className="mb-3 text-sm text-ink-soft">{t.tagAntippen}</p>
+              <p className="mb-3 text-sm text-ink-soft">{n.teilnahmeText}</p>
               <ul className="divide-y divide-line">
                 {anmeldungen.map((r) => {
                   const s = status(r, r.tage, jetzt, t.status);
+                  const g = gruppeVon.get(r.modules.id);
+                  const z = zimmerVon.get(r.modules.id);
                   return (
                     <li key={r.id} className="py-4">
                       <div className="flex flex-wrap items-center justify-between gap-2">
-                        <p><span className="font-semibold">{r.modules.title}</span>{r.tage[0] && <span className="text-sm text-ink-soft"> · {datum(r.tage[0].starts_at)}</span>}</p>
+                        <p><Link href={`/team/module/${r.modules.id}/teilnehmende/`} className="font-semibold hover:underline">{r.modules.title}</Link>{r.tage[0] && <span className="text-sm text-ink-soft"> · {datum(r.tage[0].starts_at)}</span>}</p>
                         <span className={`chip ${s.klasse}`}>{s.text}</span>
                       </div>
                       {r.status === "confirmed" && !r.modules.cancelled_at && r.tage.some((x) => Date.parse(x.ends_at) > jetzt) && (
@@ -476,11 +644,19 @@ export default async function Person({ params, searchParams }: PageProps<"/team/
                                 className={`rounded-full px-3 py-1 text-sm font-semibold transition ${a ? "bg-forest text-paper hover:bg-ink" : kommt ? "text-ink-soft ring-1 ring-line ring-inset hover:ring-ink/30" : "bg-paper text-ink-soft ring-1 ring-line ring-inset hover:ring-ink/30"}`}
                                 title={a ? t.eingecheckt(a.method) : t.nichtEingecheckt}>
                                 {a ? "✓ " : ""}{tagFormat.format(new Date(x.starts_at))}
+                                {a && a.method !== "manual" && <span className="font-normal opacity-80"> · {uhr.format(new Date(a.checked_in_at))}</span>}
                               </button>
                             </form>
                           );
                         })}
                       </div>
+                      {(g || z) && (
+                        <p className="mt-2 text-sm text-ink-soft">
+                          {g && <>{n.gruppe}: <span className="text-ink">{g.name}</span>{g.room ? ` (${g.room})` : ""}</>}
+                          {g && z && " · "}
+                          {z && <>{n.zimmer}: <span className="text-ink">{z.room_label}</span>{z.mates.length ? ` ${t.mit(z.mates.join(", "))}` : ""}</>}
+                        </p>
+                      )}
                     </li>
                   );
                 })}
@@ -489,20 +665,6 @@ export default async function Person({ params, searchParams }: PageProps<"/team/
             </section>
 
             <Verlauf id={p.id} name={name} phone={p.phone} sprache={l} modulId={modulAusLink ?? anmeldungen.find((r) => !r.modules.cancelled_at && r.tage.some((x) => Date.parse(x.ends_at) > jetzt))?.modules.id ?? null} kontakte={(kontakte ?? []) as Kontakt[]} />
-
-            {(zimmer ?? []).length > 0 && (
-              <section className="karte">
-                <h2 className="font-display mb-3 text-2xl font-bold">{t.zimmer}</h2>
-                <ul className="divide-y divide-line text-sm">
-                  {(zimmer ?? []).map((z) => (
-                    <li key={z.module_id} className="py-2">
-                      <span className="font-semibold">{z.module_title}</span>{z.module_start && <span className="text-ink-soft"> · {kurzDatum(z.module_start)}</span>} · {t.zimmerNr(z.room_label)}
-                      <span className="block text-ink-soft">{z.mates.length ? t.mit(z.mates.join(", ")) : t.allein}</span>
-                    </li>
-                  ))}
-                </ul>
-              </section>
-            )}
 
             <section className="karte">
               <h2 className="font-display mb-3 text-2xl font-bold">{teamTexte[l].bereiche.hausaufgaben}</h2>
@@ -570,53 +732,117 @@ export default async function Person({ params, searchParams }: PageProps<"/team/
             </section>
           </div>
 
-          <section className="karte lg:sticky lg:top-6">
-            <h2 className="font-display mb-4 text-2xl font-bold">{t.stammdaten}</h2>
-            <form action={personSpeichern} className="grid gap-x-3 gap-y-4 sm:grid-cols-2">
-              <input type="hidden" name="id" value={p.id} />
-              <div><label className="etikett" htmlFor="first_name">{t.vornamen}</label><input id="first_name" name="first_name" required defaultValue={p.first_name} className="feld" /></div>
-              <div><label className="etikett" htmlFor="last_name">{w.nachname}</label><input id="last_name" name="last_name" defaultValue={p.last_name} className="feld" /></div>
-              <div className="sm:col-span-2"><label className="etikett" htmlFor="email">{w.email}</label><input id="email" name="email" type="email" defaultValue={p.email ?? ""} className="feld" /></div>
-              <div className="sm:col-span-2"><label className="etikett" htmlFor="phone">{w.telefon}</label><input id="phone" name="phone" defaultValue={p.phone ?? ""} className="feld" /></div>
-              <div>
-                <label className="etikett" htmlFor="region_id">{w.region}</label>
-                <select id="region_id" name="region_id" defaultValue={p.region_id ?? ""} className="feld">
-                  <option value="">{t.bitteWaehlen}</option>
-                  {regionen?.map((r) => <option key={r.id} value={r.id}>{r.name}</option>)}
-                </select>
+          <div className="space-y-6">
+            {/* Steckbrief aus der Bewerbung */}
+            <section className="karte">
+              <h2 className="font-display text-2xl font-bold">{n.steckbrief}</h2>
+              {!bewerbung ? <p className="mt-2 text-sm text-ink-soft">{n.keineBewerbung}</p> : (
+                <>
+                  <p className="mt-1 text-sm text-ink-soft">{n.bewerbungVom(datum(bewerbung.created_at))} · {n.bewerbungStatus[bewerbung.status] ?? bewerbung.status}</p>
+                  <dl className="mt-4 space-y-3 text-sm">
+                    {(bewerbung.city || bewerbung.country) && <div><dt className="text-xs font-semibold tracking-wide text-ink-soft uppercase">{n.wohnort}</dt><dd>{[bewerbung.city, bewerbung.country].filter(Boolean).join(", ")}</dd></div>}
+                    {bewerbung.languages.length > 0 && <div><dt className="text-xs font-semibold tracking-wide text-ink-soft uppercase">{n.sprachen}</dt><dd>{bewerbung.languages.join(" · ")}</dd></div>}
+                    {angaben.map((a) => <div key={a.name}><dt className="text-xs font-semibold tracking-wide text-ink-soft uppercase">{a.name}</dt><dd className="whitespace-pre-line">{a.wert}</dd></div>)}
+                  </dl>
+                  {aussagekraeftig(bewerbung.motivation) && (
+                    <details className="mt-4">
+                      <summary className="cursor-pointer text-sm font-semibold">{n.motivation}</summary>
+                      <p className="mt-2 text-sm whitespace-pre-line">{bewerbung.motivation}</p>
+                    </details>
+                  )}
+                </>
+              )}
+            </section>
+
+            {/* Foto und Lebenslauf */}
+            <section id="dateien" className="karte scroll-mt-4">
+              <h2 className="font-display text-2xl font-bold">{n.dateien}</h2>
+              <div className="mt-4 space-y-5">
+                <div>
+                  <p className="text-xs font-semibold tracking-wide text-ink-soft uppercase">{n.lebenslauf}</p>
+                  {profil?.cv_path
+                    ? <p className="mt-1 flex flex-wrap items-center gap-2 text-sm"><a href={`/team/teilnehmende/${p.id}/dateien/?art=lebenslauf`} target="_blank" className="link">{profil.cv_name ?? n.lebenslauf}</a></p>
+                    : <p className="mt-1 text-sm text-ink-soft">{n.keinLebenslauf}</p>}
+                  <form action={`/team/teilnehmende/${p.id}/dateien/`} method="post" encType="multipart/form-data" className="mt-2 flex flex-wrap items-center gap-2">
+                    <input type="hidden" name="art" value="lebenslauf" /><input type="hidden" name="aktion" value="hochladen" />
+                    <input type="file" name="datei" required accept=".pdf,.doc,.docx,image/jpeg,image/png" className="min-w-0 flex-1 text-sm" aria-label={n.lebenslauf} />
+                    <button className="knopf-hell">{profil?.cv_path ? n.ersetzen : n.hochladen}</button>
+                  </form>
+                  <p className="mt-1 text-xs text-ink-soft">{n.cvHinweis}</p>
+                  {profil?.cv_path && (
+                    <form action={`/team/teilnehmende/${p.id}/dateien/`} method="post" encType="multipart/form-data" className="mt-1">
+                      <input type="hidden" name="art" value="lebenslauf" /><input type="hidden" name="aktion" value="entfernen" />
+                      <button className="text-xs text-ink-soft underline">{n.entfernen}</button>
+                    </form>
+                  )}
+                </div>
+                <div className="border-t border-line pt-4">
+                  <p className="text-xs font-semibold tracking-wide text-ink-soft uppercase">{n.foto}</p>
+                  <form action={`/team/teilnehmende/${p.id}/dateien/`} method="post" encType="multipart/form-data" className="mt-2 flex flex-wrap items-center gap-2">
+                    <input type="hidden" name="art" value="foto" /><input type="hidden" name="aktion" value="hochladen" />
+                    <input type="file" name="datei" required accept="image/jpeg,image/png,image/webp" className="min-w-0 flex-1 text-sm" aria-label={n.foto} />
+                    <button className="knopf-hell">{p.photo_path ? n.ersetzen : n.hochladen}</button>
+                  </form>
+                  <p className="mt-1 text-xs text-ink-soft">{n.fotoHinweis}</p>
+                  {p.photo_path && (
+                    <form action={`/team/teilnehmende/${p.id}/dateien/`} method="post" encType="multipart/form-data" className="mt-1">
+                      <input type="hidden" name="art" value="foto" /><input type="hidden" name="aktion" value="entfernen" />
+                      <button className="text-xs text-ink-soft underline">{n.entfernen}</button>
+                    </form>
+                  )}
+                </div>
               </div>
-              <div>
-                <label className="etikett" htmlFor="country">{t.land}</label>
-                <select id="country" name="country" defaultValue={p.country ?? ""} className="feld">
-                  <option value="">{t.ausRegion}</option>
-                  {Object.entries(laender).map(([kuerzel, v]) => <option key={kuerzel} value={kuerzel}>{v}</option>)}
-                </select>
-              </div>
-              <div>
-                <label className="etikett" htmlFor="branch">GT / KGT</label>
-                <select id="branch" name="branch" defaultValue={p.branch ?? ""} className="feld">
-                  <option value="">{t.bitteWaehlen}</option><option>GT</option><option>KGT</option>
-                </select>
-              </div>
-              <div>
-                <label className="etikett" htmlFor="gender">{t.geschlecht}</label>
-                <select id="gender" name="gender" defaultValue={p.gender ?? ""} className="feld">
-                  <option value="">{t.keineAngabe}</option><option value="w">{t.weiblich}</option><option value="m">{t.maennlich}</option>
-                </select>
-              </div>
-              <div className="sm:col-span-2">
-                <label className="etikett" htmlFor="mentor_id">{t.verantwortlichePerson}</label>
-                <select id="mentor_id" name="mentor_id" defaultValue={p.mentor_id ?? ""} className="feld">
-                  <option value="">{t.keine}</option>
-                  {mentoren?.map((m) => <option key={m.id} value={m.id}>{m.name}</option>)}
-                </select>
-              </div>
-              <div className="flex flex-wrap items-center justify-between gap-3 sm:col-span-2">
-                <label className="flex items-center gap-2 text-sm font-semibold"><input type="checkbox" name="active" defaultChecked={p.active} className="h-4 w-4 accent-ink" /> {t.nimmtTeil}</label>
-                <button className="knopf">{w.speichern}</button>
-              </div>
-            </form>
-          </section>
+            </section>
+
+            {/* Stammdaten: eingeklappt */}
+            <details className="karte">
+              <summary className="cursor-pointer font-display text-xl font-bold">{n.stammdatenBearbeiten}</summary>
+              <form action={personSpeichern} className="mt-4 grid gap-x-3 gap-y-4 sm:grid-cols-2">
+                <input type="hidden" name="id" value={p.id} />
+                <div><label className="etikett" htmlFor="first_name">{t.vornamen}</label><input id="first_name" name="first_name" required defaultValue={p.first_name} className="feld" /></div>
+                <div><label className="etikett" htmlFor="last_name">{w.nachname}</label><input id="last_name" name="last_name" defaultValue={p.last_name} className="feld" /></div>
+                <div className="sm:col-span-2"><label className="etikett" htmlFor="email">{w.email}</label><input id="email" name="email" type="email" defaultValue={p.email ?? ""} className="feld" /></div>
+                <div className="sm:col-span-2"><label className="etikett" htmlFor="phone">{w.telefon}</label><input id="phone" name="phone" defaultValue={p.phone ?? ""} className="feld" /></div>
+                <div>
+                  <label className="etikett" htmlFor="region_id">{w.region}</label>
+                  <select id="region_id" name="region_id" defaultValue={p.region_id ?? ""} className="feld">
+                    <option value="">{t.bitteWaehlen}</option>
+                    {regionen?.map((r) => <option key={r.id} value={r.id}>{r.name}</option>)}
+                  </select>
+                </div>
+                <div>
+                  <label className="etikett" htmlFor="country">{t.land}</label>
+                  <select id="country" name="country" defaultValue={p.country ?? ""} className="feld">
+                    <option value="">{t.ausRegion}</option>
+                    {Object.entries(laender).map(([kuerzel, v]) => <option key={kuerzel} value={kuerzel}>{v}</option>)}
+                  </select>
+                </div>
+                <div>
+                  <label className="etikett" htmlFor="branch">GT / KGT</label>
+                  <select id="branch" name="branch" defaultValue={p.branch ?? ""} className="feld">
+                    <option value="">{t.bitteWaehlen}</option><option>GT</option><option>KGT</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="etikett" htmlFor="gender">{t.geschlecht}</label>
+                  <select id="gender" name="gender" defaultValue={p.gender ?? ""} className="feld">
+                    <option value="">{t.keineAngabe}</option><option value="w">{t.weiblich}</option><option value="m">{t.maennlich}</option>
+                  </select>
+                </div>
+                <div className="sm:col-span-2">
+                  <label className="etikett" htmlFor="mentor_id">{t.verantwortlichePerson}</label>
+                  <select id="mentor_id" name="mentor_id" defaultValue={p.mentor_id ?? ""} className="feld">
+                    <option value="">{t.keine}</option>
+                    {mentoren?.map((m) => <option key={m.id} value={m.id}>{m.name}</option>)}
+                  </select>
+                </div>
+                <div className="flex flex-wrap items-center justify-between gap-3 sm:col-span-2">
+                  <label className="flex items-center gap-2 text-sm font-semibold"><input type="checkbox" name="active" defaultChecked={p.active} className="h-4 w-4 accent-ink" /> {t.nimmtTeil}</label>
+                  <button className="knopf">{w.speichern}</button>
+                </div>
+              </form>
+            </details>
+          </div>
         </div>
       </main>
     </>

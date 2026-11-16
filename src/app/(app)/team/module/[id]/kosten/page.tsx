@@ -185,7 +185,7 @@ export default async function Kosten({ params, searchParams }: PageProps<"/team/
 
   return (
     <>
-      <TeamKopf staff={staff} aktiv={darf.alles(staff.role) ? "module" : "logistik"} breit />
+      <TeamKopf staff={staff} aktiv="module" breit />
       <main lang={l} className="mx-auto max-w-6xl px-4 py-8">
         <ModulReiter id={id} titel={modul.title} aktiv="kosten/" />
         <Hinweis code={hinweis} texte={t.hinweise} />

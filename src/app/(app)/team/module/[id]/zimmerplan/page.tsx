@@ -338,9 +338,10 @@ export default async function ZimmerplanSeite({ params, searchParams }: PageProp
 
   return (
     <>
-      <TeamKopf staff={staff} aktiv={darf.alles(staff.role) ? "module" : "logistik"} breit />
+      <TeamKopf staff={staff} aktiv="module" breit />
       <main lang={l} className="mx-auto max-w-7xl px-4 py-8">
         <ModulReiter id={id} titel={d.modul.title} aktiv="zimmerplan/" />
+        <Link href={`/team/module/${id}/hotel/${d.hotel ? `?hotel=${d.hotel.id}` : ""}`} className="text-sm font-semibold text-ink-soft hover:text-ink">← {{ de: "Zurück zur Belegung", tr: "Doluluğa geri dön", fr: "Retour à l’occupation" }[l]}</Link>
         <Hinweis code={sp.hinweis} texte={t.hinweise} />
         {plancode !== null && <p role="status" className="mt-4 rounded-2xl bg-emerald-100 p-4 text-emerald-950">{t.planUebernommen(plancode)}</p>}
 

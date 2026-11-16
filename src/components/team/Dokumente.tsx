@@ -90,11 +90,11 @@ export async function TagesordnungKnoepfe({ dokumente, sprache: l }: { dokumente
   if (liste.length === 0) return null;
   const t = T[await sprache(l)];
   return (
-    <div className="mt-5 mb-8">
-      <h3 className="font-semibold">{t.tagesordnungen}</h3>
-      <ul className="mt-2 flex flex-wrap gap-2">
+    <div className="mt-4">
+      <h3 className="text-sm font-semibold">{t.tagesordnungen}</h3>
+      <ul className="mt-2 flex flex-wrap gap-1.5">
         {liste.map((d) => (
-          <li key={d.id}><a href={`/team/dokumente/${d.id}/datei/?laden=1`} className="inline-block rounded-full bg-emerald-50 px-4 py-2 text-sm font-semibold text-emerald-950 ring-1 ring-emerald-200">↓ {d.title}</a></li>
+          <li key={d.id}><a href={`/team/dokumente/${d.id}/datei/?laden=1`} className="inline-block rounded-full bg-gruen-hell px-3 py-1 text-xs font-semibold ring-1 ring-forest/15 hover:ring-forest/40">↓ {d.title.replace(/^Tagesordnung\s*/i, "").replace(/^·\s*/, "") || d.title}</a></li>
         ))}
       </ul>
       <p className="mt-2 text-xs text-ink-soft">{t.tagesordnungHinweis}</p>
