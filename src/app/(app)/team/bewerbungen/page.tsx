@@ -4,6 +4,7 @@ import { TeamKopf } from "@/components/team/TeamKopf";
 import { MailHinweis } from "@/components/team/MailHinweis";
 import { Rueckfrage } from "@/components/team/Rueckfrage";
 import { annehmen, mitPersonVerknuepfen, mitTeilnehmendenAbgleichen, statusSetzen, ticketErneutSenden } from "@/lib/aktionen/bewerbungen";
+import { ort, regionName } from "@/lib/orte";
 import { bewerbungsAngaben } from "@/lib/bewerbung-felder";
 import { requireStaff } from "@/lib/auth";
 import { bewerbungStatusBetreff, mailBereit } from "@/lib/mail";
@@ -301,7 +302,7 @@ export default async function BewerbungenSeite({ searchParams }: PageProps<"/tea
                     <summary className="grid cursor-pointer list-none items-center gap-x-4 gap-y-1 px-5 py-3 hover:bg-paper/60 sm:grid-cols-[minmax(0,1.4fr)_minmax(0,1fr)_auto]">
                       <span className="min-w-0">
                         <span className="font-semibold">{name}</span>
-                        <span className="block truncate text-xs text-ink-soft">{[alter ? `${alter} J.` : null, [b.city, b.country].filter(Boolean).join(", ") || null, datum(b.created_at)].filter(Boolean).join(" · ")}</span>
+                        <span className="block truncate text-xs text-ink-soft">{[alter ? `${alter} J.` : null, [ort(b.city, l), ort(b.country, l)].filter(Boolean).join(", ") || null, datum(b.created_at)].filter(Boolean).join(" · ")}</span>
                       </span>
                       <span className="truncate text-xs text-ink-soft">{b.languages.join(" · ")}</span>
                       <span className="flex flex-wrap items-center gap-1.5 sm:justify-end">

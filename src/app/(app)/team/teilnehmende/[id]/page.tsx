@@ -8,6 +8,7 @@ import { Rueckfrage } from "@/components/team/Rueckfrage";
 import { TeamKopf } from "@/components/team/TeamKopf";
 import { Rueckmeldung, laenderNamen } from "@/components/team/Ui";
 import { darf, getStaff, requireStaff, type Staff } from "@/lib/auth";
+import { ort, regionName } from "@/lib/orte";
 import { anwesenheitSetzen, beitragEntfernen, beitragHinzufuegen, personSpeichern, ticketSenden } from "@/lib/aktionen/teilnehmende";
 import { auswerten, zusammenfassen } from "@/lib/bewertung";
 import { aussagekraeftig, alterHeute, bewerbungsAngaben } from "@/lib/bewerbung-felder";
@@ -96,7 +97,7 @@ const de = {
   nimmtTeil: "Nimmt aktiv teil",
   anrufeUndNotizen: "Anrufe und Notizen",
   anrufEintragen: "Anruf eintragen",
-  sorumlu: (name: string) => `Sorumlu ${name}`,
+  sorumlu: (name: string) => `verantwortlich: ${name}`,
   ausgeschiedenKlein: "ausgeschieden",
   moduleUndZusagen: "Module und Zusagen",
   daTage: (d: number) => `da · ${d} ${d === 1 ? "Tag" : "Tage"}`,
@@ -267,7 +268,7 @@ const T: Record<TeamSprache, typeof de> = {
     nimmtTeil: "Participe activement",
     anrufeUndNotizen: "Appels et notes",
     anrufEintragen: "Noter un appel",
-    sorumlu: (name) => `Sorumlu ${name}`,
+    sorumlu: (name) => `responsable : ${name}`,
     ausgeschiedenKlein: "a quitté le programme",
     moduleUndZusagen: "Modules et réponses",
     daTage: (d) => `présent·e · ${d} jour${d > 1 ? "s" : ""}`,
@@ -502,7 +503,7 @@ export default async function Person({ params, searchParams }: PageProps<"/team/
             <div className="min-w-0 flex-1">
               <h1 className="font-display text-3xl leading-tight font-extrabold sm:text-4xl">{name}</h1>
               <p className="mt-1 text-ink-soft">
-                {[...new Map([alter ? n.jahre(alter) : null, bewerbung?.city, region, p.country && p.country !== "other" ? laender[p.country] : null, p.branch, p.gender === "w" ? t.weiblich : p.gender === "m" ? t.maennlich : null]
+                {[...new Map([alter ? n.jahre(alter) : null, ort(bewerbung?.city, l), regionName(region, l), p.country && p.country !== "other" ? laender[p.country] : null, p.branch, p.gender === "w" ? t.weiblich : p.gender === "m" ? t.maennlich : null]
                   .filter((x): x is string => Boolean(x)).map((x) => [x.trim().toLocaleLowerCase("de"), x.trim()])).values()].join(" · ") || t.keineRegion}
                 {mentor && <> · {t.verantwortlich} <span className="font-semibold text-ink">{mentor}</span></>}
               </p>
@@ -740,7 +741,7 @@ export default async function Person({ params, searchParams }: PageProps<"/team/
                 <>
                   <p className="mt-1 text-sm text-ink-soft">{n.bewerbungVom(datum(bewerbung.created_at))} · {n.bewerbungStatus[bewerbung.status] ?? bewerbung.status}</p>
                   <dl className="mt-4 space-y-3 text-sm">
-                    {(bewerbung.city || bewerbung.country) && <div><dt className="text-xs font-semibold tracking-wide text-ink-soft uppercase">{n.wohnort}</dt><dd>{[bewerbung.city, bewerbung.country].filter(Boolean).join(", ")}</dd></div>}
+                    {(bewerbung.city || bewerbung.country) && <div><dt className="text-xs font-semibold tracking-wide text-ink-soft uppercase">{n.wohnort}</dt><dd>{[ort(bewerbung.city, l), ort(bewerbung.country, l)].filter(Boolean).join(", ")}</dd></div>}
                     {bewerbung.languages.length > 0 && <div><dt className="text-xs font-semibold tracking-wide text-ink-soft uppercase">{n.sprachen}</dt><dd>{bewerbung.languages.join(" · ")}</dd></div>}
                     {angaben.map((a) => <div key={a.name}><dt className="text-xs font-semibold tracking-wide text-ink-soft uppercase">{a.name}</dt><dd className="whitespace-pre-line">{a.wert}</dd></div>)}
                   </dl>
@@ -807,7 +808,7 @@ export default async function Person({ params, searchParams }: PageProps<"/team/
                   <label className="etikett" htmlFor="region_id">{w.region}</label>
                   <select id="region_id" name="region_id" defaultValue={p.region_id ?? ""} className="feld">
                     <option value="">{t.bitteWaehlen}</option>
-                    {regionen?.map((r) => <option key={r.id} value={r.id}>{r.name}</option>)}
+                    {regionen?.map((r) => <option key={r.id} value={r.id}>{regionName(r.name, l)}</option>)}
                   </select>
                 </div>
                 <div>
@@ -900,7 +901,7 @@ async function OrgaKarte({ staff, id, modulId, hinweis }: { staff: Staff; id: st
         <header className="karte mt-3 mb-6">
           <h1 className="font-display text-3xl font-extrabold">{p.name}</h1>
           <p className="mt-1 text-ink-soft">
-            {[p.region, p.branch, p.mentor_name && t.sorumlu(p.mentor_name), !p.active && t.ausgeschiedenKlein].filter(Boolean).join(" · ") || t.keineRegion}
+            {[regionName(p.region, l), p.branch, p.mentor_name && t.sorumlu(p.mentor_name), !p.active && t.ausgeschiedenKlein].filter(Boolean).join(" · ") || t.keineRegion}
           </p>
           {p.phone && <p className="mt-2 inline-flex items-center gap-1.5 font-semibold"><Phone aria-hidden className="h-4 w-4 text-ink-soft" />{p.phone}</p>}
         </header>

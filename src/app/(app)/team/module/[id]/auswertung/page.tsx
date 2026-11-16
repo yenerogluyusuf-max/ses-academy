@@ -7,6 +7,7 @@ import { ModulReiter } from "@/components/team/ModulReiter";
 import { TeamKopf } from "@/components/team/TeamKopf";
 import { laenderNamen } from "@/components/team/Ui";
 import { feedbackEinladen, frageEntfernen, frageHinzufuegen, umfrageAnlegen, umfrageJetztOeffnen } from "@/lib/aktionen/feedback";
+import { ort, regionName } from "@/lib/orte";
 import { requireStaff } from "@/lib/auth";
 import { istToken } from "@/lib/codes";
 import { createClient } from "@/lib/supabase/server";
@@ -193,7 +194,7 @@ export default async function ModulAuswertung({ params, searchParams }: PageProp
   const laender = laenderNamen[l];
   const nachLand = gruppiert((r) => (r.participants!.country ? laender[r.participants!.country] ?? r.participants!.country : t.ohne));
   const nachZweig = gruppiert((r) => r.participants!.branch ?? t.ohne);
-  const nachRegion = gruppiert((r) => r.participants!.regions?.name ?? t.ohne);
+  const nachRegion = gruppiert((r) => regionName(r.participants!.regions?.name, l) ?? t.ohne);
 
   const fragen = umfrage ? [...umfrage.feedback_questions].sort((a, b) => a.position - b.position) : [];
   const res = ergebnisse ?? [];

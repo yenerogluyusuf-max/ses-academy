@@ -1,4 +1,5 @@
 import { darf, requireStaff } from "@/lib/auth";
+import { ort, regionName } from "@/lib/orte";
 import { csvAntwort } from "@/lib/csv";
 import { herkunft, ladeListe, leseFilter, punkt, termine } from "@/lib/teilnehmende-liste";
 import { teamLocale, type TeamSprache } from "@/lib/team-sprache";
@@ -9,7 +10,7 @@ import { nachtName } from "@/lib/uebernachtung";
 const de = {
   datei: "Teilnehmende",
   kopf: {
-    name: "Name", herkunft: "Herkunft", telefon: "Telefon", email: "E-Mail", region: "Region", sorumlu: "Sorumlu", gt: "GT/KGT",
+    name: "Name", herkunft: "Herkunft", telefon: "Telefon", email: "E-Mail", region: "Region", sorumlu: "Verantwortlich", gt: "GT/KGT",
     anmeldung: "Anmeldung", zusage: "Zusage", uebernachtung: "Übernachtung", letzterKontakt: "Letzter Kontakt", ergebnis: "Ergebnis", notiz: "Notiz", aktiv: "Aktiv",
   },
   modulSpalte: (modul: string, spalte: string) => `${modul}: ${spalte}`,
@@ -44,7 +45,7 @@ const T: Record<TeamSprache, typeof de> = {
   fr: {
     datei: "Participants",
     kopf: {
-      name: "Nom", herkunft: "Type de participant", telefon: "Téléphone", email: "E-mail", region: "Région", sorumlu: "Sorumlu", gt: "GT/KGT",
+      name: "Nom", herkunft: "Type de participant", telefon: "Téléphone", email: "E-mail", region: "Région", sorumlu: "Responsable", gt: "GT/KGT",
       anmeldung: "Inscription", zusage: "Réponse", uebernachtung: "Hébergement", letzterKontakt: "Dernier contact", ergebnis: "Résultat", notiz: "Note", aktiv: "Actif",
     },
     modulSpalte: (modul, spalte) => `${modul} : ${spalte}`,
@@ -87,7 +88,7 @@ export async function GET(request: Request) {
     k.letzterKontakt, k.ergebnis, k.notiz, k.aktiv,
   ];
   const zeilen = liste.map((p) => [
-    p.name, herkunft(p, l) ?? t.jahrgang, p.phone, ...(alles ? [p.email] : []), p.region, p.mentor_name, p.branch,
+    p.name, herkunft(p, l) ?? t.jahrgang, p.phone, ...(alles ? [p.email] : []), regionName(p.region, l), p.mentor_name, p.branch,
     ...(modul ? [
       p.registration_status ? anmeldung[p.registration_status] ?? p.registration_status : t.nichtAngemeldet,
       // Deutsch wie bisher der gespeicherte Wert (zugesagt/abgesagt), sonst übersetzt

@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { exportBeantragen } from "@/lib/aktionen/freigaben";
+import { ort, regionName } from "@/lib/orte";
 import Link from "next/link";
 import { TeamKopf } from "@/components/team/TeamKopf";
 import { laenderNamen, Leer, Titel, Zahl } from "@/components/team/Ui";
@@ -441,7 +442,7 @@ export default async function Auswertung({ searchParams }: PageProps<"/team/ausw
                     {[...personen].sort((x, y) => x.vorname.localeCompare(y.vorname, l === "de" ? "de" : teamLocale[l])).map((p) => (
                       <tr key={p.participant_id}>
                         <td className="font-semibold"><Link href={`/team/teilnehmende/${p.participant_id}/`} className="hover:underline">{p.vorname} {p.nachname}</Link></td>
-                        <td>{p.region ?? "–"}</td>
+                        <td>{regionName(p.region, l) ?? "–"}</td>
                         <td className="text-right tabular-nums">{p.total_registered}</td>
                         <td className="text-right tabular-nums">{p.total_attended}</td>
                         <td className="text-right tabular-nums">{p.total_no_shows}</td>
@@ -465,7 +466,7 @@ export default async function Auswertung({ searchParams }: PageProps<"/team/ausw
             <p className="mb-4 max-w-3xl text-sm text-ink-soft">{a.regionText}</p>
             <div className="grid gap-6 lg:grid-cols-2">
               {gruppenTabelle(a.verantwortlich, gruppiere((p) => p.verantwortlich))}
-              {gruppenTabelle(a.region, gruppiere((p) => p.region))}
+              {gruppenTabelle(a.region, gruppiere((p) => regionName(p.region, l)))}
               {gruppenTabelle(a.land, gruppiere((p) => (p.land ? laenderNamen[l][p.land] ?? p.land : null)))}
               {gruppenTabelle(a.zweig, gruppiere((p) => p.zweig))}
             </div>

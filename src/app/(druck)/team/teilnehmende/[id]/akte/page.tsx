@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { requireStaff } from "@/lib/auth";
+import { ort, regionName } from "@/lib/orte";
 import { aussagekraeftig, alterHeute, bewerbungsAngaben, bewerbungsGruppen } from "@/lib/bewerbung-felder";
 import { zusammenfassen } from "@/lib/bewertung";
 import { istToken, kurzcodeAnzeige } from "@/lib/codes";
@@ -91,8 +92,8 @@ export default async function Akte({ params }: PageProps<"/team/teilnehmende/[id
   };
   const zeilen: [string, string | null | undefined][] = [
     ["Alter", alter ? `${alter} Jahre` : null],
-    ["Wohnort", [bewerbung?.city, bewerbung?.country].filter(Boolean).join(", ") || null],
-    ["Region", (p.regions as { name: string } | null)?.name],
+    ["Wohnort", [ort(bewerbung?.city, "de"), ort(bewerbung?.country, "de")].filter(Boolean).join(", ") || null],
+    ["Region", regionName((p.regions as { name: string } | null)?.name, "de")],
     ["Land", p.country ? laender[p.country] : null],
     ["GT / KGT", p.branch],
     ["Geschlecht", p.gender === "w" ? "weiblich" : p.gender === "m" ? "männlich" : null],

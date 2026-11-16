@@ -10,6 +10,7 @@ import { MailHinweis } from "@/components/team/MailHinweis";
 import { AuswahlKnoepfe } from "@/components/team/AuswahlKnoepfe";
 import { RundmailFormular } from "@/components/team/RundmailFormular";
 import { darf, getStaff, requireStaff } from "@/lib/auth";
+import { ort, regionName } from "@/lib/orte";
 import { mentorSpeichern, willkommenAnAlle } from "@/lib/aktionen/teilnehmende";
 import { createClient } from "@/lib/supabase/server";
 import { mailBereit } from "@/lib/mail";
@@ -42,8 +43,8 @@ const de = {
   modulAbgesagt: " (abgesagt)",
   alleRegionen: "Alle Regionen",
   ohneRegion: "ohne Region",
-  alleSorumlu: "Alle Sorumlu",
-  ohneSorumlu: "ohne Sorumlu",
+  alleSorumlu: "Alle Verantwortlichen",
+  ohneSorumlu: "ohne Verantwortliche",
   uebernachtung: "Übernachtung",
   kontakt: "Kontakt",
   gtUndKgt: "GT und KGT",
@@ -150,18 +151,18 @@ const T: Record<TeamSprache, typeof de> = {
     willkommenJa: (n) => `Oui, envoyer à ${n}`,
     willkommenFrage: (n) => `Envoyer maintenant l’e-mail de bienvenue à ${n} participant${n > 1 ? "s" : ""} ? Chaque personne ne le reçoit qu’une fois.`,
     liste: "Liste",
-    verantwortliche: (n) => `Sorumlu (${n})`,
+    verantwortliche: (n) => `Responsables (${n})`,
     verantwortlicheText: "Les Sorumlu s’occupent d’un groupe. Avec une adresse e-mail enregistrée, ils pourront se connecter plus tard. Pour travailler dans l’espace équipe, il faut en plus un rôle d’équipe (l’admin le crée sous « Équipe »).",
     anzahlTeilnehmende: (n) => `${n} participant${n > 1 ? "s" : ""}`,
     hatSichAngemeldet: " · s’est connecté·e",
-    neuePerson: "Nouveau Sorumlu",
+    neuePerson: "Nouveau responsable",
     emailOptional: "E-mail (facultatif)",
     suche: (alles) => (alles ? "Nom, e-mail ou téléphone" : "Nom ou téléphone"),
     modulAbgesagt: " (annulé)",
     alleRegionen: "Toutes les régions",
     ohneRegion: "sans région",
-    alleSorumlu: "Tous les Sorumlu",
-    ohneSorumlu: "sans Sorumlu",
+    alleSorumlu: "Tous les responsables",
+    ohneSorumlu: "sans responsable",
     uebernachtung: "Hébergement",
     kontakt: "Contact",
     gtUndKgt: "GT et KGT",
@@ -328,9 +329,9 @@ export default async function Teilnehmende({ searchParams }: PageProps<"/team/te
                 <div className="mt-3 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
               <select name="region" defaultValue={s("region")} className="feld" aria-label={w.region}>
                 <option value="">{t.alleRegionen}</option>
-                {regionen.map(([wert, n]) => <option key={wert} value={wert}>{wert === "-" ? t.ohneRegion : wert} ({n})</option>)}
+                {regionen.map(([wert, n]) => <option key={wert} value={wert}>{wert === "-" ? t.ohneRegion : regionName(wert, l)} ({n})</option>)}
               </select>
-              <select name="verantwortlich" defaultValue={s("verantwortlich")} className="feld" aria-label="Sorumlu">
+              <select name="verantwortlich" defaultValue={s("verantwortlich")} className="feld" aria-label={{ de: "Verantwortlich", tr: "Sorumlu", fr: "Responsable" }[l]}>
                 <option value="">{t.alleSorumlu}</option>
                 {sorumlus.map(([wert, n]) => <option key={wert} value={wert}>{wert === "-" ? t.ohneSorumlu : wert} ({n})</option>)}
               </select>
@@ -409,7 +410,7 @@ export default async function Teilnehmende({ searchParams }: PageProps<"/team/te
                   <thead>
                     <tr>
                       {alles && <th className="whitespace-nowrap"><span className="sr-only">{t.fuerRundmail}</span><AuswahlKnoepfe sprache={l} /></th>}
-                      <th>{w.name}</th><th>{w.region}</th><th>Sorumlu</th>{alles && <th>{{ de: "Stärken · Aufgaben", tr: "Güçlü yönler · görevler", fr: "Points forts · missions" }[l]}</th>}<th>{w.telefon}</th>
+                      <th>{w.name}</th><th>{w.region}</th><th>{{ de: "Verantwortlich", tr: "Sorumlu", fr: "Responsable" }[l]}</th>{alles && <th>{{ de: "Stärken · Aufgaben", tr: "Güçlü yönler · görevler", fr: "Points forts · missions" }[l]}</th>}<th>{w.telefon}</th>
                       {modul && <th>{t.uebernachtung}</th>}
                       {modulListe.map((m) => (
                         <th key={m.id} title={m.title} className={`text-center whitespace-nowrap ${m.id === modul?.id ? "bg-gelb-hell/60" : m.tage[m.tage.length - 1].ends_at < jetzt ? "opacity-60" : ""}`}>{termine(m.tage, l)}</th>
@@ -432,10 +433,10 @@ export default async function Teilnehmende({ searchParams }: PageProps<"/team/te
                           {alles && (() => {
                             const b = bewerbungVon.get(p.participant_id);
                             const alter = alterHeute(b, jetztZahl);
-                            return (alter || b?.city) ? <span className="block text-xs text-ink-soft">{[alter ? `${alter} J.` : null, b?.city].filter(Boolean).join(" · ")}</span> : null;
+                            return (alter || b?.city) ? <span className="block text-xs text-ink-soft">{[alter ? `${alter} J.` : null, ort(b?.city, l)].filter(Boolean).join(" · ")}</span> : null;
                           })()}
                         </td>
-                        <td className="whitespace-nowrap">{p.region ?? <span className="text-rot">{t.fehltRegion}</span>}</td>
+                        <td className="whitespace-nowrap">{regionName(p.region, l) ?? <span className="text-rot">{t.fehltRegion}</span>}</td>
                         <td className="whitespace-nowrap">{p.mentor_name ?? "–"}</td>
                         {alles && (
                           <td className="min-w-40">

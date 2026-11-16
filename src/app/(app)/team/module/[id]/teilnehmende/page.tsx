@@ -6,6 +6,7 @@ import { ModulReiter } from "@/components/team/ModulReiter";
 import { TeamKopf } from "@/components/team/TeamKopf";
 import { laenderNamen } from "@/components/team/Ui";
 import { requireStaff } from "@/lib/auth";
+import { ort, regionName } from "@/lib/orte";
 import { istToken } from "@/lib/codes";
 import { createClient } from "@/lib/supabase/server";
 import { teamLocale, type TeamSprache } from "@/lib/team-sprache";
@@ -157,7 +158,7 @@ export default async function ModulTeilnehmende({ params, searchParams }: PagePr
       (filter === "da" && r.da) ||
       (filter === "fehlt" && r.status === "confirmed" && r.rsvp === "zugesagt" && !r.da)) &&
     (!tagFilter || r.attendances.some((a) => a.module_day_id === tagFilter)) &&
-    (!suche || [r.name, r.p.regions?.name, r.p.phone].some((x) => x?.toLocaleLowerCase("de").includes(suche)));
+    (!suche || [r.name, r.p.regions?.name, regionName(r.p.regions?.name, l), r.p.phone].some((x) => x?.toLocaleLowerCase("de").includes(suche)));
   const liste = alle.filter(passt);
   const tagTitel = tagFilter ? tage.find((x) => x.id === tagFilter) : null;
   const laender = laenderNamen[l];
@@ -227,7 +228,7 @@ export default async function ModulTeilnehmende({ params, searchParams }: PagePr
                     <td className="pl-5">
                       <Link href={`/team/teilnehmende/${r.p.id}/?modul=${id}`} className="font-semibold hover:underline">{r.name}</Link>
                       <span className="block text-xs text-ink-soft">
-                        {[r.p.regions?.name, r.p.country && r.p.country !== "other" ? laender[r.p.country] : null, r.p.branch].filter(Boolean).join(" · ")}
+                        {[regionName(r.p.regions?.name, l), r.p.country && r.p.country !== "other" ? laender[r.p.country] : null, r.p.branch].filter(Boolean).join(" · ")}
                       </span>
                     </td>
                     <td>{zusageChip(r)}</td>
