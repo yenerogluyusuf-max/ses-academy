@@ -79,22 +79,51 @@ function GaesteListe({ l, t, slug }: { l: Sprache; t: Texte; slug?: ModulSlug })
  * Bilder für das Startbild: zuerst das bisherige Auftakt-Foto, danach je Modul ein bis zwei Fotos, neueste zuerst.
  * Bildunterschrift „Modul · Monat Jahr · Ort“ in der Sprache der Seite.
  */
+/**
+ * Startbild = Aushängeschild (Wunsch Yusuf 16.11.2026: „die besten Bilder, Humza Yousaf etc.“). Nur scharfe Aufnahmen
+ * mit starken Motiven, als eigene Hochformat-Ausschnitte (public/fotos/start-*.jpg, 4:5 wie der Rahmen) aus den
+ * größten verfügbaren Originalen – keine kleinen Instagram-Ausschnitte mehr, die beim Vergrößern unscharf werden.
+ * Bei bekannten Gästen steht der Name in der Bildzeile.
+ */
+// position: Ankerpunkt für den querformatigen Rahmen auf Tablets (5:4), damit Gesichter im Bild bleiben.
+const heroAuswahl: { src: string; slug: ModulSlug; altVon: string; position: string; wer?: Record<Sprache, string> }[] = [
+  {
+    src: "/fotos/start-yousaf.jpg", slug: "auftakt", altVon: "/fotos/yousaf.jpg", position: "object-[50%_18%]",
+    wer: { de: "Humza Yousaf, ehem. First Minister von Schottland", tr: "Humza Yousaf, İskoçya eski Başbakanı", en: "Humza Yousaf, former First Minister of Scotland", fr: "Humza Yousaf, ancien Premier ministre d’Écosse", nl: "Humza Yousaf, oud-premier van Schotland" },
+  },
+  {
+    src: "/fotos/start-podium.jpg", slug: "demokratie", altVon: "/fotos/nov-podium.jpg", position: "object-[50%_55%]",
+    wer: { de: "Ruprecht Polenz und Shada Islam", tr: "Ruprecht Polenz ve Shada Islam", en: "Ruprecht Polenz and Shada Islam", fr: "Ruprecht Polenz et Shada Islam", nl: "Ruprecht Polenz en Shada Islam" },
+  },
+  {
+    src: "/fotos/start-workshop.jpg", slug: "demokratie", altVon: "/fotos/nov-workshop-flipchart.jpg", position: "object-[50%_45%]",
+    wer: { de: "Gruppenarbeit", tr: "Grup çalışması", en: "Group work", fr: "Travail en groupe", nl: "Groepswerk" },
+  },
+  {
+    src: "/fotos/start-kesici.jpg", slug: "auftakt", altVon: "/fotos/kesici.jpg", position: "object-[50%_25%]",
+    wer: { de: "Burhan Kesici, Vorsitzender des Islamrats", tr: "Burhan Kesici, İslam Konseyi Başkanı", en: "Burhan Kesici, Chairman of the Islamrat", fr: "Burhan Kesici, président de l’Islamrat", nl: "Burhan Kesici, voorzitter van de Islamrat" },
+  },
+  { src: "/fotos/start-publikum.jpg", slug: "auftakt", altVon: "/fotos/publikum.jpg", position: "object-[50%_40%]" },
+  { src: "/fotos/start-panel.jpg", slug: "auftakt", altVon: "/fotos/hero.jpg", position: "object-[50%_62%]" },
+];
+
+/** Der volle Auftakt-Titel ist für die Bildzeile zu lang. */
+const auftaktKurz: Record<Sprache, string> = { de: "Auftakt", tr: "Açılış", en: "Launch", fr: "Lancement", nl: "Aftrap" };
+
 function heroBilder(l: Sprache): HeroBild[] {
   const t = texte[l];
   const monat = new Intl.DateTimeFormat(locale[l], { month: "long", year: "numeric", timeZone: "Europe/Berlin" });
-  const unter = (slug: ModulSlug) => {
+  const zeile = (slug: ModulSlug, wer?: string) => {
     const m = modulplan.find((x) => x.slug === slug);
-    const titel = t.seminare[slug].titel.split(" – ")[0];
-    return [titel, m ? monat.format(new Date(`${m.von}T12:00:00Z`)) : null, m?.ort ? "Köln" : null].filter(Boolean).join(" · ");
+    const titel = slug === "auftakt" ? auftaktKurz[l] : t.seminare[slug].titel.split(" – ")[0];
+    const wann = m ? monat.format(new Date(`${m.von}T12:00:00Z`)) : null;
+    // mit Namen: „Humza Yousaf, … · Auftakt · April 2026“; ohne: „Auftakt · April 2026 · Köln“
+    return (wer ? [wer, titel, wann] : [titel, wann, m?.ort ? "Köln" : null]).filter(Boolean).join(" · ");
   };
-  const auswahl: [ModulSlug, string][] = [["demokratie", "/fotos/nov-podium.jpg"], ["demokratie", "/fotos/nov-workshop-flipchart.jpg"], ["skills-workshop", "/fotos/sept-workshop-a.jpg"], ["verfassungen", "/fotos/juni-hafez-keynote.jpg"], ["auftakt", "/fotos/yousaf.jpg"], ["demokratie", "/fotos/nov-saal.jpg"]];
-  return [
-    { src: "/fotos/hero.jpg", alt: t.hero.fotoAlt, text: t.hero.fotoText, position: "object-[72%_50%]" },
-    ...auswahl.flatMap(([slug, src]) => {
-      const f = fotos[slug]?.find((x) => x.src === src);
-      return f ? [{ src, alt: f.alt[l], text: unter(slug) }] : [];
-    }),
-  ];
+  return heroAuswahl.map((b) => {
+    const alt = b.altVon === "/fotos/hero.jpg" ? t.hero.fotoAlt : fotos[b.slug]?.find((x) => x.src === b.altVon)?.alt[l] ?? "";
+    return { src: b.src, alt, text: zeile(b.slug, b.wer?.[l]), position: b.position };
+  });
 }
 
 export function Startseite({ l }: { l: Sprache }) {

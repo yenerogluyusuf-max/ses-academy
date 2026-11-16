@@ -1,7 +1,7 @@
 "use client";
 
 import Image from "next/image";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useSyncExternalStore } from "react";
 
 export type HeroBild = { src: string; alt: string; text: string; position?: string };
 
@@ -13,11 +13,19 @@ export type HeroBild = { src: string; alt: string; text: string; position?: stri
  */
 export function HeroBilder({ bilder, takt = 5000 }: { bilder: HeroBild[]; takt?: number }) {
   const [aktiv, setAktiv] = useState(0);
-  const [ruhig, setRuhig] = useState(false);
+  // „Bewegung reduzieren“ nur für die Dauer der Überblendung (kürzer), nicht für das Wechseln selbst
+  const ruhig = useSyncExternalStore(
+    (melden) => {
+      const m = window.matchMedia("(prefers-reduced-motion: reduce)");
+      m.addEventListener("change", melden);
+      return () => m.removeEventListener("change", melden);
+    },
+    () => window.matchMedia("(prefers-reduced-motion: reduce)").matches,
+    () => false,
+  );
 
   useEffect(() => {
     if (bilder.length < 2) return;
-    setRuhig(window.matchMedia("(prefers-reduced-motion: reduce)").matches);
     const id = window.setInterval(() => {
       if (document.visibilityState === "visible") setAktiv((i) => (i + 1) % bilder.length);
     }, takt);
@@ -32,12 +40,15 @@ export function HeroBilder({ bilder, takt = 5000 }: { bilder: HeroBild[]; takt?:
           className={`object-cover transition-opacity ease-in-out ${ruhig ? "duration-300" : "duration-1000"} ${b.position ?? "object-center"} ${i === aktiv ? "opacity-100" : "opacity-0"}`} />
       ))}
       <div className="absolute inset-x-0 bottom-0 h-1/2 bg-gradient-to-t from-ink/70 to-transparent" />
-      <p aria-live="off" className="absolute right-5 bottom-5 left-5 text-sm font-medium text-paper/90">{bilder[aktiv]?.text}</p>
-      {bilder.length > 1 && (
-        <div className="absolute right-5 bottom-11 flex gap-1.5" aria-hidden>
-          {bilder.map((b, i) => <span key={b.src} className={`h-1.5 rounded-full transition-all duration-500 ${i === aktiv ? "w-5 bg-paper" : "w-1.5 bg-paper/50"}`} />)}
-        </div>
-      )}
+      {/* Punkte über der Bildzeile: bricht die Zeile um, rutschen sie mit nach oben statt sie zu verdecken */}
+      <div className="absolute right-5 bottom-5 left-5 flex flex-col gap-2.5">
+        {bilder.length > 1 && (
+          <div className="flex gap-1.5 self-end" aria-hidden>
+            {bilder.map((b, i) => <span key={b.src} className={`h-1.5 rounded-full transition-all duration-500 ${i === aktiv ? "w-5 bg-paper" : "w-1.5 bg-paper/50"}`} />)}
+          </div>
+        )}
+        <p aria-live="off" className="text-sm font-medium text-paper/90">{bilder[aktiv]?.text}</p>
+      </div>
     </div>
   );
 }
