@@ -607,6 +607,11 @@ export function Stimmenseite({ l, extra = [] }: { l: Sprache; extra?: Beitrag[] 
   );
 }
 
+/** Logos der Medien, in denen Teilnehmende veröffentlichen (Originaldatei vom Medium, transparent). Schlüssel = extern.medium. */
+const medienLogos: Record<string, { src: string; breite: number; hoehe: number }> = {
+  Perspektif: { src: "/medien/perspektif.png", breite: 371, hoehe: 96 }, // von perspektif.eu/img/logo.png, 16.11.2026
+};
+
 export function Beitragsseite({ l, slug, extra = [] }: { l: Sprache; slug: string; extra?: Beitrag[] }) {
   const t = texte[l].stimmen;
   const k = stimmenKarten(l, extra).find((b) => b.slug === slug)!;
@@ -659,17 +664,33 @@ export function Beitragsseite({ l, slug, extra = [] }: { l: Sprache; slug: strin
           <p key={p}>{p}</p>
         ))}
       </div>
-      {k.extern && (
-        <a
-          href={k.extern.url}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="mt-10 inline-flex rounded-full bg-ink px-7 py-4 font-semibold text-paper transition hover:bg-forest"
-        >
-          {k.typ === "artikel" ? t.zumArtikel : t.zumOriginal} · {k.extern.medium}
-          <Pfeil richtung="extern" className="ml-2" />
-        </a>
-      )}
+      {k.extern && (() => {
+        const logo = medienLogos[k.extern.medium];
+        return logo ? (
+          // Mit Logo des Mediums (Wunsch Yusuf 16.11.2026): heller Knopf, damit das Logo in Originalfarbe wirkt
+          <a
+            href={k.extern.url}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="mt-10 inline-flex items-center gap-4 rounded-full bg-white py-3.5 pr-6 pl-7 font-semibold text-ink ring-1 ring-line transition hover:ring-ink"
+          >
+            {k.typ === "artikel" ? t.zumArtikel : t.zumOriginal}
+            <span aria-hidden className="h-6 w-px bg-line" />
+            <Image src={logo.src} alt={k.extern.medium} width={logo.breite} height={logo.hoehe} className="h-6 w-auto" />
+            <Pfeil richtung="extern" />
+          </a>
+        ) : (
+          <a
+            href={k.extern.url}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="mt-10 inline-flex rounded-full bg-ink px-7 py-4 font-semibold text-paper transition hover:bg-forest"
+          >
+            {k.typ === "artikel" ? t.zumArtikel : t.zumOriginal} · {k.extern.medium}
+            <Pfeil richtung="extern" className="ml-2" />
+          </a>
+        );
+      })()}
       <p className="mt-12 border-t border-line pt-6 text-sm text-ink-soft">{t.hinweis}</p>
     </article>
   );
