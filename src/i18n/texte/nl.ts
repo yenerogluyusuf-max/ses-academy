@@ -245,6 +245,7 @@ export const nl: Texte = {
     "anlass": "Uitgesproken bij",
     "erschienenIn": "Verschenen in",
     "zumArtikel": "Naar het artikel",
+    "zumOriginal": "Naar het origineel",
     "lesen": "Verder lezen",
     "zurueck": "Alle stemmen",
     "videoLaden": "Video afspelen",

@@ -252,6 +252,7 @@ export const fr: Texte = {
     "anlass": "Prononcé lors de",
     "erschienenIn": "Paru dans",
     "zumArtikel": "Lire l’article",
+    "zumOriginal": "Voir l’original",
     "lesen": "Lire la suite",
     "zurueck": "Toutes les voix",
     "videoLaden": "Lire la vidéo",

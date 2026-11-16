@@ -4,7 +4,7 @@ import Link from "next/link";
 import { BewerbungsFormular } from "./BewerbungsFormular";
 import { ModulAnmeldung } from "./ModulAnmeldung";
 import { StimmenListe, YoutubeKlick, type Karte } from "./Stimmen";
-import { beitraege } from "@/i18n/stimmen";
+import { beitraege, type Beitrag } from "@/i18n/stimmen";
 import { Faq } from "./Faq";
 import { Naechstes, NaechstesSticker, ProgrammListe, type Eintrag } from "./Programm";
 import { bewerbungOffen, fotos, gaeste, modulplan } from "@/i18n/daten";
@@ -545,10 +545,11 @@ export function Bewerbungsseite({ l }: { l: Sprache }) {
   );
 }
 
-export function stimmenKarten(l: Sprache): Karte[] {
+/** extra: freigegebene Beiträge aus „Beitrag einreichen“ (Datenbank, siehe lib/stimmen-db.ts). */
+export function stimmenKarten(l: Sprache, extra: Beitrag[] = []): Karte[] {
   const t = texte[l];
   const df = new Intl.DateTimeFormat(locale[l], { day: "numeric", month: "long", year: "numeric" });
-  return beitraege.map((b) => ({
+  return [...beitraege, ...extra].sort((a, b) => b.datum.localeCompare(a.datum)).map((b) => ({
     ...b,
     href: pfad(l, `/stimmen/${b.slug}/`),
     modulTitel: b.modul ? t.seminare[b.modul].titel : undefined,
@@ -556,7 +557,7 @@ export function stimmenKarten(l: Sprache): Karte[] {
   }));
 }
 
-export function Stimmenseite({ l }: { l: Sprache }) {
+export function Stimmenseite({ l, extra = [] }: { l: Sprache; extra?: Beitrag[] }) {
   const t = texte[l].stimmen;
   return (
     <>
@@ -570,16 +571,16 @@ export function Stimmenseite({ l }: { l: Sprache }) {
         <p className="mt-8 max-w-2xl text-xl text-ink-soft">{t.intro}</p>
       </section>
       <section className="mx-auto max-w-7xl px-4 pb-24 sm:px-6 lg:px-10">
-        <StimmenListe karten={stimmenKarten(l)} t={t} />
+        <StimmenListe karten={stimmenKarten(l, extra)} t={t} />
         <p className="mt-10 text-sm text-ink-soft">{t.hinweis}</p>
       </section>
     </>
   );
 }
 
-export function Beitragsseite({ l, slug }: { l: Sprache; slug: string }) {
+export function Beitragsseite({ l, slug, extra = [] }: { l: Sprache; slug: string; extra?: Beitrag[] }) {
   const t = texte[l].stimmen;
-  const k = stimmenKarten(l).find((b) => b.slug === slug)!;
+  const k = stimmenKarten(l, extra).find((b) => b.slug === slug)!;
   return (
     <article className="mx-auto max-w-3xl px-4 pt-10 pb-24 sm:px-6 sm:pt-16">
       <Link href={pfad(l, "/stimmen/")} className="text-sm font-semibold text-ink-soft hover:text-ink">
@@ -636,7 +637,7 @@ export function Beitragsseite({ l, slug }: { l: Sprache; slug: string }) {
           rel="noopener noreferrer"
           className="mt-10 inline-flex rounded-full bg-ink px-7 py-4 font-semibold text-paper transition hover:bg-forest"
         >
-          {t.zumArtikel} · {k.extern.medium}
+          {k.typ === "artikel" ? t.zumArtikel : t.zumOriginal} · {k.extern.medium}
           <Pfeil richtung="extern" className="ml-2" />
         </a>
       )}

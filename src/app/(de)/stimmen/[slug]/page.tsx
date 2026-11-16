@@ -1,8 +1,18 @@
 import { notFound } from "next/navigation";
 import { Beitragsseite, metaFuer } from "@/components/seiten";
 import { beitraege } from "@/i18n/stimmen";
+import { freigegebeneStimmen } from "@/lib/stimmen-db";
 
-export const dynamicParams = false;
+async function finde(slug: string) {
+  const fest = beitraege.find((x) => x.slug === slug);
+  if (fest) return { b: fest, extra: [] };
+  const extra = await freigegebeneStimmen();
+  const b = extra.find((x) => x.slug === slug);
+  return b ? { b, extra } : null;
+}
+
+// Fest eingetragene Beiträge werden vorgerendert, freigegebene aus der Datenbank beim ersten Aufruf (dann zwischengespeichert).
+export const revalidate = 300;
 
 export function generateStaticParams() {
   // Statischer Export verlangt mindestens einen Pfad; ohne Beiträge entsteht nur eine 404-Seite.
@@ -11,12 +21,13 @@ export function generateStaticParams() {
 
 export async function generateMetadata({ params }: PageProps<"/stimmen/[slug]">) {
   const { slug } = await params;
-  const b = beitraege.find((x) => x.slug === slug);
-  return b ? metaFuer("de", `/stimmen/${b.slug}`, b.titel, b.teaser) : {};
+  const f = await finde(slug);
+  return f ? metaFuer("de", `/stimmen/${f.b.slug}`, f.b.titel, f.b.teaser) : {};
 }
 
 export default async function Page({ params }: PageProps<"/stimmen/[slug]">) {
   const { slug } = await params;
-  if (!beitraege.some((b) => b.slug === slug)) notFound();
-  return <Beitragsseite l="de" slug={slug} />;
+  const f = await finde(slug);
+  if (!f) notFound();
+  return <Beitragsseite l="de" slug={slug} extra={f.extra} />;
 }

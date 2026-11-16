@@ -248,6 +248,7 @@ export const de: Texte = {
     "anlass": "Gehalten bei",
     "erschienenIn": "Erschienen in",
     "zumArtikel": "Zum Artikel",
+    "zumOriginal": "Zum Original",
     "lesen": "Weiterlesen",
     "zurueck": "Alle Stimmen",
     "videoLaden": "Video abspielen",

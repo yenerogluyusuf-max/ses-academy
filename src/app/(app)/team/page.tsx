@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { ArrowRight, CalendarClock, ScanLine, ShieldCheck } from "lucide-react";
+import { ArrowRight, CalendarClock, Megaphone, ScanLine, ShieldCheck } from "lucide-react";
 import { MailHinweis } from "@/components/team/MailHinweis";
 import { TeamKopf } from "@/components/team/TeamKopf";
 import { darf, getStaff, requireStaff } from "@/lib/auth";
@@ -24,6 +24,7 @@ const de = {
   regieplanText: "Was läuft gerade, was kommt als Nächstes",
   freigaben: (n: number) => `${n} ${n === 1 ? "Antrag wartet" : "Anträge warten"} auf deine Freigabe`,
   loeschungen: (n: number) => `${n} ${n === 1 ? "Löschantrag wartet" : "Löschanträge warten"} auf Bearbeitung`,
+  stimmen: (n: number) => `${n} ${n === 1 ? "eingereichter Beitrag wartet" : "eingereichte Beiträge warten"} auf Prüfung (Stimmen)`,
   naechstesModul: "Nächstes Modul",
   modulOeffnen: "Modul öffnen",
   zimmerplan: "Zimmerplan",
@@ -61,6 +62,7 @@ const T: Record<TeamSprache, typeof de> = {
     regieplanText: "Şu an ne var, sırada ne var",
     freigaben: (n) => `Onayını bekleyen ${n} talep var`,
     loeschungen: (n) => `İşlem bekleyen ${n} silme talebi var`,
+    stimmen: (n) => `İnceleme bekleyen ${n} katkı var (Sesler)`,
     naechstesModul: "Sıradaki modül",
     modulOeffnen: "Modülü aç",
     zimmerplan: "Oda planı",
@@ -95,6 +97,7 @@ const T: Record<TeamSprache, typeof de> = {
     regieplanText: "Ce qui se passe maintenant, ce qui vient ensuite",
     freigaben: (n) => (n === 1 ? "1 demande attend ta validation" : `${n} demandes attendent ta validation`),
     loeschungen: (n) => (n === 1 ? "1 demande de suppression attend d’être traitée" : `${n} demandes de suppression attendent d’être traitées`),
+    stimmen: (n) => (n === 1 ? "1 contribution proposée attend d’être examinée (Voix)" : `${n} contributions proposées attendent d’être examinées (Voix)`),
     naechstesModul: "Prochain module",
     modulOeffnen: "Ouvrir le module",
     zimmerplan: "Plan des chambres",
@@ -215,13 +218,14 @@ export default async function TeamStart({ searchParams }: PageProps<"/team">) {
   const s = S[l];
   const zeit = new Intl.DateTimeFormat(teamLocale[l], { hour: "2-digit", minute: "2-digit", timeZone: "Europe/Berlin" });
   const tagKurz = new Intl.DateTimeFormat(teamLocale[l], { weekday: "long", day: "numeric", month: "long", timeZone: "Europe/Berlin" });
-  const [{ data: naechste }, { data: hotels }, { data: hausaufgaben }, { count: offeneFreigaben }, { count: offeneLoeschungen }, { data: module }] = await Promise.all([
+  const [{ data: naechste }, { data: hotels }, { data: hausaufgaben }, { count: offeneFreigaben }, { count: offeneLoeschungen }, { data: module }, { count: offeneStimmen }] = await Promise.all([
     supabase.from("module_days").select("id, day, module:modules!inner(id, title, location, status, cancelled_at, slug)").gte("day", heute).eq("module.status", "published").is("module.cancelled_at", null).not("module.slug", "like", "probe-%").order("day").limit(1),
     supabase.from("hotels").select("name, cancellation_deadline, module:modules(id, title)").gte("cancellation_deadline", heute).lte("cancellation_deadline", inZweiWochen),
     supabase.from("assignments").select("number, title, due_date").gte("due_date", heute).lte("due_date", inZweiWochen),
     alles ? supabase.from("approvals").select("id", { count: "exact", head: true }).eq("status", "offen").neq("requested_by", staff.userId) : Promise.resolve({ count: 0 }),
     darf.admin(staff.role) ? supabase.from("deletion_requests").select("id", { count: "exact", head: true }).eq("status", "offen") : Promise.resolve({ count: 0 }),
     supabase.from("modules").select("id, title, slug, cancelled_at, module_days(starts_at, ends_at)").eq("status", "published").is("cancelled_at", null).not("slug", "like", "probe-%"),
+    alles ? supabase.from("contributions").select("id", { count: "exact", head: true }).eq("status", "eingereicht") : Promise.resolve({ count: 0 }),
   ]);
   const naechstes = naechste?.[0];
 
@@ -290,6 +294,11 @@ export default async function TeamStart({ searchParams }: PageProps<"/team">) {
         {(offeneLoeschungen ?? 0) > 0 && (
           <Link href="/team/loeschantraege/" className="mt-3 flex items-center gap-3 rounded-2xl bg-gelb-hell px-5 py-3.5 font-semibold text-ink ring-1 ring-line transition hover:brightness-95">
             <ShieldCheck aria-hidden className="h-5 w-5" /><span className="mr-auto">{t.loeschungen(offeneLoeschungen ?? 0)}</span><ArrowRight aria-hidden className="h-5 w-5" />
+          </Link>
+        )}
+        {(offeneStimmen ?? 0) > 0 && (
+          <Link href="/team/stimmen/" className="mt-3 flex items-center gap-3 rounded-2xl bg-gruen-hell px-5 py-3.5 font-semibold text-ink ring-1 ring-line transition hover:brightness-95">
+            <Megaphone aria-hidden className="h-5 w-5" /><span className="mr-auto">{t.stimmen(offeneStimmen ?? 0)}</span><ArrowRight aria-hidden className="h-5 w-5" />
           </Link>
         )}
 

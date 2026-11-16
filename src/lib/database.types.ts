@@ -237,14 +237,14 @@ isOneToOne: false
                   ]
                 },"contributions": {
                   Row: {
-                    "created_at": string,"id": string,"kind": string,"outlet": string | null,"participant_id": string,"published_on": string | null,"title": string,"url": string | null,"website_slug": string | null
+                    "author_name": string | null,"city": string | null,"consent_at": string | null,"country": string | null,"created_at": string,"id": string,"kind": string,"language": string | null,"outlet": string | null,"participant_id": string,"published_on": string | null,"review_note": string | null,"reviewed_at": string | null,"reviewed_by": string | null,"status": string,"submitted_at": string | null,"summary": string | null,"title": string,"url": string | null,"website_slug": string | null
                   }
                   ComputedFields: never
                   Insert: {
-                    "created_at"?: string,"id"?: string,"kind": string,"outlet"?: string | null,"participant_id": string,"published_on"?: string | null,"title": string,"url"?: string | null,"website_slug"?: string | null
+                    "author_name"?: string | null,"city"?: string | null,"consent_at"?: string | null,"country"?: string | null,"created_at"?: string,"id"?: string,"kind": string,"language"?: string | null,"outlet"?: string | null,"participant_id": string,"published_on"?: string | null,"review_note"?: string | null,"reviewed_at"?: string | null,"reviewed_by"?: string | null,"status"?: string,"submitted_at"?: string | null,"summary"?: string | null,"title": string,"url"?: string | null,"website_slug"?: string | null
                   }
                   Update: {
-                    "created_at"?: string,"id"?: string,"kind"?: string,"outlet"?: string | null,"participant_id"?: string,"published_on"?: string | null,"title"?: string,"url"?: string | null,"website_slug"?: string | null
+                    "author_name"?: string | null,"city"?: string | null,"consent_at"?: string | null,"country"?: string | null,"created_at"?: string,"id"?: string,"kind"?: string,"language"?: string | null,"outlet"?: string | null,"participant_id"?: string,"published_on"?: string | null,"review_note"?: string | null,"reviewed_at"?: string | null,"reviewed_by"?: string | null,"status"?: string,"submitted_at"?: string | null,"summary"?: string | null,"title"?: string,"url"?: string | null,"website_slug"?: string | null
                   }
                   Relationships: [
                     {
@@ -383,14 +383,14 @@ isOneToOne: false
                   ]
                 },"feedback_questions": {
                   Row: {
-                    "country": string | null,"i18n": Json,"id": string,"kind": string,"options": Json | null,"other_option": boolean,"position": number,"prompt": string,"required": boolean,"scale_max": number | null,"survey_id": string
+                    "country": string | null,"i18n": NonNullable<Json>,"id": string,"kind": string,"options": Json | null,"other_option": boolean,"position": number,"prompt": string,"required": boolean,"scale_max": number | null,"survey_id": string
                   }
                   ComputedFields: never
                   Insert: {
-                    "country"?: string | null,"i18n"?: Json,"id"?: string,"kind": string,"options"?: Json | null,"other_option"?: boolean,"position": number,"prompt": string,"required"?: boolean,"scale_max"?: number | null,"survey_id": string
+                    "country"?: string | null,"i18n"?: NonNullable<Json>,"id"?: string,"kind": string,"options"?: Json | null,"other_option"?: boolean,"position": number,"prompt": string,"required"?: boolean,"scale_max"?: number | null,"survey_id": string
                   }
                   Update: {
-                    "country"?: string | null,"i18n"?: Json,"id"?: string,"kind"?: string,"options"?: Json | null,"other_option"?: boolean,"position"?: number,"prompt"?: string,"required"?: boolean,"scale_max"?: number | null,"survey_id"?: string
+                    "country"?: string | null,"i18n"?: NonNullable<Json>,"id"?: string,"kind"?: string,"options"?: Json | null,"other_option"?: boolean,"position"?: number,"prompt"?: string,"required"?: boolean,"scale_max"?: number | null,"survey_id"?: string
                   }
                   Relationships: [
                     {
@@ -427,18 +427,6 @@ isOneToOne: false
       referencedColumns: ["id"]
     }
                   ]
-                },"feedback_teilnahmen": {
-                  Row: {
-                    "participant_id": string,"survey_id": string
-                  }
-                  ComputedFields: never
-                  Insert: {
-                    "participant_id": string,"survey_id": string
-                  }
-                  Update: {
-                    "participant_id"?: string,"survey_id"?: string
-                  }
-                  Relationships: []
                 },"feedback_surveys": {
                   Row: {
                     "closes_at": string,"created_at": string,"id": string,"module_id": string,"opens_at": string,"sent_at": string | null
@@ -456,6 +444,32 @@ isOneToOne: false
       columns: ["module_id"]
 isOneToOne: true
       referencedRelation: "modules"
+      referencedColumns: ["id"]
+    }
+                  ]
+                },"feedback_teilnahmen": {
+                  Row: {
+                    "participant_id": string,"survey_id": string
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "participant_id": string,"survey_id": string
+                  }
+                  Update: {
+                    "participant_id"?: string,"survey_id"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "feedback_teilnahmen_participant_id_fkey"
+      columns: ["participant_id"]
+isOneToOne: false
+      referencedRelation: "participants"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "feedback_teilnahmen_survey_id_fkey"
+      columns: ["survey_id"]
+isOneToOne: false
+      referencedRelation: "feedback_surveys"
       referencedColumns: ["id"]
     }
                   ]
@@ -777,14 +791,14 @@ isOneToOne: false
                   ]
                 },"modules": {
                   Row: {
-                    "cancellation_reason": string | null,"cancelled_at": string | null,"capacity": number | null,"cohort_id": string | null,"counts_for_streak": boolean,"created_at": string,"description": string,"i18n": Json,"id": string,"kind": Database["public"]['Enums']["module_kind"],"location": string | null,"open_registration": boolean,"slug": string,"status": Database["public"]['Enums']["module_status"],"stay_form_open": boolean,"subtitle": string,"ticket_required": boolean,"title": string,"updated_at": string
+                    "cancellation_reason": string | null,"cancelled_at": string | null,"capacity": number | null,"cohort_id": string | null,"counts_for_streak": boolean,"created_at": string,"description": string,"i18n": NonNullable<Json>,"id": string,"kind": Database["public"]['Enums']["module_kind"],"location": string | null,"open_registration": boolean,"slug": string,"status": Database["public"]['Enums']["module_status"],"stay_form_open": boolean,"subtitle": string,"ticket_required": boolean,"title": string,"updated_at": string
                   }
                   ComputedFields: never
                   Insert: {
-                    "cancellation_reason"?: string | null,"cancelled_at"?: string | null,"capacity"?: number | null,"cohort_id"?: string | null,"counts_for_streak"?: boolean,"created_at"?: string,"description"?: string,"i18n"?: Json,"id"?: string,"kind"?: Database["public"]['Enums']["module_kind"],"location"?: string | null,"open_registration"?: boolean,"slug": string,"status"?: Database["public"]['Enums']["module_status"],"stay_form_open"?: boolean,"subtitle"?: string,"ticket_required"?: boolean,"title": string,"updated_at"?: string
+                    "cancellation_reason"?: string | null,"cancelled_at"?: string | null,"capacity"?: number | null,"cohort_id"?: string | null,"counts_for_streak"?: boolean,"created_at"?: string,"description"?: string,"i18n"?: NonNullable<Json>,"id"?: string,"kind"?: Database["public"]['Enums']["module_kind"],"location"?: string | null,"open_registration"?: boolean,"slug": string,"status"?: Database["public"]['Enums']["module_status"],"stay_form_open"?: boolean,"subtitle"?: string,"ticket_required"?: boolean,"title": string,"updated_at"?: string
                   }
                   Update: {
-                    "cancellation_reason"?: string | null,"cancelled_at"?: string | null,"capacity"?: number | null,"cohort_id"?: string | null,"counts_for_streak"?: boolean,"created_at"?: string,"description"?: string,"i18n"?: Json,"id"?: string,"kind"?: Database["public"]['Enums']["module_kind"],"location"?: string | null,"open_registration"?: boolean,"slug"?: string,"status"?: Database["public"]['Enums']["module_status"],"stay_form_open"?: boolean,"subtitle"?: string,"ticket_required"?: boolean,"title"?: string,"updated_at"?: string
+                    "cancellation_reason"?: string | null,"cancelled_at"?: string | null,"capacity"?: number | null,"cohort_id"?: string | null,"counts_for_streak"?: boolean,"created_at"?: string,"description"?: string,"i18n"?: NonNullable<Json>,"id"?: string,"kind"?: Database["public"]['Enums']["module_kind"],"location"?: string | null,"open_registration"?: boolean,"slug"?: string,"status"?: Database["public"]['Enums']["module_status"],"stay_form_open"?: boolean,"subtitle"?: string,"ticket_required"?: boolean,"title"?: string,"updated_at"?: string
                   }
                   Relationships: [
                     {
@@ -869,14 +883,14 @@ isOneToOne: false
                   ]
                 },"program_items": {
                   Row: {
-                    "created_at": string,"ends_at": string | null,"i18n": Json,"id": string,"module_day_id": string,"note": string,"responsible": string | null,"room": string | null,"starts_at": string,"status": Database["public"]['Enums']["program_item_status"],"title": string,"updated_at": string,"updated_by": string | null
+                    "created_at": string,"ends_at": string | null,"i18n": NonNullable<Json>,"id": string,"module_day_id": string,"note": string,"responsible": string | null,"room": string | null,"starts_at": string,"status": Database["public"]['Enums']["program_item_status"],"title": string,"updated_at": string,"updated_by": string | null
                   }
                   ComputedFields: never
                   Insert: {
-                    "created_at"?: string,"ends_at"?: string | null,"i18n"?: Json,"id"?: string,"module_day_id": string,"note"?: string,"responsible"?: string | null,"room"?: string | null,"starts_at": string,"status"?: Database["public"]['Enums']["program_item_status"],"title": string,"updated_at"?: string,"updated_by"?: string | null
+                    "created_at"?: string,"ends_at"?: string | null,"i18n"?: NonNullable<Json>,"id"?: string,"module_day_id": string,"note"?: string,"responsible"?: string | null,"room"?: string | null,"starts_at": string,"status"?: Database["public"]['Enums']["program_item_status"],"title": string,"updated_at"?: string,"updated_by"?: string | null
                   }
                   Update: {
-                    "created_at"?: string,"ends_at"?: string | null,"i18n"?: Json,"id"?: string,"module_day_id"?: string,"note"?: string,"responsible"?: string | null,"room"?: string | null,"starts_at"?: string,"status"?: Database["public"]['Enums']["program_item_status"],"title"?: string,"updated_at"?: string,"updated_by"?: string | null
+                    "created_at"?: string,"ends_at"?: string | null,"i18n"?: NonNullable<Json>,"id"?: string,"module_day_id"?: string,"note"?: string,"responsible"?: string | null,"room"?: string | null,"starts_at"?: string,"status"?: Database["public"]['Enums']["program_item_status"],"title"?: string,"updated_at"?: string,"updated_by"?: string | null
                   }
                   Relationships: [
                     {
@@ -1323,6 +1337,9 @@ isOneToOne: false
 "execute_team_approval":
 { Args: { "p_id": string,"p_new_user"?: string }; Returns: string
                            },
+"feedback_speichern":
+{ Args: { "p_answers": Json,"p_participant_id": string,"p_survey_id": string }; Returns: string
+                           },
 "get_assignment_status":
 { Args: { "p_assignment_id": string }; Returns: {
               "display_name": string,"participant_id": string,"review_count": number,"status": string,"submitted_on": string
@@ -1350,9 +1367,6 @@ isOneToOne: false
 { Args: { "timeframe_end"?: string,"timeframe_start"?: string }; Returns: {
               "checked_in": number,"counts_for_streak": boolean,"day_id": string,"ends_at": string,"expected": number,"module_id": string,"module_title": string,"starts_at": string,"walk_ins": number
             }[]
-                           },
-"feedback_speichern":
-{ Args: { "p_answers": Json,"p_participant_id": string,"p_survey_id": string }; Returns: string
                            },
 "get_feedback_results":
 { Args: { "p_survey_id": string }; Returns: {
@@ -1399,7 +1413,7 @@ isOneToOne: false
                            },
 "get_my_rooms":
 { Args: Record<PropertyKey, never>; Returns: {
-              "access_code": string | null,"capacity": number,"hotel_address": string,"hotel_name": string,"mates": string[],"module_id": string,"room_label": string
+              "access_code": string,"capacity": number,"hotel_address": string,"hotel_name": string,"mates": (string)[],"module_id": string,"room_label": string
             }[]
                            },
 "get_participant_analytics":
@@ -1504,6 +1518,11 @@ isOneToOne: false
 "normalize_email":
 { Args: { "value": string }; Returns: string
                            },
+"public_stimmen":
+{ Args: Record<PropertyKey, never>; Returns: {
+              "author_name": string,"city": string,"country": string,"created_at": string,"kind": string,"language": string,"outlet": string,"published_on": string,"slug": string,"summary": string,"title": string,"url": string
+            }[]
+                           },
 "question_rate_exceeded":
 { Args: { "p_art": string,"p_ip": string,"p_max": number }; Returns: boolean
                            },
@@ -1561,6 +1580,9 @@ isOneToOne: false
 "submit_own_assignment":
 { Args: { "p_assignment_id": string,"p_file_name"?: string,"p_link"?: string,"p_size_bytes"?: number,"p_storage_path"?: string }; Returns: Json
                            },
+"submit_own_contribution":
+{ Args: { "p_city": string,"p_consent": boolean,"p_country": string,"p_full_name": boolean,"p_kind": string,"p_language": string,"p_outlet": string,"p_published_on": string,"p_summary": string,"p_title": string,"p_url": string }; Returns: Json
+                           },
 "undo_check_in":
 { Args: { "p_attendance_id": string }; Returns: Json
                            },
@@ -1581,6 +1603,9 @@ isOneToOne: false
                            },
 "withdraw_my_deletion":
 { Args: Record<PropertyKey, never>; Returns: string
+                           },
+"withdraw_own_contribution":
+{ Args: { "p_id": string }; Returns: Json
                            },
 "withdraw_registration":
 { Args: { "p_excuse_note": string,"p_module_id": string,"p_participant_id": string,"p_via": string }; Returns: Json

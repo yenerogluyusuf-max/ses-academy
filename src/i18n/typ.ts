@@ -125,6 +125,8 @@ export type Texte = {
     anlass: string;
     erschienenIn: string;
     zumArtikel: string;
+    /** Knopf zum Original bei Videos, Podcasts, Grafiken … außerhalb der Seite */
+    zumOriginal: string;
     laender: Record<"de" | "fr" | "at" | "nl" | "be" | "ch" | "andere", string>;
     lesen: string;
     zurueck: string;

@@ -11,6 +11,8 @@ import { meinAbmelden, meinZuruecknehmen } from "@/lib/aktionen/ticket";
 import { naechte, nachtName } from "@/lib/uebernachtung";
 import { kurzcodeAnzeige, ticketQrSvg } from "@/lib/tickets";
 import { WalletKnoepfe } from "@/components/WalletKnoepfe";
+import { BeitragFormular } from "@/components/BeitragFormular";
+import { beitragZurueckziehen } from "@/lib/aktionen/beitraege";
 import { istInterneZimmerbezeichnung } from "@/lib/zimmer-anzeige";
 import { createClient } from "@/lib/supabase/server";
 import { bereichSprache, bereichTexte, datumsSprache, type BereichSprache } from "@/lib/bereich-texte";
@@ -39,12 +41,12 @@ function formate(l: BereichSprache, terminFolgt: string) {
 const sprachen: Record<string, string> = { de: "Deutsch", tr: "Türkçe", en: "English", fr: "Français", nl: "Nederlands" };
 
 export default async function MeinBereich({ searchParams }: PageProps<"/mein-bereich">) {
-  const { abgabe, uebernachtung, profil, modul, datenschutz } = await searchParams;
+  const { abgabe, uebernachtung, profil, modul, datenschutz, beitrag } = await searchParams;
   const supabase = await createClient();
   const { data: auth } = await supabase.auth.getUser();
   if (!auth.user) redirect("/mein-bereich/login/");
   // Zugriffsregeln: jede Abfrage liefert nur die eigenen Daten
-  const { data: ich } = await supabase.from("participants").select("id,first_name,last_name,email,phone,preferred_language,share_contact,photo_consent_at,photo_path,checkin_token,link_token,short_code,cohort_id,directory_opt_out").eq("user_id", auth.user.id).maybeSingle();
+  const { data: ich } = await supabase.from("participants").select("id,first_name,last_name,email,phone,country,preferred_language,share_contact,photo_consent_at,photo_path,checkin_token,link_token,short_code,cohort_id,directory_opt_out").eq("user_id", auth.user.id).maybeSingle();
   // Sprache: Profil der Person (Türkisch oder Deutsch), vor dem Laden des Profils die des Kontos
   const l = bereichSprache(ich?.preferred_language ?? (auth.user.user_metadata?.sprache as string | undefined));
   const t = bereichTexte[l];
@@ -69,7 +71,7 @@ export default async function MeinBereich({ searchParams }: PageProps<"/mein-ber
     supabase.from("registrations").select("id,status,modules(id,title,location,stay_form_open,cancelled_at,module_days(id,day,starts_at,ends_at)),attendances(module_day_id)"),
     supabase.from("assignments").select("id,number,title,description,due_date,due_at").order("number"),
     supabase.from("submissions").select("id,label,assignment_id,file_name,link,submitted_on,submitted_at"),
-    supabase.from("contributions").select("*").order("published_on", { ascending: false }),
+    supabase.from("contributions").select("id,kind,title,url,outlet,published_on,website_slug,status,review_note,submitted_at").order("published_on", { ascending: false }),
   ]);
   const jetzt = new Date(jetztMs()).toISOString();
   const meineModule = ((regs ?? []) as unknown as Reg[])
@@ -377,19 +379,52 @@ export default async function MeinBereich({ searchParams }: PageProps<"/mein-ber
               {!vorbei.length && <li className="py-3 text-ink-soft">{t.keineVergangenen}</li>}
             </ul>
           </div>
-          <div>
+          <div id="beitraege" className="scroll-mt-4">
             <h2 className="font-display mb-4 text-2xl font-bold">{t.beitraege}</h2>
+            {beitrag === "withdrawn" && <p role="status" className="mb-4 rounded-2xl bg-gruen-hell p-4 font-semibold">{t.beitragZurueckOk}</p>}
+            {beitrag === "fehler" && <p role="status" className="mb-4 rounded-2xl bg-gelb-hell p-4 font-semibold">{t.beitragFormular.hinweise.fehler.text}</p>}
             <ul className="karte divide-y divide-line py-2">
-              {beitraege?.map((b) => (
-                <li key={b.id} className="py-3">
-                  {b.website_slug ? <Link href={`/stimmen/${b.website_slug}/`} className="font-semibold hover:underline">{b.title}</Link>
-                    : b.url ? <a href={b.url} target="_blank" rel="noopener noreferrer" className="font-semibold hover:underline">{b.title} ↗</a>
-                    : <span className="font-semibold">{b.title}</span>}
-                  <span className="block text-xs text-ink-soft">{t.beitragTypen[b.kind]}{b.outlet ? ` · ${b.outlet}` : ""}{b.published_on ? ` · ${datum(b.published_on)}` : ""}</span>
-                </li>
-              ))}
+              {beitraege?.map((b) => {
+                const aufWebsite = b.website_slug && (b.status === "veroeffentlicht" || b.status === "erfasst");
+                const status = t.beitragStatus[b.status];
+                return (
+                  <li key={b.id} className="py-3">
+                    <div className="flex flex-wrap items-start justify-between gap-2">
+                      <span className="min-w-0">
+                        {aufWebsite ? <Link href={`/stimmen/${b.website_slug}/`} className="font-semibold hover:underline">{b.title}</Link>
+                          : b.url ? <a href={b.url} target="_blank" rel="noopener noreferrer" className="font-semibold hover:underline">{b.title} ↗</a>
+                          : <span className="font-semibold">{b.title}</span>}
+                        <span className="block text-xs text-ink-soft">{t.beitragTypen[b.kind]}{b.outlet ? ` · ${b.outlet}` : ""}{b.published_on ? ` · ${datum(b.published_on)}` : ""}</span>
+                      </span>
+                      {status && (
+                        <span className={`chip shrink-0 py-0.5 text-xs ${b.status === "veroeffentlicht" ? "bg-gruen-hell" : b.status === "eingereicht" ? "bg-gelb-hell" : "bg-paper-deep"}`}>{status}</span>
+                      )}
+                    </div>
+                    {b.status === "nicht_uebernommen" && b.review_note && (
+                      <p className="mt-2 rounded-xl bg-paper-deep p-3 text-sm"><span className="font-semibold">{t.beitragRueckmeldung}:</span> {b.review_note}</p>
+                    )}
+                    {b.submitted_at && (
+                      <form action={beitragZurueckziehen} className="mt-2">
+                        <input type="hidden" name="id" value={b.id} />
+                        <Rueckfrage knopf={t.beitragZurueckziehen} knopfKlasse="text-sm text-ink-soft underline underline-offset-4 hover:text-ink" gefahr
+                          frage={t.beitragZurueckFrage(b.title)} ja={t.beitragZurueckJa} abbrechen={t.abbrechen} laeuft="…" />
+                      </form>
+                    )}
+                  </li>
+                );
+              })}
               {!beitraege?.length && <li className="py-3 text-ink-soft">{t.keineBeitraege}</li>}
             </ul>
+            <BeitragFormular
+              t={t.beitragFormular}
+              vorgabe={{
+                sprache: l,
+                land: ["de", "fr", "at", "nl", "be", "ch"].includes((ich.country ?? "").toLowerCase()) ? (ich.country ?? "").toLowerCase() : "andere",
+                heute: new Intl.DateTimeFormat("en-CA", { timeZone: "Europe/Berlin" }).format(new Date(jetztMs())),
+                nameKurz: `${ich.first_name.trim()} ${ich.last_name.trim().charAt(0).toUpperCase()}.`,
+                nameVoll: `${ich.first_name} ${ich.last_name}`.trim(),
+              }}
+            />
           </div>
         </section>
         <RechtlicheLinks {...rechtlicheTexte(l)} className="mt-16 border-t border-line pt-6 text-ink-soft" />

@@ -1,6 +1,6 @@
 import Link from "next/link";
 import {
-  BookOpen, CalendarClock, ChartColumn, Contact, House, Inbox, KeyRound, Layers, LogOut, Mail,
+  BookOpen, CalendarClock, ChartColumn, Contact, House, Inbox, KeyRound, Layers, LogOut, Mail, Megaphone,
   ScanLine, ShieldX, Send, ShieldCheck, Upload, UserCog, Users, type LucideIcon,
 } from "lucide-react";
 import { HandyMenue } from "@/components/team/HandyMenue";
@@ -12,7 +12,7 @@ import { teamTexte, type TeamTexte } from "@/lib/team-texte";
 
 type Bereich =
   | "start" | "einlass" | "regieplan" | "rollenplan" | "gruppen" | "module" | "bewerbungen" | "teilnehmende" | "anrufe" | "hausaufgaben"
-  | "mitglieder" | "auswertung" | "import" | "logistik" | "dokumente" | "sitzungen" | "postfach" | "nachrichten" | "freigaben" | "loeschantraege" | "team";
+  | "mitglieder" | "auswertung" | "import" | "logistik" | "dokumente" | "sitzungen" | "postfach" | "nachrichten" | "stimmen" | "freigaben" | "loeschantraege" | "team";
 
 type Eintrag = { id: Bereich; name: string; href: string; icon: LucideIcon; recht: (r: StaffRole) => boolean };
 
@@ -59,6 +59,7 @@ const gruppen: { titel: string; eintraege: Eintrag[] }[] = [
     eintraege: [
       { id: "postfach", name: "Postfach", href: "/team/postfach/", icon: Mail, recht: darf.orga },
       { id: "nachrichten", name: "Nachrichten", href: "/team/nachrichten/", icon: Send, recht: darf.alles },
+      { id: "stimmen", name: "Stimmen", href: "/team/stimmen/", icon: Megaphone, recht: darf.alles },
     ],
   },
   {

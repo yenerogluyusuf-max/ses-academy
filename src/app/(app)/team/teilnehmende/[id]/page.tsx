@@ -75,6 +75,8 @@ const de = {
   beitraege: "Stimmen-Beiträge",
   link: "Link",
   aufWebsite: "auf der Website",
+  beitragWartet: "wartet auf Prüfung",
+  beitragNicht: "nicht übernommen",
   entfernen: "Entfernen",
   jaEntfernen: "Ja, entfernen",
   beitragFrage: (titel: string) => `Beitrag „${titel}“ entfernen?`,
@@ -162,6 +164,8 @@ const T: Record<TeamSprache, typeof de> = {
     beitraege: "Stimmen katkıları",
     link: "Bağlantı",
     aufWebsite: "web sitesinde",
+    beitragWartet: "inceleme bekliyor",
+    beitragNicht: "yayınlanmadı",
     entfernen: "Kaldır",
     jaEntfernen: "Evet, kaldır",
     beitragFrage: (titel) => `“${titel}” katkısı kaldırılsın mı?`,
@@ -246,6 +250,8 @@ const T: Record<TeamSprache, typeof de> = {
     beitraege: "Contributions Stimmen",
     link: "Lien",
     aufWebsite: "sur le site",
+    beitragWartet: "en attente d’examen",
+    beitragNicht: "non retenu",
     entfernen: "Retirer",
     jaEntfernen: "Oui, retirer",
     beitragFrage: (titel) => `Retirer la contribution « ${titel} » ?`,
@@ -706,7 +712,9 @@ export default async function Person({ params, searchParams }: PageProps<"/team/
                         <p className="text-xs text-ink-soft">
                           {t.typen[b.kind as keyof typeof de.typen]}{b.outlet ? ` · ${b.outlet}` : ""}{b.published_on ? ` · ${datum(b.published_on)}` : ""}
                           {b.url && <> · <a href={b.url} target="_blank" rel="noopener noreferrer" className="link">{t.link}</a></>}
-                          {b.website_slug && <> · <a href={`/stimmen/${b.website_slug}/`} className="link">{t.aufWebsite}</a></>}
+                          {b.website_slug && (b.status === "veroeffentlicht" || b.status === "erfasst") && <> · <a href={`/stimmen/${b.website_slug}/`} className="link">{t.aufWebsite}</a></>}
+                          {b.status === "eingereicht" && <> · <Link href="/team/stimmen/" className="link">{t.beitragWartet}</Link></>}
+                          {b.status === "nicht_uebernommen" && <> · {t.beitragNicht}</>}
                         </p>
                       </div>
                       <form action={beitragEntfernen} className="max-w-56">

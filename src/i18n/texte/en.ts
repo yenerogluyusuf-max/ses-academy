@@ -245,6 +245,7 @@ export const en: Texte = {
     "anlass": "Delivered at",
     "erschienenIn": "Published in",
     "zumArtikel": "Read the article",
+    "zumOriginal": "View the original",
     "lesen": "Read more",
     "zurueck": "All voices",
     "videoLaden": "Play video",

@@ -245,6 +245,7 @@ export const tr: Texte = {
     "anlass": "Konuşmanın yapıldığı yer",
     "erschienenIn": "Yayımlandığı yer",
     "zumArtikel": "Makaleyi oku",
+    "zumOriginal": "Orijinaline git",
     "lesen": "Devamını oku",
     "zurueck": "Tüm sesler",
     "videoLaden": "Videoyu oynat",
