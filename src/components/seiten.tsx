@@ -10,6 +10,7 @@ import { Naechstes, NaechstesSticker, ProgrammListe, type Eintrag } from "./Prog
 import { bewerbungOffen, fotos, gaeste, modulplan } from "@/i18n/daten";
 import { locale, pfad, sprachen, texte, zeitraum, zeitraumKurz, type ModulSlug, type Sprache, type Texte } from "@/i18n";
 import { Pfeil } from "./Pfeil";
+import { HeroBilder, type HeroBild } from "./HeroBilder";
 
 const SITE = "https://ses.islamrat.de";
 
@@ -74,6 +75,28 @@ function GaesteListe({ l, t, slug }: { l: Sprache; t: Texte; slug?: ModulSlug })
   );
 }
 
+/**
+ * Bilder für das Startbild: zuerst das bisherige Auftakt-Foto, danach je Modul ein bis zwei Fotos, neueste zuerst.
+ * Bildunterschrift „Modul · Monat Jahr · Ort“ in der Sprache der Seite.
+ */
+function heroBilder(l: Sprache): HeroBild[] {
+  const t = texte[l];
+  const monat = new Intl.DateTimeFormat(locale[l], { month: "long", year: "numeric", timeZone: "Europe/Berlin" });
+  const unter = (slug: ModulSlug) => {
+    const m = modulplan.find((x) => x.slug === slug);
+    const titel = t.seminare[slug].titel.split(" – ")[0];
+    return [titel, m ? monat.format(new Date(`${m.von}T12:00:00Z`)) : null, m?.ort ? "Köln" : null].filter(Boolean).join(" · ");
+  };
+  const auswahl: [ModulSlug, string][] = [["demokratie", "/fotos/nov-podium.jpg"], ["demokratie", "/fotos/nov-workshop-flipchart.jpg"], ["skills-workshop", "/fotos/sept-workshop-a.jpg"], ["verfassungen", "/fotos/juni-hafez-keynote.jpg"], ["auftakt", "/fotos/yousaf.jpg"], ["demokratie", "/fotos/nov-saal.jpg"]];
+  return [
+    { src: "/fotos/hero.jpg", alt: t.hero.fotoAlt, text: t.hero.fotoText, position: "object-[72%_50%]" },
+    ...auswahl.flatMap(([slug, src]) => {
+      const f = fotos[slug]?.find((x) => x.src === src);
+      return f ? [{ src, alt: f.alt[l], text: unter(slug) }] : [];
+    }),
+  ];
+}
+
 export function Startseite({ l }: { l: Sprache }) {
   const t = texte[l];
   const e = eintraege(l);
@@ -107,9 +130,7 @@ export function Startseite({ l }: { l: Sprache }) {
 
           <div className="relative">
             <div className="relative aspect-[4/5] overflow-hidden rounded-[2rem] bg-paper-deep sm:aspect-[5/4] lg:aspect-[4/5]">
-              <Image src="/fotos/hero.jpg" alt={h.fotoAlt} fill priority sizes="(min-width:1024px) 45vw, 100vw" className="object-cover object-[72%_50%]" />
-              <div className="absolute inset-x-0 bottom-0 h-1/2 bg-gradient-to-t from-ink/70 to-transparent" />
-              <p className="absolute right-5 bottom-5 left-5 text-sm font-medium text-paper/90">{h.fotoText}</p>
+              <HeroBilder bilder={heroBilder(l)} />
             </div>
             <NaechstesSticker
               eintraege={e}
