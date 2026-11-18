@@ -6,6 +6,7 @@ import { Rueckfrage } from "@/components/team/Rueckfrage";
 import { TeamKopf } from "@/components/team/TeamKopf";
 import { beitragNichtUebernehmen, beitragVeroeffentlichen, beitragZurueckstellen } from "@/lib/aktionen/beitraege";
 import { requireStaff } from "@/lib/auth";
+import { beitraege as festeBeitraege } from "@/i18n/stimmen";
 import { createClient } from "@/lib/supabase/server";
 import { teamLocale, type TeamSprache } from "@/lib/team-sprache";
 import { teamTexte } from "@/lib/team-texte";
@@ -13,7 +14,7 @@ import { teamTexte } from "@/lib/team-texte";
 export const metadata: Metadata = { title: "Stimmen | SES Academy" };
 
 const de = {
-  intro: "Teilnehmende reichen ihre Artikel, Reden und Videos in „Mein Bereich“ ein. Hier prüft ihr sie; erst nach „Veröffentlichen“ stehen sie unter „Stimmen“ auf ses-academy.org. Stil und Meinung bleiben die der Person – nur behutsam kürzen oder korrigieren.",
+  intro: "Unter „Stimmen“ auf ses-academy.org stehen Beiträge, die das Team eingetragen hat, und Beiträge, die Teilnehmende selbst in „Mein Bereich“ einreichen. Eingereichte prüft ihr hier; erst nach „Veröffentlichen“ stehen sie auf der Website. Stil und Meinung bleiben die der Person – nur behutsam kürzen oder korrigieren.",
   hinweise: {
     veroeffentlicht: { text: "Veröffentlicht. Der Beitrag steht jetzt unter „Stimmen“.", gut: true },
     nicht_uebernommen: { text: "Gespeichert: nicht übernommen. Die Person sieht das (und deine Rückmeldung) in „Mein Bereich“.", gut: true },
@@ -45,12 +46,13 @@ const de = {
   vonWebsiteJa: "Ja, von der Website nehmen",
   zurueckholen: "Erneut prüfen",
   original: "Original öffnen",
+  vomTeam: "vom Team eingetragen",
 };
 
 const T: Record<TeamSprache, typeof de> = {
   de,
   tr: {
-    intro: "Katılımcılar makalelerini, konuşmalarını ve videolarını „Benim alanım“dan gönderir. Burada incelersiniz; ancak „Yayınla“dan sonra ses-academy.org'da „Sesler“ bölümünde görünür. Üslup ve görüş kişiye aittir – yalnızca dikkatle kısaltın veya düzeltin.",
+    intro: "ses-academy.org'daki „Sesler“ bölümünde ekibin eklediği katkılar ve katılımcıların „Benim alanım“dan kendilerinin gönderdiği katkılar yer alır. Gönderilenleri burada incelersiniz; ancak „Yayınla“dan sonra web sitesinde görünür. Üslup ve görüş kişiye aittir – yalnızca dikkatle kısaltın veya düzeltin.",
     hinweise: {
       veroeffentlicht: { text: "Yayınlandı. Katkı artık „Sesler“ bölümünde.", gut: true },
       nicht_uebernommen: { text: "Kaydedildi: yayınlanmadı. Kişi bunu (ve notunu) „Benim alanım“da görür.", gut: true },
@@ -82,9 +84,10 @@ const T: Record<TeamSprache, typeof de> = {
     vonWebsiteJa: "Evet, kaldır",
     zurueckholen: "Tekrar incele",
     original: "Orijinali aç",
+    vomTeam: "ekip tarafından eklendi",
   },
   fr: {
-    intro: "Les participants proposent leurs articles, discours et vidéos dans « Mon espace ». Vous les examinez ici ; ils n’apparaissent dans « Voix » sur ses-academy.org qu’après « Publier ». Le style et l’opinion restent ceux de la personne – raccourcir ou corriger seulement avec soin.",
+    intro: "Dans « Voix » sur ses-academy.org figurent des contributions ajoutées par l’équipe et d’autres que les participants proposent eux-mêmes dans « Mon espace ». Vous examinez ici celles qui sont proposées ; elles n’apparaissent sur le site qu’après « Publier ». Le style et l’opinion restent ceux de la personne – raccourcir ou corriger seulement avec soin.",
     hinweise: {
       veroeffentlicht: { text: "Publié. La contribution est maintenant dans « Voix ».", gut: true },
       nicht_uebernommen: { text: "Enregistré : non retenu. La personne le voit (avec ton retour) dans « Mon espace ».", gut: true },
@@ -116,6 +119,7 @@ const T: Record<TeamSprache, typeof de> = {
     vonWebsiteJa: "Oui, retirer du site",
     zurueckholen: "Examiner de nouveau",
     original: "Ouvrir l’original",
+    vomTeam: "ajouté par l’équipe",
   },
 };
 
@@ -138,6 +142,14 @@ export default async function StimmenPruefen({ searchParams }: PageProps<"/team/
   const warten = alle.filter((b) => b.status === "eingereicht").reverse(); // älteste zuerst
   const online = alle.filter((b) => b.status === "veroeffentlicht");
   const abgelehnt = alle.filter((b) => b.status === "nicht_uebernommen");
+  // „Auf der Website“ = alles, was unter /stimmen/ steht: freigegebene Einreichungen und die vom Team fest eingetragenen
+  // Beiträge (src/i18n/stimmen.ts). Nur Einreichungen lassen sich hier von der Website nehmen.
+  const aufWebsite = [
+    ...online.map((b) => ({ key: b.id, id: b.id as string | null, slug: b.website_slug ?? "", titel: b.title, sprache: b.language, art: b.kind,
+      wer: `${b.author_name ?? ""}${b.city ? ` · ${b.city}` : ""}`, datum: b.published_on ?? b.submitted_at })),
+    ...festeBeitraege.map((b) => ({ key: b.slug, id: null, slug: b.slug, titel: b.titel, sprache: b.sprache as string | null, art: b.typ as string,
+      wer: `${b.autor.name}${b.autor.stadt ? ` · ${b.autor.stadt}` : ""}`, datum: b.datum as string | null })),
+  ].sort((a, b) => (b.datum ?? "").localeCompare(a.datum ?? ""));
   const tag = new Intl.DateTimeFormat(teamLocale[l], { day: "numeric", month: "long", year: "numeric", timeZone: "Europe/Berlin" });
   const datum = (d: string | null) => (d ? tag.format(new Date(d.length === 10 ? `${d}T12:00:00Z` : d)) : "");
 
@@ -214,21 +226,25 @@ export default async function StimmenPruefen({ searchParams }: PageProps<"/team/
         </section>
 
         <section className="mt-10">
-          <h2 className="mb-3 text-sm font-semibold tracking-wide text-ink-soft uppercase">{t.online(online.length)}</h2>
-          {online.length === 0 ? <p className="karte text-ink-soft">{t.keineOnline}</p> : (
+          <h2 className="mb-3 text-sm font-semibold tracking-wide text-ink-soft uppercase">{t.online(aufWebsite.length)}</h2>
+          {aufWebsite.length === 0 ? <p className="karte text-ink-soft">{t.keineOnline}</p> : (
             <ul className="karte divide-y divide-line py-1">
-              {online.map((b) => (
-                <li key={b.id} className="flex flex-wrap items-center justify-between gap-3 py-3">
+              {aufWebsite.map((b) => (
+                <li key={b.key} className="flex flex-wrap items-center justify-between gap-3 py-3">
                   <div className="min-w-0">
-                    <p className="font-semibold" lang={b.language ?? undefined}>{b.title}</p>
-                    <p className="text-sm text-ink-soft">{b.author_name}{b.city ? ` · ${b.city}` : ""} · {t.arten[b.kind]}</p>
+                    <p className="font-semibold" lang={b.sprache ?? undefined}>{b.titel}</p>
+                    <p className="text-sm text-ink-soft">
+                      {b.wer} · {t.arten[b.art]}{b.datum ? ` · ${datum(b.datum)}` : ""}{b.id ? "" : ` · ${t.vomTeam}`}
+                    </p>
                   </div>
-                  <div className="flex flex-wrap items-center gap-3">
-                    <a href={`/stimmen/${b.website_slug}/`} target="_blank" rel="noopener noreferrer" className="text-sm font-semibold underline underline-offset-4">{t.ansehen}</a>
-                    <form action={beitragZurueckstellen}>
-                      <input type="hidden" name="id" value={b.id} />
-                      <Rueckfrage knopf={t.vonWebsite} knopfKlasse="knopf-hell text-sm" gefahr frage={t.vonWebsiteFrage} ja={t.vonWebsiteJa} sprache={l} />
-                    </form>
+                  <div className="ml-auto flex flex-wrap items-center gap-3">
+                    <a href={`/stimmen/${b.slug}/`} target="_blank" rel="noopener noreferrer" className="text-sm font-semibold underline underline-offset-4">{t.ansehen}</a>
+                    {b.id && (
+                      <form action={beitragZurueckstellen}>
+                        <input type="hidden" name="id" value={b.id} />
+                        <Rueckfrage knopf={t.vonWebsite} knopfKlasse="knopf-hell text-sm" gefahr frage={t.vonWebsiteFrage} ja={t.vonWebsiteJa} sprache={l} />
+                      </form>
+                    )}
                   </div>
                 </li>
               ))}
