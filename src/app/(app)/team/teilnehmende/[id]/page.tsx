@@ -9,6 +9,7 @@ import { TeamKopf } from "@/components/team/TeamKopf";
 import { Rueckmeldung, laenderNamen } from "@/components/team/Ui";
 import { darf, getStaff, requireStaff, type Staff } from "@/lib/auth";
 import { ort, regionName } from "@/lib/orte";
+import { personAusschliessen, personLoeschen, personWiederAufnehmen } from "@/lib/aktionen/ausschluss";
 import { anwesenheitSetzen, beitragEntfernen, beitragHinzufuegen, personSpeichern, ticketSenden } from "@/lib/aktionen/teilnehmende";
 import { auswerten, zusammenfassen } from "@/lib/bewertung";
 import { aussagekraeftig, alterHeute, bewerbungsAngaben } from "@/lib/bewerbung-felder";
@@ -353,10 +354,24 @@ const N = {
     oeffnen: "Öffnen", hochladen: "Hochladen", ersetzen: "Ersetzen", entfernen: "Entfernen",
     fotoHinweis: "JPG, PNG oder WebP, höchstens 5 MB.", cvHinweis: "PDF, Word oder Bild, höchstens 10 MB.",
     stammdatenBearbeiten: "Stammdaten bearbeiten",
+    ausschlussTitel: "Ausschließen oder löschen",
+    ausschliessen: "Ausschließen",
+    ausschliessenText: "Sofort abgemeldet, keine Anmeldung in „Mein Bereich“ mehr, aus allen kommenden Modulen abgemeldet (mit Zimmer und Gruppe), keine Rundmails. Ticket und persönliche Links werden ungültig. Daten und Verlauf bleiben; wieder aufnehmen geht jederzeit.",
+    ausschliessenFrage: (name: string) => `${name} ausschließen?`,
+    jaAusschliessen: "Ja, ausschließen",
+    grund: "Grund (nur fürs Team, optional)",
+    nichtAktiv: "Derzeit nicht aktiv: kein Zugang zu „Mein Bereich“, keine Rundmails.",
+    wiederAufnehmen: "Wieder aufnehmen",
+    wiederAufnehmenText: "Stellt nur den Zugang wieder her. Abgesagte Module bleiben abgesagt; danach das Ticket neu schicken.",
+    loeschen: "Endgültig löschen",
+    loeschenText: "Löscht Kontaktdaten, Konto, Bewerbung, Notizen, Anrufe, Beiträge, Foto und Lebenslauf. Anwesenheiten, Hausaufgaben und Feedback bleiben anonym für die Auswertung („Gelöschte Person“). Das lässt sich nicht rückgängig machen.",
+    loeschenFrage: (name: string) => `${name} endgültig löschen? Das lässt sich nicht rückgängig machen.`,
+    jaLoeschen: "Ja, endgültig löschen",
     hinweise: {
       "profil-gespeichert": "Stärken und Aufgaben gespeichert.", "profil-fehler": "Das hat nicht geklappt.",
       "foto-gespeichert": "Foto gespeichert.", "foto-entfernt": "Foto entfernt.", "cv-gespeichert": "Lebenslauf gespeichert.", "cv-entfernt": "Lebenslauf entfernt.",
       "datei-zu-gross": "Die Datei ist zu groß.", "datei-art": "Diese Dateiart geht hier nicht.", "datei-fehlt": "Bitte zuerst eine Datei auswählen.", "datei-fehler": "Die Datei konnte nicht gespeichert werden.",
+      ausgeschlossen: "Ausgeschlossen. Die Person ist abgemeldet und kann sich nicht mehr anmelden.", "wieder-aufgenommen": "Wieder aufgenommen. Ticket bei Bedarf neu schicken.",
     } as Record<string, string>,
   },
   tr: {
@@ -386,10 +401,24 @@ const N = {
     oeffnen: "Aç", hochladen: "Yükle", ersetzen: "Değiştir", entfernen: "Kaldır",
     fotoHinweis: "JPG, PNG veya WebP, en fazla 5 MB.", cvHinweis: "PDF, Word veya görsel, en fazla 10 MB.",
     stammdatenBearbeiten: "Temel bilgileri düzenle",
+    ausschlussTitel: "Programdan çıkar veya sil",
+    ausschliessen: "Programdan çıkar",
+    ausschliessenText: "Oturumu hemen kapatılır, „Benim alanım“a artık giriş yapamaz, gelecek tüm modüllerden kaydı silinir (oda ve grup dahil), toplu e-posta almaz. Bilet ve kişisel bağlantılar geçersiz olur. Veriler ve geçmiş kalır; istendiğinde tekrar alınabilir.",
+    ausschliessenFrage: (name: string) => `${name} programdan çıkarılsın mı?`,
+    jaAusschliessen: "Evet, çıkar",
+    grund: "Gerekçe (yalnızca ekip için, isteğe bağlı)",
+    nichtAktiv: "Şu an aktif değil: „Benim alanım“a erişimi yok, toplu e-posta almaz.",
+    wiederAufnehmen: "Tekrar al",
+    wiederAufnehmenText: "Yalnızca erişimi geri açar. İptal edilen modüller iptal kalır; ardından bileti yeniden gönder.",
+    loeschen: "Kalıcı olarak sil",
+    loeschenText: "İletişim bilgileri, hesap, başvuru, notlar, aramalar, katkılar, fotoğraf ve özgeçmiş silinir. Katılım, ödevler ve geri bildirimler değerlendirme için anonim kalır („Gelöschte Person“). Bu işlem geri alınamaz.",
+    loeschenFrage: (name: string) => `${name} kalıcı olarak silinsin mi? Bu işlem geri alınamaz.`,
+    jaLoeschen: "Evet, kalıcı olarak sil",
     hinweise: {
       "profil-gespeichert": "Güçlü yönler ve görevler kaydedildi.", "profil-fehler": teamTexte.tr.meldung.fehler,
       "foto-gespeichert": "Fotoğraf kaydedildi.", "foto-entfernt": "Fotoğraf kaldırıldı.", "cv-gespeichert": "Özgeçmiş kaydedildi.", "cv-entfernt": "Özgeçmiş kaldırıldı.",
       "datei-zu-gross": "Dosya çok büyük.", "datei-art": "Bu dosya türü burada olmuyor.", "datei-fehlt": "Lütfen önce bir dosya seç.", "datei-fehler": "Dosya kaydedilemedi.",
+      ausgeschlossen: "Programdan çıkarıldı. Kişinin oturumu kapatıldı ve artık giriş yapamaz.", "wieder-aufgenommen": "Tekrar alındı. Gerekirse bileti yeniden gönder.",
     },
   },
   fr: {
@@ -419,10 +448,24 @@ const N = {
     oeffnen: "Ouvrir", hochladen: "Importer", ersetzen: "Remplacer", entfernen: "Supprimer",
     fotoHinweis: "JPG, PNG ou WebP, 5 Mo maximum.", cvHinweis: "PDF, Word ou image, 10 Mo maximum.",
     stammdatenBearbeiten: "Modifier les données de base",
+    ausschlussTitel: "Exclure ou supprimer",
+    ausschliessen: "Exclure",
+    ausschliessenText: "Déconnexion immédiate, plus d’accès à « Mon espace », désinscription de tous les modules à venir (chambre et groupe compris), plus d’e-mails groupés. Le billet et les liens personnels ne fonctionnent plus. Les données et l’historique restent ; la réintégration est possible à tout moment.",
+    ausschliessenFrage: (name: string) => `Exclure ${name} ?`,
+    jaAusschliessen: "Oui, exclure",
+    grund: "Motif (pour l’équipe seulement, facultatif)",
+    nichtAktiv: "Actuellement inactif·ve : pas d’accès à « Mon espace », pas d’e-mails groupés.",
+    wiederAufnehmen: "Réintégrer",
+    wiederAufnehmenText: "Rétablit seulement l’accès. Les modules annulés le restent ; renvoyer ensuite le billet.",
+    loeschen: "Supprimer définitivement",
+    loeschenText: "Supprime les coordonnées, le compte, la candidature, les notes, les appels, les contributions, la photo et le CV. Les présences, devoirs et retours restent anonymes pour l’évaluation (« Gelöschte Person »). Cette action est irréversible.",
+    loeschenFrage: (name: string) => `Supprimer définitivement ${name} ? Cette action est irréversible.`,
+    jaLoeschen: "Oui, supprimer définitivement",
     hinweise: {
       "profil-gespeichert": "Points forts et missions enregistrés.", "profil-fehler": teamTexte.fr.meldung.fehler,
       "foto-gespeichert": "Photo enregistrée.", "foto-entfernt": "Photo supprimée.", "cv-gespeichert": "CV enregistré.", "cv-entfernt": "CV supprimé.",
       "datei-zu-gross": "Le fichier est trop volumineux.", "datei-art": "Ce type de fichier n’est pas accepté ici.", "datei-fehlt": "Choisis d’abord un fichier.", "datei-fehler": "Le fichier n’a pas pu être enregistré.",
+      ausgeschlossen: "Exclu·e. La personne est déconnectée et ne peut plus se connecter.", "wieder-aufgenommen": "Réintégré·e. Renvoyer le billet si besoin.",
     },
   },
 } satisfies Record<TeamSprache, unknown>;
@@ -476,6 +519,8 @@ export default async function Person({ params, searchParams }: PageProps<"/team/
   const abgaben = ((abg ?? []) as unknown as Abg[]).map((a) => a.submissions!).filter(Boolean)
     .sort((a, b) => (a.assignments?.number ?? 0) - (b.assignments?.number ?? 0));
   const name = `${p.first_name} ${p.last_name}`.trim();
+  // Schon gelöscht (anonymisiert): dann gibt es nichts mehr auszuschließen oder zu löschen
+  const geloescht = !p.email && p.first_name === "Gelöschte" && p.last_name.startsWith("Person (");
   const region = regionen?.find((r) => r.id === p.region_id)?.name;
   const mentor = mentoren?.find((m) => m.id === p.mentor_id)?.name;
   const mailAn = mailBereit();
@@ -851,6 +896,47 @@ export default async function Person({ params, searchParams }: PageProps<"/team/
                 </div>
               </form>
             </details>
+
+            {/* Ausschließen oder löschen: eingeklappt, ganz unten */}
+            {!geloescht && (
+              <details id="ausschluss" className="karte scroll-mt-4" open={code === "ausgeschlossen" || code === "wieder-aufgenommen" || typeof sp.fehler === "string"}>
+                <summary className="cursor-pointer font-display text-xl font-bold">{n.ausschlussTitel}</summary>
+                {!p.active && (
+                  <div className="mt-4 rounded-2xl bg-paper-deep p-4 text-sm">
+                    <p className="font-semibold">{n.nichtAktiv}</p>
+                    <p className="mt-1 text-ink-soft">{n.wiederAufnehmenText}</p>
+                    <form action={personWiederAufnehmen} className="mt-3">
+                      <input type="hidden" name="id" value={p.id} />
+                      <button className="knopf-hell">{n.wiederAufnehmen}</button>
+                    </form>
+                  </div>
+                )}
+                <div className="mt-5">
+                  <h3 className="font-semibold">{n.ausschliessen}</h3>
+                  <p className="mt-1 text-sm text-ink-soft">{n.ausschliessenText}</p>
+                  <form action={personAusschliessen} className="mt-3 flex flex-wrap gap-2">
+                    <input type="hidden" name="id" value={p.id} />
+                    <Rueckfrage sprache={l} knopf={n.ausschliessen} gefahr frage={n.ausschliessenFrage(name)} ja={n.jaAusschliessen}>
+                      <label className="etikett" htmlFor="ausschluss-notiz">{n.grund}</label>
+                      <textarea id="ausschluss-notiz" name="notiz" rows={2} maxLength={1000} className="feld" />
+                    </Rueckfrage>
+                  </form>
+                </div>
+                {darf.admin(staff.role) && (
+                  <div className="mt-6 border-t border-line pt-5">
+                    <h3 className="font-semibold text-rot">{n.loeschen}</h3>
+                    <p className="mt-1 text-sm text-ink-soft">{n.loeschenText}</p>
+                    <form action={personLoeschen} className="mt-3 flex flex-wrap gap-2">
+                      <input type="hidden" name="id" value={p.id} />
+                      <Rueckfrage sprache={l} knopf={n.loeschen} knopfKlasse="rounded-full px-4 py-2 font-semibold text-rot ring-1 ring-rot/40 hover:bg-rot-hell" gefahr frage={n.loeschenFrage(name)} ja={n.jaLoeschen}>
+                        <label className="etikett" htmlFor="loeschen-notiz">{n.grund}</label>
+                        <textarea id="loeschen-notiz" name="notiz" rows={2} maxLength={1000} className="feld" />
+                      </Rueckfrage>
+                    </form>
+                  </div>
+                )}
+              </details>
+            )}
           </div>
         </div>
       </main>

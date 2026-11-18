@@ -34,6 +34,7 @@ const hinweiseDe: Record<string, string> = {
   "ticket-gesendet": "QR-Code per Mail verschickt.",
   "ticket-fehler": "Die Mail konnte nicht verschickt werden: Der Mailserver hat sie abgelehnt oder war nicht erreichbar.",
   "mail-aus": "Mailversand ist noch nicht eingerichtet: Die Zugangsdaten für info@ses-academy.org fehlen noch.",
+  "person-geloescht": "Die Person wurde endgültig gelöscht.",
 };
 
 /** Texte der Standard-Hinweise (?hinweis=) je Sprache des Team-Bereichs. */
@@ -45,6 +46,7 @@ export const rueckmeldungTexte: Record<TeamSprache, Record<string, string>> = {
     "ticket-gesendet": "QR kod e-postayla gönderildi.",
     "ticket-fehler": "E-posta gönderilemedi: Posta sunucusu e-postayı reddetti ya da sunucuya ulaşılamadı.",
     "mail-aus": "E-posta gönderimi henüz kurulmadı: info@ses-academy.org için erişim bilgileri hâlâ eksik.",
+    "person-geloescht": "Kişi kalıcı olarak silindi.",
   },
   fr: {
     gespeichert: "Enregistré.",
@@ -52,6 +54,7 @@ export const rueckmeldungTexte: Record<TeamSprache, Record<string, string>> = {
     "ticket-gesendet": "QR code envoyé par e-mail.",
     "ticket-fehler": "L’e-mail n’a pas pu être envoyé : le serveur de messagerie l’a refusé ou était injoignable.",
     "mail-aus": "L’envoi d’e-mails n’est pas encore configuré : les identifiants de info@ses-academy.org manquent encore.",
+    "person-geloescht": "La personne a été supprimée définitivement.",
   },
 };
 

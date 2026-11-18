@@ -1263,6 +1263,9 @@ isOneToOne: false
 "add_document_version":
 { Args: { "p_document_id": string,"p_file_name": string,"p_mime": string,"p_note"?: string,"p_storage_path": string }; Returns: number
                            },
+"anonymize_participant":
+{ Args: { "p_participant_id": string }; Returns: Json
+                           },
 "apply_probe_rooms":
 { Args: { "p_capacity": number,"p_hotel_id"?: string,"p_module_id": string,"p_zimmer": Json }; Returns: Json
                            },
@@ -1319,6 +1322,9 @@ isOneToOne: false
 "decide_approval":
 { Args: { "p_approve": boolean,"p_id": string,"p_note"?: string }; Returns: string
                            },
+"delete_participant_now":
+{ Args: { "p_note"?: string,"p_participant_id": string }; Returns: Json
+                           },
 "deletion_counts":
 { Args: { "pid": string }; Returns: Json
                            },
@@ -1330,6 +1336,9 @@ isOneToOne: false
                            },
 "end_user_sessions":
 { Args: { "p_user_id": string }; Returns: number
+                           },
+"exclude_participant":
+{ Args: { "p_note"?: string,"p_participant_id": string }; Returns: Json
                            },
 "execute_deletion":
 { Args: { "p_approval_id": string,"p_note"?: string }; Returns: Json
@@ -1525,6 +1534,9 @@ isOneToOne: false
                            },
 "question_rate_exceeded":
 { Args: { "p_art": string,"p_ip": string,"p_max": number }; Returns: boolean
+                           },
+"readmit_participant":
+{ Args: { "p_participant_id": string }; Returns: Json
                            },
 "record_approval_result":
 { Args: { "p_id": string,"p_result": Json }; Returns: undefined
