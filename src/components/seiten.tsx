@@ -701,7 +701,7 @@ const pressefotos = ["/fotos/yousaf.jpg", "/fotos/yousaf-rohe.jpg", "/fotos/saal
 export function Presseseite({ l }: { l: Sprache }) {
   const t = texte[l];
   const p = t.presse;
-  const auswahl = ["Humza Yousaf", "Prof. Dr. Mathias Rohe", "Hubertus Heil", "Prof. Jocelyne Cesari", "Farid Hafez, Ph.D.", "Dr. Mustafa Cerić", "Mehmet Daimagüler"];
+  const auswahl = ["Humza Yousaf", "Prof. Dr. Mathias Rohe", "Hubertus Heil", "Prof. Jocelyne Cesari", "Farid Hafez, Ph.D.", "Dr. Mustafa Cerić", "Dr. Mehmet Daimagüler"];
   return (
     <>
       <section className="mx-auto max-w-7xl px-4 pt-10 pb-14 sm:px-6 sm:pt-16 lg:px-10">

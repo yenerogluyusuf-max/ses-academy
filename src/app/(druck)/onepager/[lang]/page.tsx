@@ -9,7 +9,7 @@ export function generateStaticParams() {
   return sprachen.map((lang) => ({ lang }));
 }
 
-const auswahl = ["Humza Yousaf", "Prof. Dr. Mathias Rohe", "Hubertus Heil", "Farid Hafez, Ph.D.", "Dr. Mustafa Cerić", "Mehmet Daimagüler"];
+const auswahl = ["Humza Yousaf", "Prof. Dr. Mathias Rohe", "Hubertus Heil", "Farid Hafez, Ph.D.", "Dr. Mustafa Cerić", "Dr. Mehmet Daimagüler"];
 
 export default async function OnePager({ params }: PageProps<"/onepager/[lang]">) {
   const { lang } = await params;

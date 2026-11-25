@@ -75,7 +75,6 @@ export const gaeste: Gast[] = [
   { name: "Büşra Çatal", modul: "verfassungen", format: "panel", rolle: alle("IGMG Frauenjugend") },
   { name: "Jun.-Prof. Dr. Idris Nassery", modul: "verfassungen", format: "laendergruppe", rolle: alle("Universität Paderborn") },
   { name: "Selda Can", modul: "verfassungen", format: "laendergruppe", rolle: { de: "Rechtsanwältin", tr: "Avukat", en: "Lawyer", fr: "Avocate", nl: "Advocaat" } },
-  { name: "Mehmet Daimagüler", modul: "verfassungen", format: "gespraech", rolle: { de: "Rechtsanwalt und Autor", tr: "Avukat ve yazar", en: "Lawyer and author", fr: "Avocat et auteur", nl: "Advocaat en auteur" } },
   { name: "Elif Zehra Kandemir", modul: "verfassungen", format: "gespraech", rolle: alle("Perspektif") },
   { name: "Burhan Kesici", modul: "skills-workshop", format: "eroeffnung", rolle: { de: "Vorsitzender des Islamrats", tr: "İslam Konseyi Başkanı", en: "Chairman of the Islamrat", fr: "Président de l’Islamrat", nl: "Voorzitter van de Islamrat" } },
   { name: "Zehra Karataş", modul: "skills-workshop", format: "eroeffnung", rolle: { de: "Vorsitzende der IGMG-Frauenjugend", tr: "IGMG Kadın Gençlik Teşkilatı Başkanı", en: "Chair of IGMG Women’s Youth", fr: "Présidente de la jeunesse féminine de la CIMG", nl: "Voorzitter IGMG Vrouwenjongeren" } },
