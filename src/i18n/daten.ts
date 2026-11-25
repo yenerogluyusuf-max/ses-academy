@@ -36,7 +36,7 @@ export const modulplan: Modul[] = [
     slug: "demokratie", art: "seminar", von: "2026-11-14", bis: "2026-11-15", ort: "Colonia-Allee 3, 51067 Köln",
   },
   {
-    slug: "winter-school", art: "winterschool", von: "2026-12-18", bis: "2026-12-23", ort: null,
+    slug: "social-media-workshop", art: "workshop", von: "2026-12-19", bis: "2026-12-20", ort: "Colonia-Allee 3, 51067 Köln",
   },
 ];
 

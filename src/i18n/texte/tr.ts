@@ -144,11 +144,11 @@ export const tr: Texte = {
       titel: "Avrupa’da Demokrasi – Modeller, İmkânlar ve Stres Testleri",
       text: ["Avrupa’da demokrasi farklı biçimlerde uygulanır; ancak her yerde benzer sınamalarla karşı karşıyadır. Bu modül, Avrupa’daki farklı demokratik modelleri, popülizm, kurumlara güven kaybı ve siyasi katılım gibi konuları içerir. Amaç, katılımcıların demokrasiyi daha iyi kavramasını sağlamak ve kendi rolünü keşfetmesine yardımcı olmaktır."],
     },
-    "winter-school": {
-      titel: "Winter School – İslam, Katılım ve Küresel Zorluklar",
+    "social-media-workshop": {
+      titel: "Sosyal Medya Atölyesi – Strateji, İçerik ve Hikâye Anlatımı",
       text: [
-        "Bu Winter School, İslamî etik, siyasi katılım ve uluslararası gelişmeleri anlama konularını ele alır. İslam’ın sorumluluk ve toplumsal katılıma dair perspektiflerinden yola çıkarak, değerlerin, normların ve etik ilkelerin yapıcı bir katılımı nasıl mümkün kıldığı incelenir. Program ayrıca uluslararası politikanın temel aktörleri ve yapılarına giriş sunar – Birleşmiş Milletler’den Avrupa Birliği’ne ve uluslararası ilişkilerdeki küresel gelişmelere kadar uzanan bir çerçevede.",
-        "Bunun yanında Winter School, etkili konuşma, bilinçli tartışma, açık ve anlaşılır yazma ile sosyal medyayı amaçlı bir şekilde kullanma gibi temel iletişim becerilerini güçlendirir.",
+        "Kendi içeriklerimiz doğru insanlara nasıl ulaşır? Bu atölye stratejiden uygulamaya uzanır: hedefler ve hedef kitleler, platformların işleyişi ve işin zanaat boyutu – akıllı telefonla fotoğraf ve video, kurgu, hikâye anlatımı ve içerik planlaması.",
+        "Katılımcılar küçük gruplar hâlinde kendi içeriklerini geliştirip üretir ve eğitmenlerden doğrudan geri bildirim alır.",
       ],
     },
   },

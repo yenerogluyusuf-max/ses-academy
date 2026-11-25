@@ -1,6 +1,6 @@
 import type { Texte } from "../typ";
 
-// Officiële teksten van ses.islamrat.de/nl/. Nieuw vertaald (laten nakijken): interfaceteksten en de Winter School (ontbrak in de NL-versie).
+// Officiële teksten van ses.islamrat.de/nl/. Nieuw vertaald (laten nakijken): interfaceteksten en de workshop sociale media (december 2026).
 export const nl: Texte = {
   meta: {
     titel: "SES Academy – Politieke educatie voor jonge moslims in Europa",
@@ -144,11 +144,11 @@ export const nl: Texte = {
       titel: "Democratie in Europa – Modellen, Kansen en Belastingsproeven",
       text: ["Democratie wordt in Europa op verschillende manieren vormgegeven, maar overal bestaan vergelijkbare uitdagingen. Deze module behandelt diverse democratische modellen en thema’s zoals populisme, afnemend vertrouwen in instituties en politieke participatie. Het doel is deelnemers te helpen de democratie beter te begrijpen en hun eigen rol daarin te ontdekken."],
     },
-    "winter-school": {
-      titel: "Winter School – Islam, Participatie en Mondiale Uitdagingen",
+    "social-media-workshop": {
+      titel: "Workshop sociale media – Strategie, content en storytelling",
       text: [
-        "Deze Winter School behandelt islamitische ethiek, politieke participatie en het begrijpen van internationale ontwikkelingen. Vanuit islamitische perspectieven op verantwoordelijkheid en maatschappelijke betrokkenheid wordt uitgewerkt hoe waarden, normen en ethische principes constructieve participatie mogelijk maken. Daarnaast biedt het programma een inleiding in de belangrijkste actoren en structuren van de internationale politiek – van de Verenigde Naties en de Europese Unie tot mondiale ontwikkelingen in de internationale betrekkingen.",
-        "Verder versterkt de Winter School belangrijke communicatieve vaardigheden: overtuigend spreken, weloverwogen discussiëren, helder schrijven en sociale media gericht inzetten.",
+        "Hoe bereikt je eigen content de juiste mensen? Deze workshop gaat van strategie naar praktijk: doelen en doelgroepen, de werking van de platforms en het vakmanschap erachter – fotografie en video met de smartphone, montage, storytelling en contentplanning.",
+        "In kleine groepen ontwikkelen en produceren de deelnemers eigen content en krijgen ze direct feedback van de trainers.",
       ],
     },
   },

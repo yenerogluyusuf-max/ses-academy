@@ -150,12 +150,11 @@ export const fr: Texte = {
         "Ce module analyse différents modèles démocratiques et aborde des enjeux tels que le populisme, la perte de confiance dans les institutions et la participation politique. Il vise à aider les participants à mieux comprendre la démocratie et à y trouver leur place.",
       ],
     },
-    "winter-school": {
-      titel: "Winter School – Islam, Participation et Enjeux Mondiaux",
+    "social-media-workshop": {
+      titel: "Atelier réseaux sociaux – Stratégie, contenu et storytelling",
       text: [
-        "Cette Winter School aborde l’éthique islamique, la participation politique et la compréhension des dynamiques internationales. À partir des perspectives islamiques sur la responsabilité et l’engagement sociétal, elle montre comment les valeurs, les normes et les principes éthiques peuvent soutenir une participation constructive.",
-        "Le programme propose également une introduction aux principaux acteurs et structures de la politique internationale — des Nations unies à l’Union européenne — ainsi qu’aux grandes évolutions des relations internationales.",
-        "Par ailleurs, la Winter School renforce des compétences essentielles en communication : s’exprimer avec conviction, débattre de manière réfléchie, écrire avec clarté et utiliser les réseaux sociaux de façon stratégique.",
+        "Comment ses propres contenus atteignent-ils les bonnes personnes ? Cet atelier mène de la stratégie à la pratique : objectifs et publics cibles, fonctionnement des plateformes et savoir-faire concret – photo et vidéo au smartphone, montage, storytelling et planification éditoriale.",
+        "En petits groupes, les participants conçoivent et produisent leurs propres contenus et reçoivent un retour direct des intervenants.",
       ],
     },
   },

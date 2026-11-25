@@ -27,7 +27,7 @@ export function istSprache(x: string): x is Sprache {
   return (sprachen as readonly string[]).includes(x);
 }
 
-export type ModulSlug = "auftakt" | "verfassungen" | "skills-workshop" | "demokratie" | "winter-school";
+export type ModulSlug = "auftakt" | "verfassungen" | "skills-workshop" | "demokratie" | "social-media-workshop";
 
 export type Texte = {
   meta: { titel: string; beschreibung: string };

@@ -147,11 +147,11 @@ export const de: Texte = {
       titel: "Demokratie in Europa – Formen, Chancen und Belastungsproben",
       text: ["Demokratie ist nicht überall gleich – aber überall herausgefordert. Hier geht es um unterschiedliche demokratische Modelle in Europa, um Themen wie Populismus, Vertrauensverlust in Institutionen und politische Teilhabe. Ziel ist, Demokratie besser zu verstehen – und die eigene Rolle darin zu finden."],
     },
-    "winter-school": {
-      titel: "Winter School – Islam, Partizipation und globale Herausforderungen",
+    "social-media-workshop": {
+      titel: "Social-Media-Workshop – Strategie, Content und Storytelling",
       text: [
-        "Diese Winter School behandelt islamische Ethik, politische Teilhabe und das Verständnis internationaler Entwicklungen. Ausgehend von islamischen Perspektiven auf Verantwortung und gesellschaftliches Engagement wird erarbeitet, wie Werte, Normen und ethische Prinzipien konstruktive Partizipation ermöglichen. Außerdem bietet das Programm eine Einführung in zentrale Akteure und Strukturen der internationalen Politik – von den Vereinten Nationen über die Europäische Union bis hin zu globalen Entwicklungen in den internationalen Beziehungen.",
-        "Daneben stärkt die Winter School zentrale kommunikative Kompetenzen: überzeugend sprechen, reflektiert diskutieren, klar schreiben und Social Media gezielt einsetzen.",
+        "Wie erreichen eigene Inhalte die richtigen Menschen? Dieser Workshop führt von der Strategie zur Umsetzung: Ziele und Zielgruppen, die Funktionsweise der Plattformen und das Handwerk dahinter – Fotografie und Video mit dem Smartphone, Schnitt, Storytelling und Contentplanung.",
+        "In Kleingruppen entwickeln und produzieren die Teilnehmenden eigene Beiträge und erhalten direktes Feedback von den Referierenden.",
       ],
     },
   },

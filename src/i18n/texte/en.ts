@@ -144,11 +144,11 @@ export const en: Texte = {
       titel: "Democracy in Europe – Forms, Opportunities & Stress Tests",
       text: ["Democracy looks different across Europe — yet everywhere it faces challenges. This module discusses various democratic models, issues such as populism and declining trust in institutions, and the importance of political participation. The goal is to understand democracy better and define one’s own role within it."],
     },
-    "winter-school": {
-      titel: "Winter School – Islam, Participation and Global Challenges",
+    "social-media-workshop": {
+      titel: "Social Media Workshop – Strategy, Content and Storytelling",
       text: [
-        "This Winter School addresses Islamic ethics, political participation and the understanding of international developments. Building on Islamic perspectives on responsibility and civic engagement, it explores how values, norms and ethical principles enable constructive participation. The programme also introduces key actors and structures of international politics – from the United Nations and the European Union to broader global dynamics in international relations.",
-        "In addition, the Winter School strengthens essential communication skills: speaking persuasively, engaging in reflective discussion, writing clearly and using social media effectively.",
+        "How does your own content reach the right people? This workshop goes from strategy to practice: goals and target audiences, how the platforms work and the craft behind it – smartphone photography and video, editing, storytelling and content planning.",
+        "In small groups, participants develop and produce their own content and receive direct feedback from the trainers.",
       ],
     },
   },
